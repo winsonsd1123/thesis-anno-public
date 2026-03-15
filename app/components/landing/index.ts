@@ -1,0 +1,9 @@
+export { Nav } from "./Nav";
+export { Hero } from "./Hero";
+export { Features } from "./Features";
+export { HowItWorks } from "./HowItWorks";
+export { SocialProof } from "./SocialProof";
+export { Pricing } from "./Pricing";
+export { FAQ } from "./FAQ";
+export { CTABanner } from "./CTABanner";
+export { Footer } from "./Footer";
