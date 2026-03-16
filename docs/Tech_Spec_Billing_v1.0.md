@@ -1,9 +1,10 @@
-# 计费与点数系统详细设计方案 (Billing & Credits System Design)
+# 计费与点数系统技术方案 (Tech Spec) v1.0
 
-**版本**: v1.1  
-**基于文档**: `docs/AI_Thesis_Review_PRD_v2.0.md`, `docs/AI_Thesis_Review_Database_Schema_v2.0.md`  
-**作者**: Colin  
-**日期**: 2026-03-16
+| 版本 | 日期 | 作者 | 状态 |
+| :--- | :--- | :--- | :--- |
+| v1.0 | 2026-03-16 | Colin | Draft |
+
+**基于文档**: `docs/AI_Thesis_Review_PRD_v2.0.md`, `docs/AI_Thesis_Review_Database_Schema_v2.0.md`
 
 ---
 

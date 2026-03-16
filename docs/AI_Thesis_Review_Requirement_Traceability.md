@@ -6,7 +6,7 @@
 | **文档版本** | V2.0 |
 | **关联 PRD** | [AI_Thesis_Review_PRD_v2.0.md](./AI_Thesis_Review_PRD_v2.0.md) |
 | **关联架构** | [AI_Thesis_Review_Architecture_Design.md](./AI_Thesis_Review_Architecture_Design.md) |
-| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Billing_System_Design_v1.0.md](./Billing_System_Design_v1.0.md) |
+| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md) |
 | **作者** | Colin |
 | **最后更新** | 2026-03-16 |
 
@@ -104,4 +104,4 @@
 | :--- | :--- | :--- | :--- |
 | **用户认证与档案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) | [issues/2026-03-15+Auth_Profile模块开发.md](../issues/2026-03-15+Auth_Profile模块开发.md) | 2026-03-15 |
 | **i18n 国际化** | [Tech_Spec_i18n_Plugin_v1.0.md](./Tech_Spec_i18n_Plugin_v1.0.md) | [issues/2026-03-15+i18n国际化开发.md](../issues/2026-03-15+i18n国际化开发.md) | 2026-03-15 |
-| **计费与点数** | [Billing_System_Design_v1.0.md](./Billing_System_Design_v1.0.md) | [issues/2026-03-16+计费模块开发.md](../issues/2026-03-16+计费模块开发.md) | 2026-03-16 |
+| **计费与点数** | [Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md) | [issues/2026-03-16+计费模块开发.md](../issues/2026-03-16+计费模块开发.md) | 2026-03-16 |
