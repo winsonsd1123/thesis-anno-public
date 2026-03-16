@@ -4,7 +4,8 @@ import { orderDAL } from "@/lib/dal/order.dal";
 import { transactionService } from "@/lib/services/transaction.service";
 
 /**
- * Zpay 异步通知。仅支持 POST，避免敏感参数（订单号、金额等）出现在 URL 日志中。
+ * Zpay 异步通知。Zpay 文档规定支付结果通知请求方法为 GET，必须支持。
+ * 同时支持 POST 以兼容可能的未来变更。
  * 注意：必须返回 "success" 文本，否则 Zpay 会重试。
  */
 async function handleWebhook(params: Record<string, string | undefined>) {
@@ -58,6 +59,15 @@ async function handleWebhook(params: Record<string, string | undefined>) {
   }
 
   return successResponse();
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const params: Record<string, string | undefined> = {};
+  searchParams.forEach((v, k) => {
+    params[k] = v;
+  });
+  return handleWebhook(params);
 }
 
 export async function POST(request: Request) {
