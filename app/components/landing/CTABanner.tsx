@@ -1,8 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
 export function CTABanner() {
+  const t = useTranslations("landing.ctaBanner");
+
   return (
     <section style={{ padding: "60px 32px 96px", background: C.bg }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -56,9 +59,9 @@ export function CTABanner() {
                 lineHeight: 1.15,
               }}
             >
-              论文提交前，
+              {t("title1")}
               <br />
-              <span className="gradient-text">让 AI 先帮你把把关</span>
+              <span className="gradient-text">{t("title2")}</span>
             </h2>
             <p
               style={{
@@ -69,16 +72,16 @@ export function CTABanner() {
                 lineHeight: 1.65,
               }}
             >
-              首次注册即可免费体验 1 次完整批阅。无需绑定信用卡，60 秒内开始使用。
+              {t("subtitle")}
             </p>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
               <button className="btn-primary" style={{ padding: "15px 36px", fontSize: 16, borderRadius: 12 }}>
-                免费开始批阅
+                {t("ctaPrimary")}
                 <span style={{ fontSize: 18 }}>→</span>
               </button>
               <button className="btn-secondary" style={{ padding: "15px 28px", fontSize: 15, borderRadius: 12 }}>
-                查看示例报告
+                {t("ctaSecondary")}
               </button>
             </div>
 
@@ -91,7 +94,7 @@ export function CTABanner() {
                 flexWrap: "wrap",
               }}
             >
-              {["✓ 无月费订阅", "✓ 点数永久有效", "✓ 微信/支付宝支持"].map((item) => (
+              {[t("trust1"), t("trust2"), t("trust3")].map((item) => (
                 <span key={item} style={{ fontSize: 13, color: C.textMuted }}>
                   {item}
                 </span>

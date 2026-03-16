@@ -2,36 +2,37 @@
 
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Nav, Hero } from "./components/landing";
-import { C } from "./components/landing/constants";
+import { Nav, Hero } from "../components/landing";
+import { C } from "../components/landing/constants";
 
-const Features = dynamic(() => import("./components/landing/Features").then((m) => ({ default: m.Features })), {
+const Features = dynamic(() => import("../components/landing/Features").then((m) => ({ default: m.Features })), {
   ssr: true,
 });
 
-const HowItWorks = dynamic(() => import("./components/landing/HowItWorks").then((m) => ({ default: m.HowItWorks })), {
-  ssr: true,
-});
-
-const SocialProof = dynamic(
-  () => import("./components/landing/SocialProof").then((m) => ({ default: m.SocialProof })),
+const HowItWorks = dynamic(
+  () => import("../components/landing/HowItWorks").then((m) => ({ default: m.HowItWorks })),
   { ssr: true }
 );
 
-const Pricing = dynamic(() => import("./components/landing/Pricing").then((m) => ({ default: m.Pricing })), {
+const SocialProof = dynamic(
+  () => import("../components/landing/SocialProof").then((m) => ({ default: m.SocialProof })),
+  { ssr: true }
+);
+
+const Pricing = dynamic(() => import("../components/landing/Pricing").then((m) => ({ default: m.Pricing })), {
   ssr: true,
 });
 
-const FAQ = dynamic(() => import("./components/landing/FAQ").then((m) => ({ default: m.FAQ })), {
+const FAQ = dynamic(() => import("../components/landing/FAQ").then((m) => ({ default: m.FAQ })), {
   ssr: true,
 });
 
 const CTABanner = dynamic(
-  () => import("./components/landing/CTABanner").then((m) => ({ default: m.CTABanner })),
+  () => import("../components/landing/CTABanner").then((m) => ({ default: m.CTABanner })),
   { ssr: true }
 );
 
-const Footer = dynamic(() => import("./components/landing/Footer").then((m) => ({ default: m.Footer })), {
+const Footer = dynamic(() => import("../components/landing/Footer").then((m) => ({ default: m.Footer })), {
   ssr: true,
 });
 

@@ -1,77 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
-const PLANS = [
-  {
-    name: "单次体验",
-    nameEn: "Single Pass",
-    emoji: "⚡",
-    price: "¥9.9",
-    unit: "1 次",
-    desc: "适合初次体验，感受 AI 批阅的效果",
-    color: C.brand,
-    popular: false,
-    save: null as string | null,
-    features: [
-      "1 次完整论文批阅",
-      "五维度审阅报告",
-      "PDF 报告下载",
-      "< 60 页论文",
-      "基础客服支持",
-    ],
-  },
-  {
-    name: "标准套餐",
-    nameEn: "Standard Bundle",
-    emoji: "🔥",
-    price: "¥79",
-    unit: "10 次",
-    desc: "最受欢迎，适合毕业季多次修改迭代",
-    color: C.brand,
-    popular: true,
-    save: "节省 20%",
-    features: [
-      "10 次完整论文批阅",
-      "五维度审阅报告",
-      "PDF + Markdown 下载",
-      "支持 100 页以内论文",
-      "优先处理队列",
-      "完整历史记录",
-    ],
-  },
-  {
-    name: "专业套餐",
-    nameEn: "Pro Bundle",
-    emoji: "💎",
-    price: "¥299",
-    unit: "50 次",
-    desc: "适合导师、研究团队或机构批量使用",
-    color: C.accent,
-    popular: false,
-    save: "节省 40%",
-    features: [
-      "50 次完整论文批阅",
-      "五维度审阅报告",
-      "PDF + Markdown 下载",
-      "支持 150 页以内论文",
-      "最高优先级队列",
-      "完整历史记录与导出",
-      "专属客服工单",
-    ],
-  },
+const PLAN_KEYS = ["single", "standard", "pro"] as const;
+const PLAN_META = [
+  { emoji: "⚡", price: "¥9.9", color: C.brand, popular: false, saveKey: null as string | null },
+  { emoji: "🔥", price: "¥79", color: C.brand, popular: true, saveKey: "save" },
+  { emoji: "💎", price: "¥299", color: C.accent, popular: false, saveKey: "savePro" },
 ];
 
 export function Pricing() {
+  const t = useTranslations("landing.pricing");
   const [selected, setSelected] = useState(1);
+  const plans = PLAN_KEYS.map((key, i) => ({
+    ...PLAN_META[i],
+    name: t(`plans.${key}.name`),
+    nameEn: t(`plans.${key}.nameEn`),
+    unit: t(`plans.${key}.unit`),
+    desc: t(`plans.${key}.desc`),
+    save: PLAN_META[i].saveKey ? t(PLAN_META[i].saveKey!) : null,
+    features: t.raw(`plans.${key}.features`) as string[],
+  }));
 
   return (
     <section id="pricing" style={{ padding: "96px 32px", background: C.bg }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
           <div className="badge badge-accent" style={{ marginBottom: 18 }}>
-            点数套餐
+            {t("badge")}
           </div>
           <h2
             style={{
@@ -82,15 +40,15 @@ export function Pricing() {
               marginBottom: 14,
             }}
           >
-            透明定价，<span className="gradient-text-warm">按需购买</span>
+            {t("title")}<span className="gradient-text-warm">{t("titleHighlight")}</span>
           </h2>
           <p style={{ fontSize: 17, color: C.textSecondary, maxWidth: 440, margin: "0 auto", lineHeight: 1.65 }}>
-            预付费点数制，无月费，无订阅束缚。购买即用，点数永久有效。
+            {t("subtitle")}
           </p>
         </div>
 
         <div className="pricing-grid" style={{ alignItems: "stretch" }}>
-          {PLANS.map((plan, i) => (
+          {plans.map((plan, i) => (
             <div
               key={plan.name}
               onClick={() => setSelected(i)}
@@ -127,7 +85,7 @@ export function Pricing() {
                     letterSpacing: "0.3px",
                   }}
                 >
-                  最受欢迎
+                  {t("plans.standard.popular")}
                 </div>
               )}
 
@@ -191,7 +149,7 @@ export function Pricing() {
                   boxShadow: plan.popular ? "var(--shadow-brand)" : "none",
                 }}
               >
-                {plan.popular ? "立即购买 →" : "选择此套餐"}
+                {plan.popular ? t("buyNow") : t("selectPlan")}
               </button>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -237,11 +195,11 @@ export function Pricing() {
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>消耗规则：</span>
+          <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{t("rules")}</span>
           {[
-            { pages: "< 60页", cost: "消耗 1 次", color: C.brand },
-            { pages: "60 ~ 100页", cost: "消耗 2 次", color: C.teal },
-            { pages: "100 ~ 150页", cost: "消耗 3 次", color: C.accent },
+            { pages: t("rule1"), cost: t("rule1Cost"), color: C.brand },
+            { pages: t("rule2"), cost: t("rule2Cost"), color: C.teal },
+            { pages: t("rule3"), cost: t("rule3Cost"), color: C.accent },
           ].map((rule) => (
             <div key={rule.pages} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span

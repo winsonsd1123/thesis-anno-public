@@ -1,14 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
-const FOOTER_LINKS = [
-  { title: "产品", links: ["功能介绍", "工作流程", "价格套餐", "示例报告"] },
-  { title: "资源", links: ["使用文档", "批阅标准", "更新日志", "API 文档"] },
-  { title: "关于", links: ["关于我们", "联系我们", "隐私政策", "服务条款"] },
-];
-
 export function Footer() {
+  const t = useTranslations("landing.footer");
+  const footerLinks = [
+    { title: t("product"), links: t.raw("productLinks") as string[] },
+    { title: t("resources"), links: t.raw("resourceLinks") as string[] },
+    { title: t("about"), links: t.raw("aboutLinks") as string[] },
+  ];
+
   return (
     <footer style={{ borderTop: `1px solid ${C.border}`, padding: "48px 32px 32px", background: C.surface }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -43,11 +45,11 @@ export function Footer() {
               </span>
             </div>
             <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.65, maxWidth: 260 }}>
-              AI 驱动的论文智能批阅平台。多智能体协作，导师级预审，帮你在答辩前发现并修正问题。
+              {t("slogan")}
             </p>
           </div>
 
-          {FOOTER_LINKS.map((col) => (
+          {footerLinks.map((col) => (
             <div key={col.title}>
               <div
                 style={{
@@ -86,9 +88,9 @@ export function Footer() {
         <div className="divider" style={{ marginBottom: 22 }} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ fontSize: 12, color: C.textMuted }}>© 2026 ThesisAI. 保留所有权利。</span>
+          <span style={{ fontSize: 12, color: C.textMuted }}>{t("copyright")}</span>
           <div style={{ display: "flex", gap: 16 }}>
-            {["微信公众号", "小红书", "知乎"].map((p) => (
+            {(t.raw("social") as string[]).map((p) => (
               <a
                 key={p}
                 href="#"

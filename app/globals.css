@@ -361,6 +361,53 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 12px 12px 4px 12px;
 }
 
+/* ── Profile form (Settings) ── */
+.profile-form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  padding: 32px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.profile-form-card:focus-within {
+  border-color: rgba(0, 87, 255, 0.25);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.profile-form-input:hover {
+  border-color: var(--border-strong);
+}
+
+.profile-form-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-bg);
+}
+
+@media (max-width: 640px) {
+  .profile-form-card {
+    padding: 24px 20px;
+  }
+}
+
 /* ── Nav ── */
 .nav-link {
   color: var(--text-secondary);

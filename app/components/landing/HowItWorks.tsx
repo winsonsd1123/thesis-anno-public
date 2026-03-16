@@ -1,46 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
-const STEPS = [
-  {
-    num: 1,
-    icon: "📤",
-    color: C.brand,
-    title: "上传论文",
-    desc: "拖拽 PDF 上传，AI 立即扫描首页，自动识别论文领域与学位类型。",
-    tag: "PDF · 最大 200MB",
-  },
-  {
-    num: 2,
-    icon: "💬",
-    color: C.teal,
-    title: "对话式配置",
-    desc: "AI 主动发问，了解你的学位类型和关注重点，像和导师聊天一样自然。",
-    tag: "本科 / 硕士 / 博士",
-  },
-  {
-    num: 3,
-    icon: "🚀",
-    color: C.accent,
-    title: "多智能体并行",
-    desc: "三个专用 AI 智能体同时工作，可视化展示每个 Agent 的实时进度。",
-    tag: "< 5 分钟出结果",
-  },
-  {
-    num: 4,
-    icon: "📊",
-    color: C.success,
-    title: "获取详细报告",
-    desc: "分 Tab 展示五维度批阅结果，支持一键下载 PDF 或 Markdown 报告。",
-    tag: "PDF + Markdown 下载",
-  },
-];
+const STEP_KEYS = ["upload", "chat", "parallel", "report"] as const;
+const STEP_COLORS = [C.brand, C.teal, C.accent, C.success];
+const STEP_ICONS = ["📤", "💬", "🚀", "📊"];
 
-function ResultPreview() {
+function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
   const [activeTab, setActiveTab] = useState(0);
-  const tabs = ["总览", "内容逻辑", "格式规范", "参考文献", "语法润色"];
+  const tabs = t.raw("preview.tabs") as string[];
 
   const issues = [
     {
@@ -101,7 +71,7 @@ function ResultPreview() {
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840", display: "inline-block" }} />
         <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "Sora, sans-serif" }}>
-          批阅报告 · 《基于深度学习的图像识别研究》
+          {t("preview.title")}
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button
@@ -116,7 +86,7 @@ function ResultPreview() {
               cursor: "pointer",
             }}
           >
-            下载 PDF
+            {t("preview.downloadPdf")}
           </button>
           <button
             style={{
@@ -130,7 +100,7 @@ function ResultPreview() {
               cursor: "pointer",
             }}
           >
-            下载 Markdown
+            {t("preview.downloadMd")}
           </button>
         </div>
       </div>
@@ -191,7 +161,7 @@ function ResultPreview() {
             >
               87
             </div>
-            <div style={{ fontSize: 12, color: C.textMuted }}>综合评分</div>
+            <div style={{ fontSize: 12, color: C.textMuted }}>{t("preview.overallScore")}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {scores.map((item) => (
@@ -226,7 +196,7 @@ function ResultPreview() {
               marginBottom: 14,
             }}
           >
-            核心问题 · 修改优先级建议
+            {t("preview.coreIssues")}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {issues.map((issue, i) => (
@@ -293,12 +263,22 @@ function ResultPreview() {
 }
 
 export function HowItWorks() {
+  const t = useTranslations("landing.howItWorks");
+  const steps = STEP_KEYS.map((key, i) => ({
+    num: i + 1,
+    icon: STEP_ICONS[i],
+    color: STEP_COLORS[i],
+    title: t(`steps.${key}.title`),
+    desc: t(`steps.${key}.desc`),
+    tag: t(`steps.${key}.tag`),
+  }));
+
   return (
     <section id="workflow" style={{ padding: "96px 32px", background: C.bg }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 72 }}>
           <div className="badge badge-brand" style={{ marginBottom: 18 }}>
-            工作流程
+            {t("badge")}
           </div>
           <h2
             style={{
@@ -309,17 +289,17 @@ export function HowItWorks() {
               marginBottom: 14,
             }}
           >
-            四步完成<span className="gradient-text">导师级预审</span>
+            {t("title")}<span className="gradient-text">{t("titleHighlight")}</span>
           </h2>
           <p style={{ fontSize: 17, color: C.textSecondary, maxWidth: 440, margin: "0 auto", lineHeight: 1.65 }}>
-            从上传到报告，全流程自动化，无需手动填写繁琐表单
+            {t("subtitle")}
           </p>
         </div>
 
         <div style={{ position: "relative" }}>
           <div className="workflow-connector" />
           <div className="workflow-grid" style={{ position: "relative", zIndex: 1 }}>
-            {STEPS.map((step) => (
+            {steps.map((step) => (
               <div
                 key={step.num}
                 style={{
@@ -408,7 +388,7 @@ export function HowItWorks() {
           </div>
         </div>
 
-        <ResultPreview />
+        <ResultPreview t={t} />
       </div>
     </section>
   );

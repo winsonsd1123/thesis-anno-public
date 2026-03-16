@@ -58,7 +58,7 @@
 | 角色 | 权限描述 |
 | :--- | :--- |
 | **普通用户 (User)** | - 注册/登录 (Supabase Auth)<br>- 购买/充值点数 (Credits)<br>- 上传论文 (PDF) 并消耗点数<br>- 查看审阅进度 (Gemini 风格)<br>- 下载审阅报告<br>- 历史记录管理 (左侧边栏) |
-| **管理员 (Admin)** | - 全局仪表盘 (用户数、营收、任务队列)<br>- 订单管理 (退款、查单)<br>- **异常任务工单处理 (Retry/Refund)**<br>- 系统日志查看 |
+| **管理员 (Admin)** | - 全局仪表盘 (用户数、营收、任务队列)<br>- 订单管理 (退款、查单)<br>- **异常任务工单处理 (Retry/Refund)**<br>- **后台配置管理 (Prompt Lab, Pricing, System Config)**<br>- 系统日志查看 |
 
 ---
 
@@ -150,6 +150,19 @@
 *   **前端**：`next-intl`，所有 UI 文本配置化。
 *   **后端**：Prompt 模板支持多语言 Key。
 
+### 5.6 后台管理与配置模块 (Admin & Configuration Module)
+*   **架构策略**：基于 **Supabase Storage** + **Next.js Revalidation** 实现配置热更新，无 Redis 依赖。
+*   **Prompt 实验室 (Prompt Lab)**：
+    *   **Prompt Registry**：管理 Prompt 模板版本（e.g., `logic_check_v2`），支持变量注入 (`{{field}}`, `{{degree}}`)。
+    *   **Playground**：在线输入测试文本，实时调用不同模型 (Gemini Pro/Flash) 验证 Prompt 效果。
+    *   **发布机制**：点击 Publish -> 更新 Supabase -> 触发 `revalidateTag('llm-prompts')` -> 全局生效。
+*   **动态计费与策略 (Dynamic Pricing)**：
+    *   JSON 配置化管理套餐价格与消耗规则（e.g., `{"base_price": 9.9, "credits": 10}`）。
+    *   支持配置“促销活动”或“新用户优惠”策略。
+*   **系统熔断与公告 (Circuit Breaker)**：
+    *   **Feature Flags**：一键开启/关闭特定 Agent（如遇 API 故障）。
+    *   **Maintenance Mode**：开启全站维护模式，前端展示公告条。
+
 ---
 
 ## 6. 详细审阅能力标准 (Review Criteria - MVP Focus)
@@ -183,6 +196,7 @@
 1.  **性能**：PDF 解析 < 10s；完整审阅 < 5分钟 (100页以内)。
 2.  **安全**：文件加密存储；支付回调签名校验。
 3.  **扩展性**：API 设计遵循 RESTful/GraphQL；支付和审阅逻辑解耦。
+4.  **配置热更新**：利用 Next.js ISR/Tag Revalidation 机制实现配置秒级生效，避免引入 Redis 增加运维成本。
 
 ### 7.1 前端体验与主题 (UI/UX & Theming)
 *   **主题模式**：
@@ -197,21 +211,24 @@
 
 ## 8. 异常处理与系统可靠性 (Reliability & Logging)
 
-### 8.1 异常挂起与人工工单 (Suspend & Ticket - MVP Strategy)
+### 8.1 异常挂起与工单系统 (Suspend & Ticket System - MVP Strategy)
 *   **策略说明**：MVP 阶段为保证服务质量和避免误退款，采用**“先人工后自动”**的保守策略。
-*   **处理流程**：
-    1.  **自动重试 (Auto-Retry)**：
-        *   后端默认对 LLM 请求进行 3 次指数退避重试 (Exponential Backoff)。
-    2.  **异常挂起 (Suspend)**：
-        *   若重试 3 次后仍失败，系统将任务状态标记为 `NEEDS_MANUAL_REVIEW` (待人工复核)。
-        *   自动生成**高优先级工单**，通知管理员（邮件/Slack/钉钉）。
-    3.  **用户安抚 (User Feedback)**：
+*   **工单触发机制 (Trigger Mechanism)**：
+    1.  **系统自动触发 (System Auto-Trigger)**：
+        *   **场景**: 审阅任务重试 3 次后仍失败 (Status: `FAILED` -> `NEEDS_MANUAL_REVIEW`)。
+        *   **动作**: 后端自动创建一张 **高优先级 (High Priority)** 工单，关联该任务 ID。
+        *   **通知**: 通过邮件/Slack 实时通知管理员 "Review Task #123 Failed"。
+    2.  **用户手动触发 (User Manual Trigger)**：
+        *   **场景**: 用户对审阅结果不满意或遇到计费问题。
+        *   **动作**: 用户在前端点击 "反馈/申诉"，创建一张 **普通优先级** 工单。
+*   **处理流程 (Resolution Workflow)**：
+    1.  **用户安抚 (User Feedback)**：
         *   前端 UI 显示：“AI 遇到复杂内容，已自动转交专家人工复核，预计 2 小时内完成。”
         *   **禁止直接报错**：通过话术将“技术故障”转化为“增值服务”，降低用户焦虑。
-    4.  **管理员介入 (Admin Action)**：
+    2.  **管理员介入 (Admin Action)**：
         *   管理员查看 `llm_traces` 日志定位原因。
-        *   **Action A**: 修复 Prompt 或参数后，点击后台 **[强制重试]** 按钮。
-        *   **Action B**: 确认为不可处理文件（如加密 PDF），点击 **[拒绝并退款]**，系统自动触发退款流程并通知用户。
+        *   **Action A (Retry)**: 修复 Prompt 或参数后，点击后台 **[强制重试]** 按钮 -> 工单标记为 `RESOLVED`。
+        *   **Action B (Refund)**: 确认为不可处理文件（如加密 PDF），点击 **[拒绝并退款]** -> 系统自动触发退款流程 (Credits Return) -> 工单标记为 `RESOLVED` 并通知用户。
 
 ### 8.2 全链路日志审计 (Logging & Audit)
 *   **资金流水日志 (`credit_transactions`)**：

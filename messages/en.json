@@ -1,0 +1,274 @@
+{
+  "common": {
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New Password",
+    "fullName": "Full Name",
+    "user": "User"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to ThesisAI",
+      "subtitle": "Sign in with email or third-party account",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "registerNow": "Sign up now"
+    },
+    "register": {
+      "title": "Create ThesisAI Account",
+      "subtitle": "Create an account to start using AI thesis review",
+      "passwordPlaceholder": "At least 8 characters, 3 of: uppercase, lowercase, digits, symbols",
+      "nickname": "Display name (optional)",
+      "nicknamePlaceholder": "2-50 characters",
+      "agreeTerms": "I agree to the",
+      "terms": "Terms of Service",
+      "and": "and",
+      "privacy": "Privacy Policy",
+      "submit": "Sign up",
+      "submitting": "Signing up…",
+      "hasAccount": "Already have an account?",
+      "loginNow": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "submit": "Send Reset Link",
+      "submitting": "Sending…",
+      "success": "Reset link sent. Please check your email.",
+      "backToLogin": "Back to sign in"
+    },
+    "updatePassword": {
+      "title": "Set New Password",
+      "subtitle": "Enter a new password, at least 8 characters with 3 of: uppercase, lowercase, digits, symbols",
+      "submit": "Update Password",
+      "submitting": "Updating…",
+      "success": "Password updated",
+      "backToDashboard": "Back to dashboard"
+    },
+    "verifyEmail": {
+      "title": "Check Your Email",
+      "subtitle": "We've sent a verification link to your email. Please click to complete registration.",
+      "noEmail": "Didn't receive it? Check spam, or",
+      "backToRegister": "Sign up again",
+      "backToLogin": "Back to sign in"
+    }
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "workflow": "Workflow",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "login": "Sign in",
+      "register": "Get Started",
+      "dashboard": "Dashboard"
+    },
+    "hero": {
+      "badge": "Multi-Agent AI Review · MVP Launch",
+      "title1": "Mentor-Level AI",
+      "title2": "Guards Your",
+      "title3": "Thesis",
+      "subtitle": "Multi-agent collaborative review: format, logic, and references in parallel. Mentor-level pre-review report in under 5 minutes.",
+      "stat1": "< 5min",
+      "stat1Label": "Full Review",
+      "stat2": "5 Dims",
+      "stat2Label": "All-Around Check",
+      "stat3": "GB/T",
+      "stat3Label": "Nat. Standard",
+      "ctaPrimary": "Try Free Now",
+      "ctaSecondary": "View Demo",
+      "trust1": "✓ No card required",
+      "trust2": "✓ First free",
+      "trust3": "✓ Credits never expire",
+      "typedText": "Research on Image Recognition Based on Deep Learning"
+    },
+    "features": {
+      "badge": "Core Features",
+      "title": "Not just checking,",
+      "titleHighlight": "deep understanding",
+      "subtitle": "Six dimensions of review, covering every detail from format to content for Chinese theses",
+      "items": {
+        "multiAgent": {
+          "title": "Multi-Agent Collaboration",
+          "desc": "Format, logic, and reference agents run in parallel. Each agent focuses on one domain for deeper results.",
+          "tags": ["Format Agent", "Logic Agent", "Reference Agent"]
+        },
+        "chat": {
+          "title": "Conversational AI Guide",
+          "desc": "Gemini Deep Research-style chat. AI asks questions, understands intent, and configures the best review strategy for your thesis type.",
+          "tags": ["ChatGPT-style", "Smart params", "Suggested Chips"]
+        },
+        "visual": {
+          "title": "Visual Review Process",
+          "desc": "Real-time display of AI reading and thinking. Typewriter streaming, progress cards—waiting becomes enjoyable.",
+          "tags": ["Streaming", "Progress viz", "Optimistic UI"]
+        },
+        "format": {
+          "title": "Deep Format Check",
+          "desc": "Strict GB/T 7714-2015 compliance. Chapter numbering, figure/table index consistency, page alignment.",
+          "tags": ["GB/T Standard", "Chapter numbers", "Figure index"]
+        },
+        "logic": {
+          "title": "Logic Chain Analysis",
+          "desc": "Paragraph-level annotations and logic gap detection. Abstract four elements, conclusion-intro coherence, argument flaws.",
+          "tags": ["Paragraph notes", "Logic gaps", "Coherence"]
+        },
+        "english": {
+          "title": "English Abstract Polish",
+          "desc": "Remove Chinglish, replace with academic vocabulary. Before/after comparison for better expression.",
+          "tags": ["De-Chinglish", "Academic vocab", "Comparison"]
+        }
+      }
+    },
+    "howItWorks": {
+      "badge": "Workflow",
+      "title": "Four steps to",
+      "titleHighlight": "mentor-level pre-review",
+      "subtitle": "From upload to report, fully automated—no tedious forms",
+      "steps": {
+        "upload": {
+          "title": "Upload Thesis",
+          "desc": "Drag & drop PDF. AI scans the first page and identifies field and degree type.",
+          "tag": "PDF · Max 200MB"
+        },
+        "chat": {
+          "title": "Conversational Config",
+          "desc": "AI asks about your degree type and focus areas—like chatting with your advisor.",
+          "tag": "Bachelor / Master / PhD"
+        },
+        "parallel": {
+          "title": "Multi-Agent Parallel",
+          "desc": "Three AI agents work simultaneously. Real-time progress for each agent.",
+          "tag": "< 5 min results"
+        },
+        "report": {
+          "title": "Get Detailed Report",
+          "desc": "Five-dimension results in tabs. One-click PDF or Markdown download.",
+          "tag": "PDF + Markdown"
+        }
+      },
+      "preview": {
+        "title": "Review Report · Deep Learning Image Recognition",
+        "downloadPdf": "Download PDF",
+        "downloadMd": "Download Markdown",
+        "tabs": ["Overview", "Logic", "Format", "References", "Grammar"],
+        "overallScore": "Overall Score",
+        "coreIssues": "Core Issues · Priority Suggestions",
+        "levels": { "high": "High", "medium": "Medium", "low": "Low" }
+      }
+    },
+    "pricing": {
+      "badge": "Credit Plans",
+      "title": "Transparent pricing,",
+      "titleHighlight": "pay as you go",
+      "subtitle": "Prepaid credits, no monthly fee, no subscription. Buy and use, credits never expire.",
+      "plans": {
+        "single": {
+          "name": "Single Pass",
+          "nameEn": "Single Pass",
+          "unit": "1 pass",
+          "desc": "Try AI review once",
+          "features": ["1 full thesis review", "Five-dimension report", "PDF download", "< 60 pages", "Basic support"]
+        },
+        "standard": {
+          "name": "Standard Bundle",
+          "nameEn": "Standard Bundle",
+          "unit": "10 passes",
+          "desc": "Most popular for graduation season iterations",
+          "popular": "Most Popular",
+          "features": ["10 full thesis reviews", "Five-dimension report", "PDF + Markdown", "Up to 100 pages", "Priority queue", "Full history"]
+        },
+        "pro": {
+          "name": "Pro Bundle",
+          "nameEn": "Pro Bundle",
+          "unit": "50 passes",
+          "desc": "For advisors, teams, or institutions",
+          "features": ["50 full thesis reviews", "Five-dimension report", "PDF + Markdown", "Up to 150 pages", "Highest priority", "Full history & export", "Dedicated support"]
+        }
+      },
+      "buyNow": "Buy Now →",
+      "selectPlan": "Select Plan",
+      "save": "Save 20%",
+      "savePro": "Save 40%",
+      "rules": "Usage rules:",
+      "rule1": "< 60 pages",
+      "rule1Cost": "1 pass",
+      "rule2": "60–100 pages",
+      "rule2Cost": "2 passes",
+      "rule3": "100–150 pages",
+      "rule3Cost": "3 passes"
+    },
+    "faq": {
+      "badge": "FAQ",
+      "title": "You might ask",
+      "subtitle": "Questions? You may find answers here",
+      "items": [
+        { "q": "What thesis types are supported?", "a": "MVP focuses on Chinese university theses (bachelor/master/PhD), PDF upload up to 150 pages. English theses and journal papers coming later." },
+        { "q": "Do credits expire?", "a": "Purchased credits never expire. Buy anytime, use anytime." },
+        { "q": "Is my thesis content secure?", "a": "All uploads are encrypted. HTTPS in transit. PII is auto-masked in logs. Content is never used for training or sharing." },
+        { "q": "What if AI review fails?", "a": "Auto-retry (3x exponential backoff). If still failing, task goes to manual review with ETA. Credits are not deducted until a report is delivered." },
+        { "q": "Can I export the report?", "a": "Yes. PDF (formatted) and Markdown (structured) for editing in Word or Notion." },
+        { "q": "What payment methods?", "a": "WeChat Pay and Alipay (via Zpay). Stripe/PayPal planned." }
+      ]
+    },
+    "ctaBanner": {
+      "title1": "Before submission,",
+      "title2": "let AI check your thesis first",
+      "subtitle": "Free first review on signup. No credit card. Start in 60 seconds.",
+      "ctaPrimary": "Start Free Review",
+      "ctaSecondary": "View Sample Report",
+      "trust1": "✓ No monthly fee",
+      "trust2": "✓ Credits never expire",
+      "trust3": "✓ WeChat/Alipay"
+    },
+    "footer": {
+      "slogan": "AI-powered thesis review. Multi-agent collaboration, mentor-level pre-review. Find and fix issues before defense.",
+      "product": "Product",
+      "productLinks": ["Features", "Workflow", "Pricing", "Sample Report"],
+      "resources": "Resources",
+      "resourceLinks": ["Docs", "Standards", "Changelog", "API"],
+      "about": "About",
+      "aboutLinks": ["About Us", "Contact", "Privacy", "Terms"],
+      "copyright": "© 2026 ThesisAI. All rights reserved.",
+      "social": ["WeChat", "Xiaohongshu", "Zhihu"]
+    },
+    "socialProof": {
+      "stats": [
+        { "num": "5,000+", "label": "Papers Reviewed" },
+        { "num": "98%", "label": "Satisfaction" },
+        { "num": "< 5min", "label": "Avg. Review" },
+        { "num": "GB/T", "label": "Nat. Standard" }
+      ],
+      "title": "Students love",
+      "titleHighlight": "ThesisAI",
+      "subtitle": "Real user feedback",
+      "testimonials": [
+        { "name": "Wang", "school": "Huazhong Univ. · Master", "text": "ThesisAI found Chinglish and reference format issues in my abstract. Saved me a lot of time!" },
+        { "name": "Chen", "school": "Peking Univ. · PhD", "text": "Logic analysis is strong—found a gap in my argument chain I missed. Very reassuring before defense." },
+        { "name": "Li", "school": "Zhejiang Univ. · Bachelor", "text": "Love the conversational UX. AI asks what you care about after upload. Report is very detailed!" }
+      ]
+    }
+  },
+  "dashboard": {
+    "home": "Home",
+    "settings": "Settings",
+    "backToHome": "Back to Home",
+    "welcome": "Welcome back",
+    "signOut": "Sign out",
+    "personalSettings": "Profile Settings",
+    "settingsSubtitle": "Manage your avatar, display name and other profile information",
+    "profileForm": {
+      "avatar": "Avatar",
+      "uploadAvatar": "Upload avatar",
+      "uploadingAvatar": "Uploading…",
+      "errorLogin": "Please log in first",
+      "nickname": "Display name",
+      "nicknamePlaceholder": "2-50 characters",
+      "save": "Save",
+      "saving": "Saving…",
+      "saveSuccess": "Saved successfully"
+    }
+  }
+}

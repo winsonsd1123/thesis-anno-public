@@ -3,9 +3,10 @@
 | 文档属性 | 描述 |
 | :--- | :--- |
 | **项目名称** | AI 辅助论文智能审批系统 (MVP) |
-| **文档版本** | V1.0 |
+| **文档版本** | V2.0 |
 | **关联 PRD** | [AI_Thesis_Review_PRD_v2.0.md](./AI_Thesis_Review_PRD_v2.0.md) |
 | **关联架构** | [AI_Thesis_Review_Architecture_Design.md](./AI_Thesis_Review_Architecture_Design.md) |
+| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) |
 | **作者** | Colin |
 | **最后更新** | 2026-03-15 |
 
@@ -15,11 +16,14 @@
 
 ### FR-01: 用户认证与管理 (User Authentication)
 
-| 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 备注/Gap Analysis |
+| 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 实现追踪 |
 | :--- | :--- | :--- | :--- | :--- |
-| **FR-01-01** | 支持邮箱/密码注册登录 | **Supabase Auth** (Email provider) | ✅ 已设计 | - |
-| **FR-01-02** | 支持 OAuth (Google/GitHub) | **Supabase Auth** (Social providers) | ✅ 已设计 | 需要在 Supabase 控制台配置 Client ID/Secret |
-| **FR-01-03** | 数据隔离 (RLS) | **Supabase RLS Policies** | ✅ 已设计 | `reviews` 表需配置 `auth.uid() = user_id` |
+| **FR-01-01** | 支持邮箱/密码注册登录 | **Supabase Auth** + **Server Actions** | ✅ 已实现 | `lib/actions/auth.actions.ts` (signUp/signIn)、`lib/dal/auth.dal.ts`、`app/[locale]/(auth)/login`、`register` |
+| **FR-01-02** | 支持 OAuth (Google/GitHub) | **Supabase Auth** (Social providers) | ✅ 已实现 | `signInWithOAuth`、`app/auth/callback/route.ts`。需在 Supabase 控制台配置 Client ID/Secret |
+| **FR-01-03** | 数据隔离 (RLS) | **Supabase RLS Policies** | ✅ 已设计 | `profiles` 表 RLS 已配置；`reviews` 表需配置 `auth.uid() = user_id` |
+| **FR-01-04** | 个人档案 (头像、昵称) | **Profile DAL/Service** + **Dashboard Settings** | ✅ 已实现 | `lib/dal/profile.dal.ts`、`lib/actions/profile.actions.ts`、`app/[locale]/dashboard/settings`、`AvatarUpload` 组件 |
+| **FR-01-05** | 密码重置 (找回密码) | **resetPasswordForEmail** + **updateUser** | ✅ 已实现 | `forgot-password`、`update-password` 页面，回调 `/auth/callback?next=/update-password` |
+| **FR-01-06** | 会话管理与路由保护 | **Middleware** + **Supabase SSR** | ✅ 已实现 | `middleware.ts`、`lib/supabase/middleware.ts`，未登录访问 `/dashboard` 重定向 `/login` |
 
 ### FR-02: 计费与点数 (Billing & Credits)
 
@@ -91,3 +95,11 @@
 4.  **对话式引导状态管理**:
     *   **Gap**: PRD 的 Step 1 是复杂的对话交互，架构主要描述了 Step 2 之后的异步任务。
     *   **Action**: 前端需设计 `useChat` 或类似的状态机来管理上传前的引导对话。
+
+---
+
+## 4. 实现记录 (Implementation Log)
+
+| 模块 | 技术方案 | 完成记录 | 完成日期 |
+| :--- | :--- | :--- | :--- |
+| **用户认证与档案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) | [issues/2026-03-15+Auth_Profile模块开发.md](../issues/2026-03-15+Auth_Profile模块开发.md) | 2026-03-15 |

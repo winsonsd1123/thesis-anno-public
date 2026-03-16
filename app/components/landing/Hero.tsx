@@ -1,22 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 import { HeroPreview } from "./HeroPreview";
 
 export function Hero() {
+  const t = useTranslations("landing.hero");
   const [typedText, setTypedText] = useState("");
 
   useEffect(() => {
-    const fullText = "基于深度学习的图像识别研究";
+    const fullText = t("typedText");
     let i = 0;
-    const t = setInterval(() => {
+    const id = setInterval(() => {
       if (i <= fullText.length) {
         setTypedText(fullText.slice(0, i++));
-      } else clearInterval(t);
+      } else clearInterval(id);
     }, 90);
-    return () => clearInterval(t);
-  }, []);
+    return () => clearInterval(id);
+  }, [t]);
 
   return (
     <section
@@ -71,7 +73,7 @@ export function Hero() {
               style={{ marginBottom: 28, opacity: 0, animation: "fade-up 0.5s ease-out 0.05s forwards" }}
             >
               <span className="status-dot running" style={{ width: 6, height: 6 }} />
-              多智能体 AI 批阅系统 · MVP 上线
+              {t("badge")}
             </div>
 
             <h1
@@ -85,11 +87,11 @@ export function Hero() {
                 animation: "fade-up 0.55s ease-out 0.1s forwards",
               }}
             >
-              导师级 AI
+              {t("title1")}
               <br />
-              <span className="gradient-text">为你的论文</span>
+              <span className="gradient-text">{t("title2")}</span>
               <br />
-              保驾护航
+              {t("title3")}
             </h1>
 
             <p
@@ -103,8 +105,7 @@ export function Hero() {
                 animation: "fade-up 0.55s ease-out 0.18s forwards",
               }}
             >
-              多智能体协作批阅，格式规范、内容逻辑、参考文献三维并行审查，
-              5 分钟内出具「导师级」预审报告。
+              {t("subtitle")}
             </p>
 
             <div
@@ -120,11 +121,11 @@ export function Hero() {
               }}
             >
               {[
-                { num: "< 5min", label: "完整批阅" },
-                { num: "5 维度", label: "全方位检查" },
-                { num: "GB/T", label: "国家标准" },
+                { num: t("stat1"), label: t("stat1Label") },
+                { num: t("stat2"), label: t("stat2Label") },
+                { num: t("stat3"), label: t("stat3Label") },
               ].map((s) => (
-                <div key={s.label}>
+                <div key={s.num + s.label}>
                   <div
                     style={{
                       fontSize: 22,
@@ -152,11 +153,11 @@ export function Hero() {
               }}
             >
               <button className="btn-primary" style={{ padding: "14px 28px", fontSize: 15 }}>
-                立即免费体验
+                {t("ctaPrimary")}
                 <span style={{ fontSize: 17 }}>→</span>
               </button>
               <button className="btn-secondary" style={{ padding: "14px 22px", fontSize: 15 }}>
-                <span>▶</span> 查看演示
+                <span>▶</span> {t("ctaSecondary")}
               </button>
             </div>
 
@@ -170,9 +171,9 @@ export function Hero() {
                 animation: "fade-up 0.55s ease-out 0.42s forwards",
               }}
             >
-              {["✓ 无需绑卡", "✓ 首次免费", "✓ 点数永久有效"].map((t) => (
-                <span key={t} style={{ fontSize: 12, color: C.textMuted }}>
-                  {t}
+              {[t("trust1"), t("trust2"), t("trust3")].map((txt) => (
+                <span key={txt} style={{ fontSize: 12, color: C.textMuted }}>
+                  {txt}
                 </span>
               ))}
             </div>

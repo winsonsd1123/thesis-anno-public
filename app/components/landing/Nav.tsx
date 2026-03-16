@@ -1,15 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Link, useRouter, usePathname } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { C } from "./constants";
+import { createClient } from "@/lib/supabase/client";
 
 export function Nav() {
+  const t = useTranslations("landing.nav");
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 16);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setIsLoggedIn(!!data?.user));
   }, []);
 
   return (
@@ -69,10 +83,10 @@ export function Nav() {
 
         <div className="nav-links" style={{ alignItems: "center" }}>
           {[
-            { label: "功能", href: "#features" },
-            { label: "流程", href: "#workflow" },
-            { label: "价格", href: "#pricing" },
-            { label: "FAQ", href: "#faq" },
+            { label: t("features"), href: "#features" },
+            { label: t("workflow"), href: "#workflow" },
+            { label: t("pricing"), href: "#pricing" },
+            { label: t("faq"), href: "#faq" },
           ].map((item) => (
             <a key={item.label} href={item.href} className="nav-link">
               {item.label}
@@ -80,13 +94,42 @@ export function Nav() {
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="btn-ghost" style={{ padding: "8px 18px", fontSize: 14 }}>
-            登录
-          </button>
-          <button className="btn-primary" style={{ padding: "9px 20px", fontSize: 14 }}>
-            免费开始
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["zh", "en"] as const).map((loc) => (
+              <button
+                key={loc}
+                type="button"
+                onClick={() => router.replace(pathname, { locale: loc })}
+                style={{
+                  padding: "4px 10px",
+                  fontSize: 13,
+                  fontWeight: locale === loc ? 600 : 400,
+                  color: locale === loc ? C.brand : C.textMuted,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: 6,
+                }}
+              >
+                {loc === "zh" ? "中文" : "EN"}
+              </button>
+            ))}
+          </div>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, textDecoration: "none" }}>
+              {t("dashboard")}
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="btn-ghost" style={{ padding: "8px 18px", fontSize: 14, textDecoration: "none" }}>
+                {t("login")}
+              </Link>
+              <Link href="/register" className="btn-primary" style={{ padding: "9px 20px", fontSize: 14, textDecoration: "none" }}>
+                {t("register")}
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
