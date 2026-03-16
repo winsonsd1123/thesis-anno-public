@@ -6,14 +6,18 @@ import { transactionService } from "@/lib/services/transaction.service";
 /**
  * Zpay 异步通知。文档说明请求方法为 GET。
  * 同时支持 POST 以兼容不同配置。
+ * 注意：必须返回 "success" 文本，否则 Zpay 会重试。
  */
 async function handleWebhook(params: Record<string, string | undefined>) {
+  const successResponse = () => new NextResponse("success", { status: 200 });
+
   if (!zpayService.verifyNotifySign(params)) {
+    console.error("[zpay webhook] Invalid sign", { out_trade_no: params.out_trade_no });
     return NextResponse.json({ error: "Invalid sign" }, { status: 400 });
   }
 
   if (params.trade_status !== "TRADE_SUCCESS") {
-    return new NextResponse("success", { status: 200 });
+    return successResponse();
   }
 
   const outTradeNo = params.out_trade_no;
@@ -22,30 +26,39 @@ async function handleWebhook(params: Record<string, string | undefined>) {
   const payType = params.type ?? "";
 
   if (!outTradeNo || !tradeNo || !money) {
+    console.error("[zpay webhook] Missing params", params);
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
   const order = await orderDAL.getByOutTradeNo(outTradeNo);
   if (!order) {
+    console.error("[zpay webhook] Order not found", outTradeNo);
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
   if (orderDAL.isAlreadyPaid(order)) {
-    return new NextResponse("success", { status: 200 });
+    return successResponse();
   }
 
   const expectedMoney = Number(order.amount_paid).toFixed(2);
   const actualMoney = Number(money).toFixed(2);
   if (expectedMoney !== actualMoney) {
+    console.error("[zpay webhook] Amount mismatch", { expected: expectedMoney, actual: actualMoney });
     return NextResponse.json(
       { error: `Amount mismatch: expected ${expectedMoney}, got ${actualMoney}` },
       { status: 400 }
     );
   }
 
-  await transactionService.deposit(order.id, tradeNo, payType);
+  try {
+    await transactionService.deposit(order.id, tradeNo, payType);
+    console.log("[zpay webhook] Deposit success", { orderId: order.id, credits: order.credits_added });
+  } catch (e) {
+    console.error("[zpay webhook] Deposit failed", e);
+    return NextResponse.json({ error: "Deposit failed" }, { status: 500 });
+  }
 
-  return new NextResponse("success", { status: 200 });
+  return successResponse();
 }
 
 export async function GET(request: Request) {

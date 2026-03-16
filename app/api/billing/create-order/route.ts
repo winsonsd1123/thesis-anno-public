@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     const baseUrl = await getBaseUrl();
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
-    const returnUrl = `${baseUrl}/dashboard/billing?paid=1`;
+    const returnUrl = `${baseUrl}/dashboard/billing`;
 
     const result = zpayService.createPayment({
       orderId: order.id,

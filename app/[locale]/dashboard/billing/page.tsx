@@ -6,13 +6,13 @@ import { PricingCard } from "@/app/components/billing/PricingCard";
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ paid?: string }>;
+  searchParams: Promise<{ paid?: string; trade_status?: string }>;
 }) {
   const t = await getTranslations("billing");
   const packages = getPackages();
   const balance = await getWalletBalance();
   const params = await searchParams;
-  const paidSuccess = params.paid === "1";
+  const paidSuccess = params.paid === "1" || params.trade_status === "TRADE_SUCCESS";
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>

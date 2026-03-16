@@ -65,12 +65,13 @@ export const zpayService = {
     return { payurl: paymentUrl };
   },
 
+  /**
+   * 验签：与官方 demo 一致，排除 sign/sign_type/空值，按 key 排序后 md5(str+key)
+   */
   verifyNotifySign(params: Record<string, string | undefined>): boolean {
     if (!KEY) return false;
 
     const sign = params.sign;
-    const signType = params.sign_type;
-
     if (!sign) return false;
 
     const filtered: Record<string, string> = {};
@@ -81,6 +82,14 @@ export const zpayService = {
     }
 
     const expected = buildSign(filtered, KEY);
-    return sign.toLowerCase() === expected.toLowerCase();
+    const ok = sign.toLowerCase() === expected.toLowerCase();
+    if (!ok && process.env.NODE_ENV !== "production") {
+      console.warn("[zpay verify] Sign mismatch", {
+        received: sign,
+        expected,
+        prestr: getVerifyParams(filtered),
+      });
+    }
+    return ok;
   },
 };

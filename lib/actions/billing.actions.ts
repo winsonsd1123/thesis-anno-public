@@ -49,7 +49,8 @@ export async function createOrder(packageId: string): Promise<CreateOrderResult>
 
     const baseUrl = await getBaseUrl();
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
-    const returnUrl = `${baseUrl}/dashboard/billing?paid=1`;
+    // Zpay 文档：return_url 不支持带参数，Zpay 会追加 trade_status 等参数
+    const returnUrl = `${baseUrl}/dashboard/billing`;
 
     const result = zpayService.createPayment({
       orderId: order.id,
