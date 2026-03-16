@@ -102,7 +102,7 @@ export function Pricing() {
                     <div style={{ fontSize: 17, fontWeight: 700, color: C.textPrimary, marginBottom: 2 }}>
                       {plan.name}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textMuted, fontFamily: "Sora, sans-serif" }}>
+                    <div style={{ fontSize: 12, color: C.textMuted, fontFamily: "inherit" }}>
                       {plan.nameEn}
                     </div>
                   </div>
@@ -114,7 +114,7 @@ export function Pricing() {
                     style={{
                       fontSize: 42,
                       fontWeight: 800,
-                      fontFamily: "Sora, sans-serif",
+                      fontFamily: "inherit",
                       letterSpacing: "-1.5px",
                       color: C.textPrimary,
                     }}

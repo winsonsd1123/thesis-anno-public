@@ -35,7 +35,7 @@ export function SocialProof() {
                 style={{
                   fontSize: 30,
                   fontWeight: 800,
-                  fontFamily: "Sora, sans-serif",
+                  fontFamily: "inherit",
                   letterSpacing: "-1px",
                   marginBottom: 6,
                 }}

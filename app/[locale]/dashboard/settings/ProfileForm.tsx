@@ -56,7 +56,7 @@ export function ProfileForm({ profile }: { profile: UserProfileDTO | null }) {
             fontWeight: 600,
             marginBottom: 14,
             color: "var(--text-primary)",
-            fontFamily: "Sora, sans-serif",
+            fontFamily: "inherit",
           }}
         >
           {t("avatar")}
@@ -96,7 +96,7 @@ export function ProfileForm({ profile }: { profile: UserProfileDTO | null }) {
             fontWeight: 600,
             marginBottom: 10,
             color: "var(--text-primary)",
-            fontFamily: "Sora, sans-serif",
+            fontFamily: "inherit",
           }}
         >
           {t("nickname")}

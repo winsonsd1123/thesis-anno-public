@@ -78,7 +78,7 @@ export function AvatarUpload({ currentUrl, onUrlChange }: AvatarUploadProps) {
               fontSize: 32,
               color: "var(--text-muted)",
               fontWeight: 300,
-              fontFamily: "Sora, sans-serif",
+              fontFamily: "inherit",
             }}
           >
             ?

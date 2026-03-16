@@ -40,7 +40,7 @@ export default async function DashboardLayout({
           <Link
             href="/dashboard"
             style={{
-              fontFamily: "Sora, sans-serif",
+              fontFamily: "inherit",
               fontWeight: 700,
               fontSize: 18,
               color: "var(--text-primary)",

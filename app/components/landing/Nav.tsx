@@ -70,7 +70,7 @@ export function Nav() {
           </div>
           <span
             style={{
-              fontFamily: "Sora, sans-serif",
+              fontFamily: "inherit",
               fontWeight: 800,
               fontSize: 17,
               color: C.textPrimary,

@@ -43,7 +43,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FE5F57", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840", display: "inline-block" }} />
-        <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "Sora, sans-serif" }}>
+        <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "inherit" }}>
           ThesisAI · 审阅进行中
         </span>
         <span className="badge badge-teal" style={{ marginLeft: "auto", fontSize: 11, padding: "2px 10px" }}>

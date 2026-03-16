@@ -130,7 +130,7 @@ export function Hero() {
                     style={{
                       fontSize: 22,
                       fontWeight: 800,
-                      fontFamily: "Sora, sans-serif",
+                      fontFamily: "inherit",
                       color: C.textPrimary,
                       letterSpacing: "-0.5px",
                       marginBottom: 2,

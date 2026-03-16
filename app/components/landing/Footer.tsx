@@ -35,7 +35,7 @@ export function Footer() {
               </div>
               <span
                 style={{
-                  fontFamily: "Sora, sans-serif",
+                  fontFamily: "inherit",
                   fontWeight: 800,
                   fontSize: 16,
                   color: C.textPrimary,

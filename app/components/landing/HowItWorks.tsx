@@ -70,7 +70,7 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FE5F57", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840", display: "inline-block" }} />
-        <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "Sora, sans-serif" }}>
+        <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "inherit" }}>
           {t("preview.title")}
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
@@ -152,7 +152,7 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
               style={{
                 fontSize: 52,
                 fontWeight: 800,
-                fontFamily: "Sora, sans-serif",
+                fontFamily: "inherit",
                 letterSpacing: "-2px",
                 lineHeight: 1,
                 marginBottom: 6,
@@ -244,7 +244,7 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
                     flexShrink: 0,
                     fontSize: 11,
                     color: C.textMuted,
-                    fontFamily: "Sora, sans-serif",
+                    fontFamily: "inherit",
                     background: C.bgMuted,
                     padding: "2px 8px",
                     borderRadius: 5,
@@ -353,7 +353,7 @@ export function HowItWorks() {
                       color: "white",
                       fontSize: 11,
                       fontWeight: 700,
-                      fontFamily: "Sora, sans-serif",
+                      fontFamily: "inherit",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

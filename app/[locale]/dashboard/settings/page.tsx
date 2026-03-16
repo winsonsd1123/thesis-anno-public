@@ -70,7 +70,7 @@ export default async function SettingsPage() {
           </div>
           <h1
             style={{
-              fontFamily: "Sora, sans-serif",
+              fontFamily: "inherit",
               fontSize: "clamp(26px, 4vw, 32px)",
               fontWeight: 800,
               letterSpacing: "-0.8px",
