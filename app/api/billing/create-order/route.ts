@@ -4,9 +4,12 @@ import { getPackageById } from "@/lib/config/billing";
 import { orderDAL } from "@/lib/dal/order.dal";
 import { zpayService } from "@/lib/services/zpay.service";
 
-/** 使用环境变量构建 base URL，避免 Host Header 注入 */
+/** 使用环境变量构建回调 base URL，避免 Host Header 注入 */
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "http://localhost:3000"
+  );
 }
 
 export async function POST(request: Request) {

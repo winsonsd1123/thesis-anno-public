@@ -9,10 +9,14 @@ import {
 import { orderDAL } from "@/lib/dal/order.dal";
 import { walletDAL } from "@/lib/dal/wallet.dal";
 import { zpayService } from "@/lib/services/zpay.service";
+import { headers } from "next/headers";
 
-/** 使用环境变量构建 base URL，避免 Host Header 注入 */
-function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+async function getBaseUrl(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  if (host) return `${proto}://${host}`;
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
 export type CreateOrderResult = {
@@ -43,7 +47,7 @@ export async function createOrder(packageId: string): Promise<CreateOrderResult>
       pkg.credits
     );
 
-    const baseUrl = getBaseUrl();
+    const baseUrl = await getBaseUrl();
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
     // Zpay 文档：return_url 不支持带参数，Zpay 会追加 trade_status 等参数
     const returnUrl = `${baseUrl}/dashboard/billing`;

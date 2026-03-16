@@ -3,25 +3,13 @@ import { zpayService } from "@/lib/services/zpay.service";
 import { orderDAL } from "@/lib/dal/order.dal";
 import { transactionService } from "@/lib/services/transaction.service";
 
-/** Zpay 要求：纯字符串 success，5 秒内返回。每次创建新 Response（不可复用） */
-function successResponse() {
-  return new Response("success", {
-    status: 200,
-    headers: { "Content-Type": "text/plain" },
-  });
-}
-
-/** 禁用缓存，避免 CDN/代理缓存导致 Zpay 收不到正确响应 */
-export const dynamic = "force-dynamic";
-export const maxDuration = 10;
-export const runtime = "nodejs";
-
 /**
- * Zpay 异步通知。Zpay 文档规定支付结果通知请求方法为 GET，必须支持。
- * 同时支持 POST 以兼容可能的未来变更。
- * 注意：必须返回纯字符串 "success"，否则 Zpay 会重试。
+ * Zpay 异步通知。文档说明请求方法为 GET。
+ * 同时支持 POST 以兼容不同配置。
+ * 注意：必须返回 "success" 文本，否则 Zpay 会重试。
  */
 async function handleWebhook(params: Record<string, string | undefined>) {
+  const successResponse = () => new NextResponse("success", { status: 200 });
 
   if (!zpayService.verifyNotifySign(params)) {
     console.error("[zpay webhook] Invalid sign", { out_trade_no: params.out_trade_no });
@@ -31,7 +19,6 @@ async function handleWebhook(params: Record<string, string | undefined>) {
   if (params.trade_status !== "TRADE_SUCCESS") {
     return successResponse();
   }
-
 
   const outTradeNo = params.out_trade_no;
   const tradeNo = params.trade_no;
