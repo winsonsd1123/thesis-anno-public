@@ -3,13 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getPackageById } from "@/lib/config/billing";
 import { orderDAL } from "@/lib/dal/order.dal";
 import { zpayService } from "@/lib/services/zpay.service";
-import { headers } from "next/headers";
 
-async function getBaseUrl(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  if (host) return `${proto}://${host}`;
+/** 使用环境变量构建 base URL，避免 Host Header 注入 */
+function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
@@ -40,7 +36,7 @@ export async function POST(request: Request) {
       pkg.credits
     );
 
-    const baseUrl = await getBaseUrl();
+    const baseUrl = getBaseUrl();
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
     const returnUrl = `${baseUrl}/dashboard/billing`;
 

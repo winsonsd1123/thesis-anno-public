@@ -24,8 +24,8 @@ const intlMiddleware = createIntlMiddleware(routing);
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  let response = NextResponse.next({ request });
-  const supabase = createClient(request, response);
+  const intlResponse = intlMiddleware(request);
+  const supabase = createClient(request, intlResponse);
 
   const { data } = await supabase.auth.getUser();
   const isLoggedIn = !!data?.user;
@@ -33,20 +33,14 @@ export async function middleware(request: NextRequest) {
   if (!isLoggedIn && isProtectedRoute(pathname)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl, { headers: response.headers });
+    return NextResponse.redirect(loginUrl, { headers: intlResponse.headers });
   }
 
   if (isLoggedIn && isAuthRoute(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url), {
-      headers: response.headers,
+      headers: intlResponse.headers,
     });
   }
-
-  const intlResponse = intlMiddleware(request);
-
-  response.headers.forEach((value, key) => {
-    intlResponse.headers.set(key, value);
-  });
 
   return intlResponse;
 }
