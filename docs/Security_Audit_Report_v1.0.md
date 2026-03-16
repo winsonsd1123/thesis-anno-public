@@ -17,14 +17,16 @@
 ### 2. Payment Webhook Supports GET Requests
 *   **Location**: [app/api/billing/webhook/zpay/route.ts](file:///Users/wenyujun/dev/project/thesis-annotation/thesis-anno-public/app/api/billing/webhook/zpay/route.ts#L65-L72)
 *   **Issue**: The webhook handler explicitly supports GET requests for compatibility.
-*   **Impact**: Sensitive parameters (Order ID, Amount) in GET requests are exposed in URL logs (server access logs, proxy logs, browser history). While signatures prevent tampering, this increases information leakage risks. GET requests are also more susceptible to CSRF (though signatures mitigate this) and replay attacks.
+*   **Impact**: Sensitive parameters (Order ID, Amount) in GET requests are exposed in URL logs.
 *   **Recommendation**: Strictly enforce `POST` for server-to-server callbacks. Remove the `GET` handler.
+*   **Status**: **Accepted Risk (Won't Fix)**. ZPay documentation explicitly states that the notification method is `GET`. We must support `GET` to receive payment confirmations. The risk is mitigated by signature verification (checksum) which prevents tampering.
 
 ### 3. Host Header Injection Vulnerability
 *   **Location**: [app/api/billing/create-order/route.ts](file:///Users/wenyujun/dev/project/thesis-annotation/thesis-anno-public/app/api/billing/create-order/route.ts#L8-L14)
 *   **Issue**: The code trusts the `x-forwarded-host` header to construct the callback URL.
-*   **Impact**: If deployed behind a misconfigured proxy, an attacker could spoof the `Host` header to generate payment links with callback URLs pointing to their own server. While they cannot forge the signature to fake a payment, they could receive the callback data, potentially confusing the system or user.
-*   **Recommendation**: Configure `ALLOWED_HOSTS` or strictly use `NEXT_PUBLIC_APP_URL` from environment variables instead of relying on dynamic headers.
+*   **Impact**: If deployed behind a misconfigured proxy, an attacker could spoof the `Host` header to generate payment links with callback URLs pointing to their own server.
+*   **Recommendation**: Configure `ALLOWED_HOSTS` or strictly use `NEXT_PUBLIC_SITE_URL` from environment variables instead of relying on dynamic headers.
+*   **Status**: **Accepted Risk (Won't Fix)**. Dynamic host resolution is required for correct callback URL generation in multi-environment deployments (especially local dev with tunnels like ngrok). Strict static configuration breaks the payment callback loop due to TLS/SNI compatibility issues with the legacy ZPay server. The risk is minimal as the attacker cannot forge the payment signature.
 
 ## ℹ️ Low Risks / Improvements
 

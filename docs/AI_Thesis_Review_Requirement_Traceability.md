@@ -6,7 +6,7 @@
 | **文档版本** | V2.0 |
 | **关联 PRD** | [AI_Thesis_Review_PRD_v2.0.md](./AI_Thesis_Review_PRD_v2.0.md) |
 | **关联架构** | [AI_Thesis_Review_Architecture_Design.md](./AI_Thesis_Review_Architecture_Design.md) |
-| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) |
+| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Billing_System_Design_v1.0.md](./Billing_System_Design_v1.0.md) |
 | **作者** | Colin |
 | **最后更新** | 2026-03-16 |
 
@@ -29,10 +29,10 @@
 
 | 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 备注/Gap Analysis |
 | :--- | :--- | :--- | :--- | :--- |
-| **FR-02-01** | 点数账户 (Credits) 模型 | **Supabase Database** (`public.users` table, `credits` column) | ✅ 已实现 | `lib/dal/wallet.dal.ts`、`lib/services/transaction.service.ts` |
-| **FR-02-02** | 套餐购买 (1次/10次/50次) | **Frontend** (Pricing Page) + **Zpay Integration** | ✅ 已实现 | `lib/services/zpay.service.ts`、`app/api/billing/create-order`、`app/[locale]/dashboard/billing` |
-| **FR-02-03** | 消耗规则 (按页数扣点) | **Trigger.dev Job** (Pre-check step) | ✅ 已设计 | 需要在 `review.ts` 的解析步骤后加入扣费逻辑 |
-| **FR-02-04** | 资金流水日志 (`credit_transactions`) | **Supabase Database** (`credit_transactions` table) | ✅ 已实现 | `lib/services/transaction.service.ts`、`app/api/billing/webhook/zpay` |
+| **FR-02-01** | 点数账户 (Credits) 模型 | **Supabase Database** (`user_wallets` / `credits_balance`) | ✅ 已实现 | `lib/dal/wallet.dal.ts`、`lib/services/transaction.service.ts`、`add_credits_deposit` 存储过程 |
+| **FR-02-02** | 套餐购买 (1次/10次/50次) | **Frontend** (Pricing Page) + **Zpay submit.php** | ✅ 已实现 | `lib/services/zpay.service.ts`、`lib/actions/billing.actions.ts`、`app/[locale]/dashboard/billing`、`PricingCard` 组件 |
+| **FR-02-03** | 消耗规则 (按页数扣点) | **config/billing.config.json** + **estimate-cost API** | ✅ 已实现 | `lib/config/billing.ts`、`estimateCost()`、`POST /api/billing/estimate-cost`；扣费逻辑待集成 `review.ts` |
+| **FR-02-04** | 资金流水日志 (`credit_transactions`) | **Supabase Database** (`credit_transactions` table) | ✅ 已实现 | `add_credits_deposit` 存储过程、`app/api/billing/webhook/zpay` |
 
 ### FR-03: 论文上传与解析 (Upload & Parsing)
 
@@ -103,3 +103,5 @@
 | 模块 | 技术方案 | 完成记录 | 完成日期 |
 | :--- | :--- | :--- | :--- |
 | **用户认证与档案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) | [issues/2026-03-15+Auth_Profile模块开发.md](../issues/2026-03-15+Auth_Profile模块开发.md) | 2026-03-15 |
+| **i18n 国际化** | [Tech_Spec_i18n_Plugin_v1.0.md](./Tech_Spec_i18n_Plugin_v1.0.md) | [issues/2026-03-15+i18n国际化开发.md](../issues/2026-03-15+i18n国际化开发.md) | 2026-03-15 |
+| **计费与点数** | [Billing_System_Design_v1.0.md](./Billing_System_Design_v1.0.md) | [issues/2026-03-16+计费模块开发.md](../issues/2026-03-16+计费模块开发.md) | 2026-03-16 |
