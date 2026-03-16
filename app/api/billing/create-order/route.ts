@@ -44,21 +44,16 @@ export async function POST(request: Request) {
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
     const returnUrl = `${baseUrl}/dashboard/billing?paid=1`;
 
-    const clientip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      request.headers.get("x-real-ip") ??
-      "127.0.0.1";
-
-    const result = await zpayService.createPayment({
+    const result = zpayService.createPayment({
       orderId: order.id,
       name: `${pkg.nameZh ?? pkg.name} - ${pkg.credits}次`,
       moneyYuan: amountPaid.toFixed(2),
       notifyUrl,
       returnUrl,
-      clientip,
+      sitename: "ThesisAI",
     });
 
-    const paymentUrl = result.payurl ?? result.payurl2 ?? result.qrcode;
+    const paymentUrl = result.payurl;
     if (!paymentUrl) {
       return NextResponse.json(
         { error: "Failed to get payment URL" },

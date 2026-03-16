@@ -1,5 +1,24 @@
 import type { Metadata } from "next";
+import { Sora, DM_Sans, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
+
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const notoSansSC = Noto_Sans_SC({
+  subsets: ["latin"],
+  variable: "--font-noto-sans-sc",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ThesisAI · AI 驱动的论文智能批阅平台",
@@ -13,16 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>{children}</body>
+    <html suppressHydrationWarning className={`${sora.variable} ${dmSans.variable} ${notoSansSC.variable}`}>
+      <body className="antialiased font-sans">{children}</body>
     </html>
   );
 }

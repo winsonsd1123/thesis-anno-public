@@ -51,22 +51,16 @@ export async function createOrder(packageId: string): Promise<CreateOrderResult>
     const notifyUrl = `${baseUrl}/api/billing/webhook/zpay`;
     const returnUrl = `${baseUrl}/dashboard/billing?paid=1`;
 
-    const h = await headers();
-    const clientip =
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      h.get("x-real-ip") ??
-      "127.0.0.1";
-
-    const result = await zpayService.createPayment({
+    const result = zpayService.createPayment({
       orderId: order.id,
       name: `${pkg.nameZh ?? pkg.name} - ${pkg.credits}次`,
       moneyYuan: amountPaid.toFixed(2),
       notifyUrl,
       returnUrl,
-      clientip,
+      sitename: "ThesisAI",
     });
 
-    const paymentUrl = result.payurl ?? result.payurl2 ?? result.qrcode;
+    const paymentUrl = result.payurl;
     if (!paymentUrl) {
       return { success: false, error: "获取支付链接失败" };
     }
@@ -75,12 +69,6 @@ export async function createOrder(packageId: string): Promise<CreateOrderResult>
   } catch (e) {
     console.error("[createOrder]", e);
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND")) {
-      return {
-        success: false,
-        error: "无法连接支付网关，请检查服务器网络或 Zpay 配置",
-      };
-    }
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? "创建订单失败" : msg,

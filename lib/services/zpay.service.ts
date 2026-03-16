@@ -2,14 +2,22 @@ import { createHash } from "crypto";
 
 const PID = process.env.ZPAY_PID;
 const KEY = process.env.ZPAY_KEY;
-const MAPI_URL = process.env.ZPAY_MAPI_URL ?? "https://zpayz.cn/mapi.php";
+const SUBMIT_URL = process.env.ZPAY_SUBMIT_URL ?? "https://zpayz.cn/submit.php";
+
+/**
+ * 参数排序拼接（与官方 demo 一致）
+ * 排除 sign、sign_type 及空值
+ */
+function getVerifyParams(params: Record<string, string>): string {
+  const entries = Object.entries(params)
+    .filter(([k, v]) => v !== "" && v != null && k !== "sign" && k !== "sign_type")
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([k, v]) => `${k}=${v}`).join("&");
+}
 
 function buildSign(params: Record<string, string>, key: string): string {
-  const sorted = Object.keys(params)
-    .filter((k) => params[k] !== "" && params[k] != null && k !== "sign" && k !== "sign_type")
-    .sort();
-  const str = sorted.map((k) => `${k}=${params[k]}`).join("&") + key;
-  return createHash("md5").update(str).digest("hex").toLowerCase();
+  const str = getVerifyParams(params);
+  return createHash("md5").update(str + key).digest("hex").toLowerCase();
 }
 
 export type CreatePaymentParams = {
@@ -18,64 +26,43 @@ export type CreatePaymentParams = {
   moneyYuan: string;
   notifyUrl: string;
   returnUrl: string;
-  clientip: string;
+  sitename?: string;
   type?: "alipay" | "wxpay";
 };
 
 export type CreatePaymentResult = {
-  payurl?: string;
-  payurl2?: string;
-  qrcode?: string;
-  img?: string;
-  code?: number;
-  msg?: string;
+  payurl: string;
 };
 
+/**
+ * 页面跳转支付（官方 demo 方式）
+ * 直接构建 submit.php URL，无需调用 API，避免网络超时
+ */
 export const zpayService = {
-  createPayment(params: CreatePaymentParams): Promise<CreatePaymentResult> {
+  createPayment(params: CreatePaymentParams): CreatePaymentResult {
     if (!PID || !KEY) {
       throw new Error("ZPAY_PID or ZPAY_KEY not configured");
     }
 
-    const { orderId, name, moneyYuan, notifyUrl, returnUrl, clientip, type = "alipay" } = params;
+    const { orderId, name, moneyYuan, notifyUrl, returnUrl, sitename = "ThesisAI", type = "alipay" } = params;
 
-    const reqParams: Record<string, string> = {
+    const data: Record<string, string> = {
       pid: PID,
-      type,
-      out_trade_no: orderId,
-      notify_url: notifyUrl,
-      name,
       money: moneyYuan,
-      clientip,
-      sign_type: "MD5",
+      name,
+      notify_url: notifyUrl,
+      out_trade_no: orderId,
+      return_url: returnUrl,
+      sitename,
+      type,
     };
 
-    reqParams.sign = buildSign(reqParams, KEY);
+    const prestr = getVerifyParams(data);
+    const sign = buildSign(data, KEY);
 
-    const formBody = new URLSearchParams(reqParams).toString();
+    const paymentUrl = `${SUBMIT_URL}?${prestr}&sign=${sign}&sign_type=MD5`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    return fetch(MAPI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formBody,
-      signal: controller.signal,
-    })
-      .finally(() => clearTimeout(timeout))
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.code === 1) {
-          return {
-            payurl: data.payurl ?? data.payurl2 ?? data.qrcode,
-            payurl2: data.payurl2,
-            qrcode: data.qrcode,
-            img: data.img,
-          };
-        }
-        throw new Error(data.msg ?? "Zpay create payment failed");
-      });
+    return { payurl: paymentUrl };
   },
 
   verifyNotifySign(params: Record<string, string | undefined>): boolean {
