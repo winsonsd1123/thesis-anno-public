@@ -253,6 +253,7 @@
   },
   "dashboard": {
     "home": "Home",
+    "billing": "Billing",
     "settings": "Settings",
     "backToHome": "Back to Home",
     "welcome": "Welcome back",
@@ -270,5 +271,24 @@
       "saving": "Saving…",
       "saveSuccess": "Saved successfully"
     }
+  },
+  "billing": {
+    "title": "Credits Top-up",
+    "subtitle": "Purchase credits for thesis review",
+    "balance": "Balance",
+    "credits": "credits",
+    "buyNow": "Buy now",
+    "selectPlan": "Select plan",
+    "purchasing": "Redirecting to payment…",
+    "rules": "Consumption rules:",
+    "rule1": "< 60 pages",
+    "rule1Cost": "1 credit",
+    "rule2": "60 ~ 100 pages",
+    "rule2Cost": "2 credits",
+    "rule3": "100 ~ 150 pages",
+    "rule3Cost": "3 credits",
+    "paidSuccess": "Top-up successful, credits added",
+    "error": "Operation failed",
+    "openPayment": "Click to open payment page"
   }
 }

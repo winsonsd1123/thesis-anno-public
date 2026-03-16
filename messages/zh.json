@@ -253,6 +253,7 @@
   },
   "dashboard": {
     "home": "首页",
+    "billing": "充值",
     "settings": "设置",
     "backToHome": "返回首页",
     "welcome": "欢迎回来",
@@ -270,5 +271,24 @@
       "saving": "保存中…",
       "saveSuccess": "保存成功"
     }
+  },
+  "billing": {
+    "title": "点数充值",
+    "subtitle": "购买点数，用于论文批阅",
+    "balance": "当前余额",
+    "credits": "点",
+    "buyNow": "立即购买",
+    "selectPlan": "选择此套餐",
+    "purchasing": "跳转支付…",
+    "rules": "消耗规则：",
+    "rule1": "< 60页",
+    "rule1Cost": "消耗 1 点",
+    "rule2": "60 ~ 100页",
+    "rule2Cost": "消耗 2 点",
+    "rule3": "100 ~ 150页",
+    "rule3Cost": "消耗 3 点",
+    "paidSuccess": "充值成功，点数已到账",
+    "error": "操作失败",
+    "openPayment": "点击打开支付页面"
   }
 }

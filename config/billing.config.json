@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "currency": "CNY",
+  "packages": [
+    {
+      "id": "pkg_single",
+      "name": "Single Pass",
+      "nameZh": "单次体验",
+      "credits": 1,
+      "price": 990,
+      "original_price": 1990,
+      "tag": "Hot"
+    },
+    {
+      "id": "pkg_standard",
+      "name": "Standard Bundle",
+      "nameZh": "标准套餐",
+      "credits": 10,
+      "price": 8900,
+      "original_price": 9900,
+      "tag": "Best Value"
+    },
+    {
+      "id": "pkg_pro",
+      "name": "Pro Bundle",
+      "nameZh": "专业套餐",
+      "credits": 50,
+      "price": 39900,
+      "original_price": 49900,
+      "tag": null
+    }
+  ],
+  "consumption_rules": [
+    { "max_pages": 60, "cost": 1 },
+    { "max_pages": 100, "cost": 2 },
+    { "max_pages": 150, "cost": 3 }
+  ],
+  "max_allowed_pages": 150
+}

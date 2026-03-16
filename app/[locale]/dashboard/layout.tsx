@@ -57,6 +57,12 @@ export default async function DashboardLayout({
               {t("home")}
             </Link>
             <Link
+              href="/dashboard/billing"
+              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              {t("billing")}
+            </Link>
+            <Link
               href="/dashboard/settings"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >
