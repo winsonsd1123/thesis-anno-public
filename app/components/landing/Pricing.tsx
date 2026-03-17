@@ -2,27 +2,56 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { C } from "./constants";
+import type { BillingPackage } from "@/lib/config/billing";
 
-const PLAN_KEYS = ["single", "standard", "pro"] as const;
+const PLAN_IDS = ["pkg_single", "pkg_standard", "pkg_pro"] as const;
 const PLAN_META = [
-  { emoji: "⚡", price: "¥9.9", color: C.brand, popular: false, saveKey: null as string | null },
-  { emoji: "🔥", price: "¥79", color: C.brand, popular: true, saveKey: "save" },
-  { emoji: "💎", price: "¥299", color: C.accent, popular: false, saveKey: "savePro" },
+  { emoji: "⚡", color: C.brand, popular: false, saveKey: null as string | null },
+  { emoji: "🔥", color: C.brand, popular: true, saveKey: "save" as string },
+  { emoji: "💎", color: C.accent, popular: false, saveKey: "savePro" as string },
 ];
 
-export function Pricing() {
+function formatPrice(priceFen: number): string {
+  const yuan = priceFen / 100;
+  return yuan % 1 === 0 ? yuan.toFixed(0) : yuan.toFixed(2);
+}
+
+export function Pricing({ packages }: { packages: BillingPackage[] }) {
   const t = useTranslations("landing.pricing");
-  const [selected, setSelected] = useState(1);
-  const plans = PLAN_KEYS.map((key, i) => ({
-    ...PLAN_META[i],
-    name: t(`plans.${key}.name`),
-    nameEn: t(`plans.${key}.nameEn`),
-    unit: t(`plans.${key}.unit`),
-    desc: t(`plans.${key}.desc`),
-    save: PLAN_META[i].saveKey ? t(PLAN_META[i].saveKey!) : null,
-    features: t.raw(`plans.${key}.features`) as string[],
-  }));
+  const router = useRouter();
+  const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
+  const plans = PLAN_IDS.map((id, i) => {
+    const pkg = packages.find((p) => p.id === id);
+    const priceStr = pkg ? `¥${formatPrice(pkg.price)}` : "";
+    const hasSave = pkg && pkg.original_price > pkg.price;
+    const key = id.replace("pkg_", "") as "single" | "standard" | "pro";
+    return {
+      ...PLAN_META[i],
+      id,
+      price: priceStr,
+      name: pkg?.nameZh ?? t(`plans.${key}.name`),
+      nameEn: pkg?.name ?? t(`plans.${key}.nameEn`),
+      unit: t(`plans.${key}.unit`),
+      desc: t(`plans.${key}.desc`),
+      save: hasSave && PLAN_META[i].saveKey ? t(PLAN_META[i].saveKey!) : null,
+      features: t.raw(`plans.${key}.features`) as string[],
+    };
+  });
+
+  const handleCardClick = (planId: string) => {
+    setSelectedPkgId(planId);
+  };
+
+  const handleButtonClick = (e: React.MouseEvent, planId: string) => {
+    e.stopPropagation();
+    if (selectedPkgId === planId) {
+      router.push("/dashboard/billing");
+    } else {
+      setSelectedPkgId(planId);
+    }
+  };
 
   return (
     <section id="pricing" style={{ padding: "96px 32px", background: C.bg }}>
@@ -48,22 +77,23 @@ export function Pricing() {
         </div>
 
         <div className="pricing-grid" style={{ alignItems: "stretch" }}>
-          {plans.map((plan, i) => (
+          {plans.map((plan) => {
+            const selected = selectedPkgId === plan.id;
+            const isHighlighted = selected || (plan.popular && !selectedPkgId);
+            return (
             <div
               key={plan.name}
-              onClick={() => setSelected(i)}
-              className={plan.popular ? "pricing-popular" : "card"}
+              onClick={() => handleCardClick(plan.id)}
+              className={isHighlighted && plan.popular ? "pricing-popular" : "card"}
               style={{
                 padding: 28,
                 borderRadius: 16,
                 cursor: "pointer",
                 transition: "all 0.3s ease",
-                border: plan.popular
-                  ? undefined
-                  : selected === i
-                    ? `2px solid ${plan.color}40`
-                    : `1.5px solid ${C.border}`,
-                background: plan.popular ? undefined : C.surface,
+                border: isHighlighted
+                  ? `2px solid ${plan.color}`
+                  : `1.5px solid ${C.border}`,
+                background: isHighlighted && plan.popular ? undefined : C.surface,
                 position: "relative",
               }}
             >
@@ -134,6 +164,7 @@ export function Pricing() {
               </div>
 
               <button
+                onClick={(e) => handleButtonClick(e, plan.id)}
                 style={{
                   width: "100%",
                   padding: "12px",
@@ -143,13 +174,13 @@ export function Pricing() {
                   cursor: "pointer",
                   marginBottom: 20,
                   transition: "all 0.25s ease",
-                  background: plan.popular ? C.brand : C.bgSubtle,
-                  border: plan.popular ? "none" : `1.5px solid ${selected === i ? plan.color : C.border}`,
-                  color: plan.popular ? "white" : selected === i ? plan.color : C.textSecondary,
-                  boxShadow: plan.popular ? "var(--shadow-brand)" : "none",
+                  background: isHighlighted ? C.brand : C.bgSubtle,
+                  border: isHighlighted ? "none" : `1.5px solid ${C.border}`,
+                  color: isHighlighted ? "white" : C.textSecondary,
+                  boxShadow: isHighlighted ? "var(--shadow-brand)" : "none",
                 }}
               >
-                {plan.popular ? t("buyNow") : t("selectPlan")}
+                {selected ? t("goToRecharge") : t("selectPlan")}
               </button>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -178,7 +209,8 @@ export function Pricing() {
                 ))}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         <div

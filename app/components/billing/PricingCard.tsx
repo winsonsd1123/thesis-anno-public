@@ -8,9 +8,12 @@ import type { BillingPackage } from "@/lib/config/billing";
 type Props = {
   pkg: BillingPackage;
   popular?: boolean;
+  selected?: boolean;
+  hasAnySelection?: boolean;
+  onSelect?: () => void;
 };
 
-export function PricingCard({ pkg, popular }: Props) {
+export function PricingCard({ pkg, popular, selected, hasAnySelection, onSelect }: Props) {
   const t = useTranslations("billing");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +37,30 @@ export function PricingCard({ pkg, popular }: Props) {
     setError(result.error ?? t("error"));
   };
 
+  const handleClick = () => {
+    if (selected) {
+      handleBuy();
+    } else {
+      onSelect?.();
+    }
+  };
+
+  const getButtonText = () => {
+    if (loading) return t("purchasing");
+    if (selected) return t("confirmPay");
+    return t("selectPlan");
+  };
+
+  // 仅用户选中的卡片高亮；无选择时 popular 作为默认推荐高亮
+  const isHighlighted = selected || (popular && !hasAnySelection);
+
   return (
     <div
       style={{
         padding: 24,
         borderRadius: 16,
-        border: popular ? "2px solid var(--brand)" : "1px solid var(--border)",
-        background: popular ? "var(--bg-subtle)" : "var(--surface)",
+        border: isHighlighted ? "2px solid var(--brand)" : "1px solid var(--border)",
+        background: isHighlighted ? "var(--bg-subtle)" : "var(--surface)",
         position: "relative",
         display: "flex",
         flexDirection: "column",
@@ -84,7 +104,7 @@ export function PricingCard({ pkg, popular }: Props) {
         )}
       </div>
       <button
-        onClick={handleBuy}
+        onClick={handleClick}
         disabled={loading}
         style={{
           width: "100%",
@@ -93,12 +113,12 @@ export function PricingCard({ pkg, popular }: Props) {
           fontSize: 14,
           fontWeight: 600,
           cursor: loading ? "not-allowed" : "pointer",
-          background: popular ? "var(--brand)" : "var(--bg-subtle)",
-          border: popular ? "none" : "1px solid var(--border)",
-          color: popular ? "white" : "var(--text-primary)",
+          background: isHighlighted ? "var(--brand)" : "var(--bg-subtle)",
+          border: isHighlighted ? "none" : "1px solid var(--border)",
+          color: isHighlighted ? "white" : "var(--text-primary)",
         }}
       >
-        {loading ? t("purchasing") : popular ? t("buyNow") : t("selectPlan")}
+        {getButtonText()}
       </button>
       {error && (
         <div style={{ fontSize: 13, color: "var(--danger)" }}>{error}</div>

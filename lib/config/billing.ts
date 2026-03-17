@@ -1,4 +1,5 @@
-import billingConfig from "@/config/billing.config.json";
+import { ConfigService } from "@/lib/services/config.service";
+import { billingSchema } from "@/lib/schemas/config.schemas";
 
 export type BillingPackage = {
   id: string;
@@ -15,19 +16,26 @@ export type ConsumptionRule = {
   cost: number;
 };
 
-export function getPackages(): BillingPackage[] {
-  return billingConfig.packages as BillingPackage[];
+export async function getBillingConfig() {
+  return ConfigService.get("billing", billingSchema);
 }
 
-export function getPackageById(id: string): BillingPackage | null {
-  return getPackages().find((p) => p.id === id) ?? null;
+export async function getPackages(): Promise<BillingPackage[]> {
+  const config = await getBillingConfig();
+  return config.packages as BillingPackage[];
 }
 
-export function estimateCost(pageCount: number): number | null {
-  if (pageCount <= 0 || pageCount > billingConfig.max_allowed_pages) {
+export async function getPackageById(id: string): Promise<BillingPackage | null> {
+  const packages = await getPackages();
+  return packages.find((p) => p.id === id) ?? null;
+}
+
+export async function estimateCost(pageCount: number): Promise<number | null> {
+  const config = await getBillingConfig();
+  if (pageCount <= 0 || pageCount > config.max_allowed_pages) {
     return null;
   }
-  const rules = billingConfig.consumption_rules as ConsumptionRule[];
+  const rules = config.consumption_rules;
   for (const rule of rules) {
     if (pageCount <= rule.max_pages) {
       return rule.cost;
@@ -36,10 +44,12 @@ export function estimateCost(pageCount: number): number | null {
   return null;
 }
 
-export function getConsumptionRules(): ConsumptionRule[] {
-  return billingConfig.consumption_rules as ConsumptionRule[];
+export async function getConsumptionRules(): Promise<ConsumptionRule[]> {
+  const config = await getBillingConfig();
+  return config.consumption_rules as ConsumptionRule[];
 }
 
-export function getMaxAllowedPages(): number {
-  return billingConfig.max_allowed_pages;
+export async function getMaxAllowedPages(): Promise<number> {
+  const config = await getBillingConfig();
+  return config.max_allowed_pages;
 }

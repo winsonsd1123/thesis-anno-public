@@ -1,24 +1,16 @@
 import { Link } from "@/i18n/navigation";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
-import { profileDAL } from "@/lib/dal/profile.dal";
-import { SignOutButton } from "./SignOutButton";
+import { requireAdmin } from "@/lib/utils/admin";
 import { LocaleSwitcher } from "@/app/components/LocaleSwitcher";
 
-export default async function DashboardLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data?.user) redirect("/login");
+  await requireAdmin();
 
-  const profile = await profileDAL.getById(data.user.id);
-  const isAdmin = profile?.role === "admin";
-
-  const t = await getTranslations("dashboard");
+  const t = await getTranslations("admin");
 
   return (
     <div
@@ -42,7 +34,7 @@ export default async function DashboardLayout({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
           <Link
-            href="/dashboard"
+            href="/admin/config"
             style={{
               fontFamily: "inherit",
               fontWeight: 700,
@@ -51,49 +43,43 @@ export default async function DashboardLayout({
               textDecoration: "none",
             }}
           >
-            ThesisAI
+            {t("title")}
           </Link>
           <nav style={{ display: "flex", gap: 16 }}>
             <Link
-              href="/dashboard"
+              href="/admin/config"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >
-              {t("home")}
+              {t("config.title")}
             </Link>
             <Link
-              href="/dashboard/billing"
+              href="/admin/config/prompts"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >
-              {t("billing")}
+              {t("config.prompts")}
             </Link>
             <Link
-              href="/dashboard/settings"
+              href="/admin/config/pricing"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >
-              {t("settings")}
+              {t("config.pricing")}
             </Link>
-            {isAdmin && (
-              <Link
-                href="/admin/config"
-                style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none" }}
-              >
-                {t("admin")}
-              </Link>
-            )}
+            <Link
+              href="/admin/config/system"
+              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              {t("config.system")}
+            </Link>
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LocaleSwitcher />
           <Link
-            href="/dashboard/settings"
-            style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            href="/dashboard"
+            style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none" }}
           >
-            {data.user.email}
+            {t("backToDashboard")}
           </Link>
-          <Link href="/" style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none" }}>
-            {t("backToHome")}
-          </Link>
-          <SignOutButton />
         </div>
       </header>
 

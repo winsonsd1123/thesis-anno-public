@@ -190,6 +190,7 @@
       },
       "buyNow": "立即购买 →",
       "selectPlan": "选择此套餐",
+      "goToRecharge": "去充值",
       "save": "节省 20%",
       "savePro": "节省 40%",
       "rules": "消耗规则：",
@@ -255,6 +256,7 @@
     "home": "首页",
     "billing": "充值",
     "settings": "设置",
+    "admin": "管理后台",
     "backToHome": "返回首页",
     "welcome": "欢迎回来",
     "signOut": "退出登录",
@@ -279,6 +281,7 @@
     "credits": "点",
     "buyNow": "立即购买",
     "selectPlan": "选择此套餐",
+    "confirmPay": "确认支付",
     "purchasing": "跳转支付…",
     "rules": "消耗规则：",
     "rule1": "< 60页",
@@ -290,5 +293,55 @@
     "paidSuccess": "充值成功，点数已到账",
     "error": "操作失败",
     "openPayment": "点击打开支付页面"
+  },
+  "admin": {
+    "title": "管理后台",
+    "backToDashboard": "返回控制台",
+    "config": {
+      "title": "配置管理",
+      "subtitle": "管理 Prompt、计费规则与系统开关",
+      "prompts": "Prompt Lab",
+      "pricing": "计费配置",
+      "system": "系统状态"
+    },
+    "prompts": {
+      "title": "Prompt 模板",
+      "subtitle": "编辑多语言 Prompt 与模型参数",
+      "listTitle": "Prompt 列表",
+      "addNew": "新建",
+      "key": "Key",
+      "description": "描述",
+      "version": "版本",
+      "edit": "编辑",
+      "save": "保存",
+      "saving": "保存中…",
+      "saveSuccess": "保存成功",
+      "saveError": "保存失败",
+      "tabZh": "中文",
+      "tabEn": "English",
+      "temperature": "Temperature",
+      "model": "Model",
+      "variables": "变量",
+      "backToList": "返回列表"
+    },
+    "pricing": {
+      "title": "计费配置",
+      "subtitle": "编辑套餐与消耗规则",
+      "packages": "套餐",
+      "consumptionRules": "消耗规则",
+      "maxAllowedPages": "最大页数",
+      "save": "保存",
+      "saveSuccess": "保存成功",
+      "saveError": "保存失败"
+    },
+    "system": {
+      "title": "系统状态",
+      "subtitle": "Feature Flags 开关",
+      "save": "保存",
+      "saveSuccess": "保存成功",
+      "saveError": "保存失败",
+      "enabled": "开启",
+      "disabled": "关闭"
+    }
   }
 }

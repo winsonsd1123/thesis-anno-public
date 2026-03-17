@@ -190,6 +190,7 @@
       },
       "buyNow": "Buy Now →",
       "selectPlan": "Select Plan",
+      "goToRecharge": "Go to top-up",
       "save": "Save 20%",
       "savePro": "Save 40%",
       "rules": "Usage rules:",
@@ -255,6 +256,7 @@
     "home": "Home",
     "billing": "Billing",
     "settings": "Settings",
+    "admin": "Admin",
     "backToHome": "Back to Home",
     "welcome": "Welcome back",
     "signOut": "Sign out",
@@ -279,6 +281,7 @@
     "credits": "credits",
     "buyNow": "Buy now",
     "selectPlan": "Select plan",
+    "confirmPay": "Confirm payment",
     "purchasing": "Redirecting to payment…",
     "rules": "Consumption rules:",
     "rule1": "< 60 pages",
@@ -290,5 +293,55 @@
     "paidSuccess": "Top-up successful, credits added",
     "error": "Operation failed",
     "openPayment": "Click to open payment page"
+  },
+  "admin": {
+    "title": "Admin",
+    "backToDashboard": "Back to Dashboard",
+    "config": {
+      "title": "Config Management",
+      "subtitle": "Manage Prompts, billing rules, and system flags",
+      "prompts": "Prompt Lab",
+      "pricing": "Pricing Config",
+      "system": "System Status"
+    },
+    "prompts": {
+      "title": "Prompt Templates",
+      "subtitle": "Edit multilingual prompts and model params",
+      "listTitle": "Prompt List",
+      "addNew": "Add New",
+      "key": "Key",
+      "description": "Description",
+      "version": "Version",
+      "edit": "Edit",
+      "save": "Save",
+      "saving": "Saving…",
+      "saveSuccess": "Saved",
+      "saveError": "Save failed",
+      "tabZh": "中文",
+      "tabEn": "English",
+      "temperature": "Temperature",
+      "model": "Model",
+      "variables": "Variables",
+      "backToList": "Back to List"
+    },
+    "pricing": {
+      "title": "Pricing Config",
+      "subtitle": "Edit packages and consumption rules",
+      "packages": "Packages",
+      "consumptionRules": "Consumption Rules",
+      "maxAllowedPages": "Max Pages",
+      "save": "Save",
+      "saveSuccess": "Saved",
+      "saveError": "Save failed"
+    },
+    "system": {
+      "title": "System Status",
+      "subtitle": "Feature Flags",
+      "save": "Save",
+      "saveSuccess": "Saved",
+      "saveError": "Save failed",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    }
   }
 }

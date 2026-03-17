@@ -5,6 +5,7 @@ import { routing } from "@/i18n/routing";
 
 const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/verify-email"];
 const PROTECTED_ROUTES_PREFIX = "/dashboard";
+const ADMIN_ROUTES_PREFIX = "/admin";
 const UPDATE_PASSWORD_ROUTE = "/update-password";
 
 function isAuthRoute(pathname: string): boolean {
@@ -14,6 +15,7 @@ function isAuthRoute(pathname: string): boolean {
 function isProtectedRoute(pathname: string): boolean {
   return (
     pathname.includes(PROTECTED_ROUTES_PREFIX) ||
+    pathname.includes(ADMIN_ROUTES_PREFIX) ||
     pathname === UPDATE_PASSWORD_ROUTE ||
     pathname.includes(UPDATE_PASSWORD_ROUTE)
   );

@@ -1,8 +1,9 @@
-# 后台管理与配置模块技术方案 (Tech Spec) v1.0
+# AI 辅助论文智能审批系统 - 5.6 后台管理与配置模块开发方案 (Design Doc)
 
-| 版本 | 日期 | 作者 | 状态 |
-| :--- | :--- | :--- | :--- |
-| v1.0 | 2026-03-16 | Colin | Draft |  
+**版本**: v1.0  
+**日期**: 2026-03-16  
+**作者**: Colin  
+**状态**: Draft  
 
 ---
 
@@ -30,7 +31,7 @@
 *   **Supabase Storage Bucket**: `app-config` (Private Bucket)
     *   `prompts.json`: 存储所有 Prompt 模板及其多语言版本。
     *   `billing.json`: 存储计费规则和套餐价格。
-    *   `system.json`: 存储系统开关、维护模式状态。
+    *   `system.json`: 存储系统开关 (Feature Flags)。
 *   **ConfigService**: 单例服务，负责配置的 Fetch, Cache, Validate (Zod), Update。
 *   **PromptManager**: 负责 Prompt 的解析、变量填充和语言选择。
 
@@ -122,17 +123,8 @@ export class ConfigService {
     *   *(已移除在线 Playground 测试功能)*
 2.  **Pricing Config**:
     *   表单形式编辑套餐价格、点数消耗规则。
-3.  **System Status (维护模式)**：
-    *   **表现 (UX)**：
-        *   当 `maintenance_mode = true` 时，全站（除管理员白名单路径外）展示全屏维护页 (Maintenance Page)。
-        *   **内容**：Logo、友好插图、维护公告文案（支持多语言）、预计恢复时间。
-        *   **API 响应**：所有非白名单 API 返回 `503 Service Unavailable`。
-    *   **管理员豁免机制 (Admin Bypass)**：
-        *   **登录入口保障**：`/login` 和 `/api/auth/*` 始终放行，确保管理员可以登录。
-        *   **权限判断**：登录后，中间件 (Middleware) 检查用户角色。
-            *   若 `role === 'admin'` -> **放行**，进入 Dashboard，顶部显示 "系统维护中" 警告条。
-            *   若 `role !== 'admin'` -> **拦截**，重定向至维护页。
-        *   **管理后台保障**：`/admin/*` 路径始终在白名单内，确保管理员有关闭维护模式的“钥匙”。
+3.  **System Status**:
+    *   Feature Flags：开启/关闭特定 Agent (e.g., "Reference Check Agent").
 
 ---
 

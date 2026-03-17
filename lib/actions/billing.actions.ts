@@ -33,7 +33,7 @@ export async function createOrder(packageId: string): Promise<CreateOrderResult>
     return { success: false, error: "请先登录" };
   }
 
-  const pkg = getPackageById(packageId);
+  const pkg = await getPackageById(packageId);
   if (!pkg) {
     return { success: false, error: "无效套餐" };
   }
@@ -90,9 +90,10 @@ export async function estimateCost(pageCount: number): Promise<{
   cost: number | null;
   error?: string;
 }> {
-  if (pageCount <= 0 || pageCount > getMaxAllowedPages()) {
+  const maxPages = await getMaxAllowedPages();
+  if (pageCount <= 0 || pageCount > maxPages) {
     return { cost: null, error: "页数超出范围" };
   }
-  const cost = estimateCostFromConfig(pageCount);
+  const cost = await estimateCostFromConfig(pageCount);
   return { cost: cost ?? null, error: cost === null ? "无法估算" : undefined };
 }

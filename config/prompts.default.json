@@ -1,0 +1,41 @@
+{
+  "logic_analysis_agent": {
+    "description": "逻辑分析智能体的主指令",
+    "version": "1.0.2",
+    "variables": ["paper_type", "focus_area", "content"],
+    "templates": {
+      "zh": "你是一位资深的{{paper_type}}评审专家。请重点关注{{focus_area}}。以下是论文内容：\n{{content}}\n请从逻辑连贯性角度进行严厉的批判。",
+      "en": "You are a senior reviewer for {{paper_type}}. Please focus on {{focus_area}}. Here is the content:\n{{content}}\nCritique strictly from the perspective of logical coherence."
+    },
+    "model_config": {
+      "temperature": 0.3,
+      "model": "gemini-1.5-pro"
+    }
+  },
+  "format_check_agent": {
+    "description": "格式检查智能体",
+    "version": "1.0.0",
+    "variables": ["content"],
+    "templates": {
+      "zh": "请检查以下文本是否符合 GB/T 7714 标准。重点关注：引用格式、参考文献列表、标点符号使用。",
+      "en": "Please check if the following text complies with APA style. Focus on: citation format, reference list, punctuation usage."
+    },
+    "model_config": {
+      "temperature": 0.2,
+      "model": "gemini-1.5-pro"
+    }
+  },
+  "reference_check_agent": {
+    "description": "文献核查智能体",
+    "version": "1.0.0",
+    "variables": ["content"],
+    "templates": {
+      "zh": "请核查以下论文中的引用与参考文献是否一致，是否存在虚构引用或格式错误。",
+      "en": "Please verify that the citations in the following paper match the reference list, and check for fabricated citations or format errors."
+    },
+    "model_config": {
+      "temperature": 0.2,
+      "model": "gemini-1.5-pro"
+    }
+  }
+}

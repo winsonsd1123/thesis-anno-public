@@ -11,14 +11,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid pageCount" }, { status: 400 });
     }
 
-    if (num > getMaxAllowedPages()) {
+    const maxPages = await getMaxAllowedPages();
+    if (num > maxPages) {
       return NextResponse.json(
-        { error: "File too large", maxPages: getMaxAllowedPages() },
+        { error: "File too large", maxPages },
         { status: 400 }
       );
     }
 
-    const cost = estimateCost(num);
+    const cost = await estimateCost(num);
     if (cost === null) {
       return NextResponse.json({ error: "Unable to estimate" }, { status: 400 });
     }

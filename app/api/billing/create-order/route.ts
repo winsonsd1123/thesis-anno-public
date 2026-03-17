@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing packageId" }, { status: 400 });
     }
 
-    const pkg = getPackageById(packageId);
+    const pkg = await getPackageById(packageId);
     if (!pkg) {
       return NextResponse.json({ error: "Invalid package" }, { status: 400 });
     }

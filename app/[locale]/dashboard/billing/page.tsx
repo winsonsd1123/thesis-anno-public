@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getPackages } from "@/lib/config/billing";
 import { getWalletBalance } from "@/lib/actions/billing.actions";
-import { PricingCard } from "@/app/components/billing/PricingCard";
+import { BillingPlanSelector } from "@/app/components/billing/BillingPlanSelector";
 
 export default async function BillingPage({
   searchParams,
@@ -9,7 +9,7 @@ export default async function BillingPage({
   searchParams: Promise<{ paid?: string; trade_status?: string }>;
 }) {
   const t = await getTranslations("billing");
-  const packages = getPackages();
+  const packages = await getPackages();
   const balance = await getWalletBalance();
   const params = await searchParams;
   const paidSuccess = params.paid === "1" || params.trade_status === "TRADE_SUCCESS";
@@ -56,22 +56,7 @@ export default async function BillingPage({
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-          gap: 24,
-          marginBottom: 32,
-        }}
-      >
-        {packages.map((pkg, i) => (
-          <PricingCard
-            key={pkg.id}
-            pkg={pkg}
-            popular={pkg.id === "pkg_standard"}
-          />
-        ))}
-      </div>
+      <BillingPlanSelector packages={packages} />
 
       <div
         style={{
