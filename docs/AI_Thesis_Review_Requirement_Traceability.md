@@ -6,9 +6,9 @@
 | **文档版本** | V2.0 |
 | **关联 PRD** | [AI_Thesis_Review_PRD_v2.0.md](./AI_Thesis_Review_PRD_v2.0.md) |
 | **关联架构** | [AI_Thesis_Review_Architecture_Design.md](./AI_Thesis_Review_Architecture_Design.md) |
-| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md) |
+| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md)、[Tech_Spec_Admin_Config_v1.0.md](./Tech_Spec_Admin_Config_v1.0.md) |
 | **作者** | Colin |
-| **最后更新** | 2026-03-16 |
+| **最后更新** | 2026-03-17 |
 
 ---
 
@@ -31,7 +31,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **FR-02-01** | 点数账户 (Credits) 模型 | **Supabase Database** (`user_wallets` / `credits_balance`) | ✅ 已实现 | `lib/dal/wallet.dal.ts`、`lib/services/transaction.service.ts`、`add_credits_deposit` 存储过程 |
 | **FR-02-02** | 套餐购买 (1次/10次/50次) | **Frontend** (Pricing Page) + **Zpay submit.php** | ✅ 已实现 | `lib/services/zpay.service.ts`、`lib/actions/billing.actions.ts`、`app/[locale]/dashboard/billing`、`PricingCard` 组件 |
-| **FR-02-03** | 消耗规则 (按页数扣点) | **config/billing.config.json** + **estimate-cost API** | ✅ 已实现 | `lib/config/billing.ts`、`estimateCost()`、`POST /api/billing/estimate-cost`；扣费逻辑待集成 `review.ts` |
+| **FR-02-03** | 消耗规则 (按页数扣点) | **ConfigService** + **Supabase Storage** + **estimate-cost API** | ✅ 已实现 | `lib/config/billing.ts` 从 Storage 读取、`ConfigService`、`POST /api/billing/estimate-cost`；扣费逻辑待集成 `review.ts` |
 | **FR-02-04** | 资金流水日志 (`credit_transactions`) | **Supabase Database** (`credit_transactions` table) | ✅ 已实现 | `add_credits_deposit` 存储过程、`app/api/billing/webhook/zpay` |
 
 ### FR-03: 论文上传与解析 (Upload & Parsing)
@@ -60,6 +60,15 @@
 | **FR-05-02** | 分 Tab 结果页 (总览/逻辑/格式/引用) | **Frontend** (Tabs Component) + **JSON Schema** | ✅ 已设计 | 数据库 `result` JSON 结构已预留 |
 | **FR-05-03** | PDF 报告下载 | **Frontend** (`react-pdf` / `jspdf`) | ⚠️ 待设计 | 架构未提及 PDF 生成服务 (前端生成 vs 后端生成) |
 | **FR-05-04** | Markdown 源码下载 | **Frontend** (Direct Download) | ✅ 已设计 | 直接将 JSON 转 MD 即可 |
+
+### FR-06: 后台管理与配置 (Admin & Configuration)
+
+| 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 实现追踪 |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-06-01** | Prompt 实验室 (Prompt Lab) | **ConfigService** + **Supabase Storage** + **Admin UI** | ✅ 已实现 | `lib/services/config.service.ts`、`lib/services/prompt.service.ts`、`app/[locale]/admin/config/prompts`、`prompts.json` |
+| **FR-06-02** | 计费配置 (Pricing Config) | **ConfigService** + **Admin UI** | ✅ 已实现 | `app/[locale]/admin/config/pricing`、`billing.json`，首页与 Dashboard 均从 Storage 动态读取 |
+| **FR-06-03** | 系统熔断 (Feature Flags) | **ConfigService** + **Admin UI** | ✅ 已实现 | `app/[locale]/admin/config/system`、`system.json` |
+| **FR-06-04** | 配置热更新 (Hot Reload) | **Next.js Revalidation** | ✅ 已实现 | `unstable_cache` + `revalidateTag(key, { expire: 0 })`，Admin 保存后立即生效 |
 
 ---
 
@@ -105,3 +114,4 @@
 | **用户认证与档案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md) | [issues/2026-03-15+Auth_Profile模块开发.md](../issues/2026-03-15+Auth_Profile模块开发.md) | 2026-03-15 |
 | **i18n 国际化** | [Tech_Spec_i18n_Plugin_v1.0.md](./Tech_Spec_i18n_Plugin_v1.0.md) | [issues/2026-03-15+i18n国际化开发.md](../issues/2026-03-15+i18n国际化开发.md) | 2026-03-15 |
 | **计费与点数** | [Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md) | [issues/2026-03-16+计费模块开发.md](../issues/2026-03-16+计费模块开发.md) | 2026-03-16 |
+| **后台管理与配置** | [Tech_Spec_Admin_Config_v1.0.md](./Tech_Spec_Admin_Config_v1.0.md) | [issues/2026-03-17+Admin_Config_工作记录.md](../issues/2026-03-17+Admin_Config_工作记录.md) | 2026-03-17 |
