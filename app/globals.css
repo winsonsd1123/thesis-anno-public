@@ -109,6 +109,20 @@ h1, h2, h3, h4, h5, h6 {
   51%, 100% { opacity: 0; }
 }
 
+.review-console-caret {
+  animation: blink 1s step-end infinite;
+}
+
+@media (max-width: 768px) {
+  .review-workbench-row {
+    flex-direction: column;
+  }
+  .review-history-sidebar {
+    width: 100% !important;
+    max-width: 100%;
+  }
+}
+
 @keyframes progress-grow {
   from { width: 0%; }
   to { width: 100%; }

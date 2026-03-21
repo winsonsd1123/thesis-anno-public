@@ -1,0 +1,339 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import type { ReviewRow } from "@/lib/types/review";
+import { useDashboardStore } from "@/lib/store/useDashboardStore";
+import { useReviewRealtime } from "@/lib/hooks/useReviewRealtime";
+import { renameReview, deleteReview } from "@/lib/actions/review.action";
+import { fetchReviewRow } from "@/lib/client/fetchReviewRow";
+import { stagesToLogLines, stagesToProgressAgents } from "@/lib/review/stagesUi";
+import type { ReviewResult } from "@/lib/types/review";
+import { HistorySidebar, type SidebarReviewItem } from "./HistorySidebar";
+import { ReviewChatBoard } from "./ReviewChatBoard";
+import { ProgressConsole } from "./ProgressConsole";
+import { ReportViewer } from "./ReportViewer";
+
+type Panel = "chat" | "progress" | "report";
+
+function toSidebarItem(r: ReviewRow, t: ReturnType<typeof useTranslations>): SidebarReviewItem {
+  let variant: SidebarReviewItem["variant"] = "pending";
+  if (r.status === "completed" || r.status === "refunded") variant = "done";
+  else if (r.status === "processing") variant = "processing";
+  else if (r.status === "failed" || r.status === "needs_manual_review") variant = "failed";
+  else if (r.status === "pending") variant = "pending";
+
+  let statusLabel = t("historyStatusPending");
+  if (r.status === "completed" || r.status === "refunded") statusLabel = t("historyStatusDone");
+  else if (r.status === "processing") statusLabel = t("historyStatusProcessing");
+  else if (r.status === "failed" || r.status === "needs_manual_review") statusLabel = t("historyStatusFailed");
+
+  return {
+    id: r.id,
+    title: r.file_name?.trim() ? r.file_name : `#${r.id}`,
+    statusLabel,
+    variant,
+  };
+}
+
+type ReviewWorkbenchProps = {
+  balance: number | null;
+  initialReviews: ReviewRow[];
+};
+
+export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProps) {
+  const t = useTranslations("dashboard.review");
+  const tBill = useTranslations("billing");
+  const router = useRouter();
+
+  const activeReview = useDashboardStore((s) => s.activeReview);
+  const hydrateFromReview = useDashboardStore((s) => s.hydrateFromReview);
+  const clearSession = useDashboardStore((s) => s.clearSession);
+
+  const [panelOverride, setPanelOverride] = useState<Panel | null>(null);
+  const [copyHint, setCopyHint] = useState("");
+
+  const sidebarItems = useMemo(() => initialReviews.map((r) => toSidebarItem(r, t)), [initialReviews, t]);
+
+  const derivedPanel = useMemo((): Panel => {
+    if (!activeReview) return "chat";
+    if (activeReview.status === "failed" || activeReview.status === "needs_manual_review") return "chat";
+    if (activeReview.status === "processing") return "progress";
+    if (activeReview.status === "completed") return "report";
+    return "chat";
+  }, [activeReview]);
+
+  // 切换审阅或状态变化时收回手动 Tab，使界面跟随 derivedPanel（如进入 processing 自动到进度）
+  const reviewSyncKey = `${activeReview?.id ?? "none"}:${activeReview?.status ?? "none"}`;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset manual tab when review context changes
+    setPanelOverride(null);
+  }, [reviewSyncKey]);
+
+  const panel = panelOverride ?? derivedPanel;
+
+  useReviewRealtime(activeReview?.status === "processing" ? activeReview.id : null);
+
+  const selectReview = useCallback(
+    async (id: number) => {
+      const r = await fetchReviewRow(id);
+      if (r.ok) hydrateFromReview(r.review);
+    },
+    [hydrateFromReview]
+  );
+
+  const newReview = useCallback(() => {
+    clearSession();
+    router.refresh();
+  }, [clearSession, router]);
+
+  const handleRename = useCallback(
+    async (id: number, newTitle: string) => {
+      await renameReview(id, newTitle);
+      router.refresh();
+    },
+    [router]
+  );
+
+  const handleDelete = useCallback(
+    async (id: number) => {
+      const result = await deleteReview(id);
+      if (!result.ok) return;
+      if (activeReview?.id === id) {
+        clearSession();
+        setPanelOverride(null);
+      }
+      router.refresh();
+    },
+    [activeReview?.id, clearSession, router]
+  );
+
+  const progressAgents = useMemo(() => {
+    const labels = {
+      format: t("progressAgentFormat"),
+      logic: t("progressAgentLogic"),
+      reference: t("progressAgentRefs"),
+    };
+    return stagesToProgressAgents(activeReview?.stages, labels).map((a) => ({
+      label: a.label,
+      progress: a.progress,
+      status: a.status,
+    }));
+  }, [activeReview?.stages, t]);
+
+  const logLines = useMemo(
+    () => stagesToLogLines(activeReview?.stages, t("progressWaitLog")),
+    [activeReview?.stages, t]
+  );
+
+  async function copyError() {
+    const text = activeReview?.error_message ?? "";
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyHint(t("copied"));
+      setTimeout(() => setCopyHint(""), 2000);
+    } catch {
+      setCopyHint("");
+    }
+  }
+
+  const segments: { id: Panel; label: string }[] = [
+    { id: "chat", label: t("panelChat") },
+    { id: "progress", label: t("panelProgress") },
+    { id: "report", label: t("panelReport") },
+  ];
+
+  const showErrorBanner =
+    activeReview &&
+    (activeReview.status === "failed" || activeReview.status === "needs_manual_review") &&
+    activeReview.error_message;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+        margin: "-24px -24px 0",
+        padding: "0 24px 24px",
+        minHeight: "calc(100vh - 56px - 24px)",
+      }}
+    >
+      <div
+        className="review-workbench-row"
+        style={{
+          display: "flex",
+          gap: 16,
+          flex: 1,
+          minHeight: 0,
+          alignItems: "stretch",
+        }}
+      >
+        <HistorySidebar
+          title={t("historyTitle")}
+          collapseLabel={t("historyCollapse")}
+          expandLabel={t("historyExpand")}
+          emptyHint={t("historyEmpty")}
+          newReviewLabel={t("historyNewReview")}
+          renameLabel={t("historyRename")}
+          deleteLabel={t("historyDelete")}
+          renamePlaceholder={t("historyRenamePlaceholder")}
+          items={sidebarItems}
+          selectedId={activeReview?.id ?? null}
+          onSelect={selectReview}
+          onNewReview={newReview}
+          onRename={handleRename}
+          onDelete={handleDelete}
+        />
+
+        <section
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 24,
+            border: "1px solid var(--border)",
+            background: "var(--bg-muted)",
+            boxShadow: "var(--shadow-sm)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface)",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {segments.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setPanelOverride(s.id)}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: "10px 18px",
+                  borderRadius: 999,
+                  border: "none",
+                  cursor: "pointer",
+                  background: panel === s.id ? "var(--brand-bg)" : "transparent",
+                  color: panel === s.id ? "var(--brand)" : "var(--text-secondary)",
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+            <span style={{ flex: 1 }} />
+            <Link
+              href="/dashboard/billing"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 14px",
+                background: "var(--bg-subtle)",
+                border: "1px solid var(--border)",
+                borderRadius: 999,
+                textDecoration: "none",
+                color: "var(--text-primary)",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: "var(--text-secondary)" }}>{tBill("balance")}</span>
+              <span style={{ fontWeight: 700, color: "var(--brand)" }}>
+                {balance ?? 0} {tBill("credits")}
+              </span>
+            </Link>
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              overflow: "auto",
+              padding: "24px 20px 32px",
+            }}
+          >
+            {showErrorBanner ? (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: "16px 18px",
+                  borderRadius: 16,
+                  border: "1px solid var(--danger)",
+                  background: "rgba(239, 68, 68, 0.08)",
+                  maxWidth: 720,
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--danger)", marginBottom: 8 }}>
+                  {t("errorBannerTitle")}
+                </div>
+                <pre
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text-primary)",
+                    whiteSpace: "pre-wrap",
+                    marginBottom: 12,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {activeReview!.error_message}
+                </pre>
+                <button
+                  type="button"
+                  onClick={copyError}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {copyHint || t("copyError")}
+                </button>
+              </div>
+            ) : null}
+
+            {panel === "chat" && <ReviewChatBoard />}
+            {panel === "progress" && (
+              <div style={{ maxWidth: 720, margin: "0 auto" }}>
+                <ProgressConsole
+                  title={t("progressTitle")}
+                  subtitle={t("progressSubtitle")}
+                  agents={progressAgents}
+                  logLines={logLines}
+                />
+              </div>
+            )}
+            {panel === "report" && (
+              <div style={{ maxWidth: 720, margin: "0 auto" }}>
+                <ReportViewer
+                  tabStructure={t("reportTabStructure")}
+                  tabLogic={t("reportTabLogic")}
+                  tabRefs={t("reportTabRefs")}
+                  placeholder={t("reportPlaceholder")}
+                  emptySection={t("reportEmptySection")}
+                  exportLabel={t("reportDownload")}
+                  result={(activeReview?.result as ReviewResult | null) ?? null}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

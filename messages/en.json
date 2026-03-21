@@ -93,32 +93,56 @@
         "multiAgent": {
           "title": "Multi-Agent Collaboration",
           "desc": "Format, logic, and reference agents run in parallel. Each agent focuses on one domain for deeper results.",
-          "tags": ["Format Agent", "Logic Agent", "Reference Agent"]
+          "tags": [
+            "Format Agent",
+            "Logic Agent",
+            "Reference Agent"
+          ]
         },
         "chat": {
           "title": "Conversational AI Guide",
           "desc": "Gemini Deep Research-style chat. AI asks questions, understands intent, and configures the best review strategy for your thesis type.",
-          "tags": ["ChatGPT-style", "Smart params", "Suggested Chips"]
+          "tags": [
+            "ChatGPT-style",
+            "Smart params",
+            "Suggested Chips"
+          ]
         },
         "visual": {
           "title": "Visual Review Process",
           "desc": "Real-time display of AI reading and thinking. Typewriter streaming, progress cards—waiting becomes enjoyable.",
-          "tags": ["Streaming", "Progress viz", "Optimistic UI"]
+          "tags": [
+            "Streaming",
+            "Progress viz",
+            "Optimistic UI"
+          ]
         },
         "format": {
           "title": "Deep Format Check",
           "desc": "Strict GB/T 7714-2015 compliance. Chapter numbering, figure/table index consistency, page alignment.",
-          "tags": ["GB/T Standard", "Chapter numbers", "Figure index"]
+          "tags": [
+            "GB/T Standard",
+            "Chapter numbers",
+            "Figure index"
+          ]
         },
         "logic": {
           "title": "Logic Chain Analysis",
           "desc": "Paragraph-level annotations and logic gap detection. Abstract four elements, conclusion-intro coherence, argument flaws.",
-          "tags": ["Paragraph notes", "Logic gaps", "Coherence"]
+          "tags": [
+            "Paragraph notes",
+            "Logic gaps",
+            "Coherence"
+          ]
         },
         "english": {
           "title": "English Abstract Polish",
           "desc": "Remove Chinglish, replace with academic vocabulary. Before/after comparison for better expression.",
-          "tags": ["De-Chinglish", "Academic vocab", "Comparison"]
+          "tags": [
+            "De-Chinglish",
+            "Academic vocab",
+            "Comparison"
+          ]
         }
       }
     },
@@ -153,10 +177,20 @@
         "title": "Review Report · Deep Learning Image Recognition",
         "downloadPdf": "Download PDF",
         "downloadMd": "Download Markdown",
-        "tabs": ["Overview", "Logic", "Format", "References", "Grammar"],
+        "tabs": [
+          "Overview",
+          "Logic",
+          "Format",
+          "References",
+          "Grammar"
+        ],
         "overallScore": "Overall Score",
         "coreIssues": "Core Issues · Priority Suggestions",
-        "levels": { "high": "High", "medium": "Medium", "low": "Low" }
+        "levels": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        }
       }
     },
     "pricing": {
@@ -170,7 +204,13 @@
           "nameEn": "Single Pass",
           "unit": "1 pass",
           "desc": "Try AI review once",
-          "features": ["1 full thesis review", "Five-dimension report", "PDF download", "< 60 pages", "Basic support"]
+          "features": [
+            "1 full thesis review",
+            "Five-dimension report",
+            "PDF download",
+            "< 60 pages",
+            "Basic support"
+          ]
         },
         "standard": {
           "name": "Standard Bundle",
@@ -178,14 +218,29 @@
           "unit": "10 passes",
           "desc": "Most popular for graduation season iterations",
           "popular": "Most Popular",
-          "features": ["10 full thesis reviews", "Five-dimension report", "PDF + Markdown", "Up to 100 pages", "Priority queue", "Full history"]
+          "features": [
+            "10 full thesis reviews",
+            "Five-dimension report",
+            "PDF + Markdown",
+            "Up to 100 pages",
+            "Priority queue",
+            "Full history"
+          ]
         },
         "pro": {
           "name": "Pro Bundle",
           "nameEn": "Pro Bundle",
           "unit": "50 passes",
           "desc": "For advisors, teams, or institutions",
-          "features": ["50 full thesis reviews", "Five-dimension report", "PDF + Markdown", "Up to 150 pages", "Highest priority", "Full history & export", "Dedicated support"]
+          "features": [
+            "50 full thesis reviews",
+            "Five-dimension report",
+            "PDF + Markdown",
+            "Up to 150 pages",
+            "Highest priority",
+            "Full history & export",
+            "Dedicated support"
+          ]
         }
       },
       "buyNow": "Buy Now →",
@@ -206,12 +261,30 @@
       "title": "You might ask",
       "subtitle": "Questions? You may find answers here",
       "items": [
-        { "q": "What thesis types are supported?", "a": "MVP focuses on Chinese university theses (bachelor/master/PhD), PDF upload up to 150 pages. English theses and journal papers coming later." },
-        { "q": "Do credits expire?", "a": "Purchased credits never expire. Buy anytime, use anytime." },
-        { "q": "Is my thesis content secure?", "a": "All uploads are encrypted. HTTPS in transit. PII is auto-masked in logs. Content is never used for training or sharing." },
-        { "q": "What if AI review fails?", "a": "Auto-retry (3x exponential backoff). If still failing, task goes to manual review with ETA. Credits are not deducted until a report is delivered." },
-        { "q": "Can I export the report?", "a": "Yes. PDF (formatted) and Markdown (structured) for editing in Word or Notion." },
-        { "q": "What payment methods?", "a": "WeChat Pay and Alipay (via Zpay). Stripe/PayPal planned." }
+        {
+          "q": "What thesis types are supported?",
+          "a": "MVP focuses on Chinese university theses (bachelor/master/PhD), PDF upload up to 150 pages. English theses and journal papers coming later."
+        },
+        {
+          "q": "Do credits expire?",
+          "a": "Purchased credits never expire. Buy anytime, use anytime."
+        },
+        {
+          "q": "Is my thesis content secure?",
+          "a": "All uploads are encrypted. HTTPS in transit. PII is auto-masked in logs. Content is never used for training or sharing."
+        },
+        {
+          "q": "What if AI review fails?",
+          "a": "Auto-retry (3x exponential backoff). If still failing, task goes to manual review with ETA. Credits are not deducted until a report is delivered."
+        },
+        {
+          "q": "Can I export the report?",
+          "a": "Yes. PDF (formatted) and Markdown (structured) for editing in Word or Notion."
+        },
+        {
+          "q": "What payment methods?",
+          "a": "WeChat Pay and Alipay (via Zpay). Stripe/PayPal planned."
+        }
       ]
     },
     "ctaBanner": {
@@ -227,28 +300,71 @@
     "footer": {
       "slogan": "AI-powered thesis review. Multi-agent collaboration, mentor-level pre-review. Find and fix issues before defense.",
       "product": "Product",
-      "productLinks": ["Features", "Workflow", "Pricing", "Sample Report"],
+      "productLinks": [
+        "Features",
+        "Workflow",
+        "Pricing",
+        "Sample Report"
+      ],
       "resources": "Resources",
-      "resourceLinks": ["Docs", "Standards", "Changelog", "API"],
+      "resourceLinks": [
+        "Docs",
+        "Standards",
+        "Changelog",
+        "API"
+      ],
       "about": "About",
-      "aboutLinks": ["About Us", "Contact", "Privacy", "Terms"],
+      "aboutLinks": [
+        "About Us",
+        "Contact",
+        "Privacy",
+        "Terms"
+      ],
       "copyright": "© 2026 ThesisAI. All rights reserved.",
-      "social": ["WeChat", "Xiaohongshu", "Zhihu"]
+      "social": [
+        "WeChat",
+        "Xiaohongshu",
+        "Zhihu"
+      ]
     },
     "socialProof": {
       "stats": [
-        { "num": "5,000+", "label": "Papers Reviewed" },
-        { "num": "98%", "label": "Satisfaction" },
-        { "num": "< 5min", "label": "Avg. Review" },
-        { "num": "GB/T", "label": "Nat. Standard" }
+        {
+          "num": "5,000+",
+          "label": "Papers Reviewed"
+        },
+        {
+          "num": "98%",
+          "label": "Satisfaction"
+        },
+        {
+          "num": "< 5min",
+          "label": "Avg. Review"
+        },
+        {
+          "num": "GB/T",
+          "label": "Nat. Standard"
+        }
       ],
       "title": "Students love",
       "titleHighlight": "ThesisAI",
       "subtitle": "Real user feedback",
       "testimonials": [
-        { "name": "Wang", "school": "Huazhong Univ. · Master", "text": "ThesisAI found Chinglish and reference format issues in my abstract. Saved me a lot of time!" },
-        { "name": "Chen", "school": "Peking Univ. · PhD", "text": "Logic analysis is strong—found a gap in my argument chain I missed. Very reassuring before defense." },
-        { "name": "Li", "school": "Zhejiang Univ. · Bachelor", "text": "Love the conversational UX. AI asks what you care about after upload. Report is very detailed!" }
+        {
+          "name": "Wang",
+          "school": "Huazhong Univ. · Master",
+          "text": "ThesisAI found Chinglish and reference format issues in my abstract. Saved me a lot of time!"
+        },
+        {
+          "name": "Chen",
+          "school": "Peking Univ. · PhD",
+          "text": "Logic analysis is strong—found a gap in my argument chain I missed. Very reassuring before defense."
+        },
+        {
+          "name": "Li",
+          "school": "Zhejiang Univ. · Bachelor",
+          "text": "Love the conversational UX. AI asks what you care about after upload. Report is very detailed!"
+        }
       ]
     }
   },
@@ -272,6 +388,93 @@
       "save": "Save",
       "saving": "Saving…",
       "saveSuccess": "Saved successfully"
+    },
+    "review": {
+      "panelChat": "Chat",
+      "panelProgress": "Progress",
+      "panelReport": "Report",
+      "historyTitle": "History",
+      "historyCollapse": "Collapse sidebar",
+      "historyExpand": "Expand sidebar",
+      "historyEmpty": "No sessions yet—completed reviews will appear here",
+      "historyStatusDone": "Done",
+      "historyStatusPending": "Pending",
+      "historyStatusProcessing": "Processing",
+      "historyStatusFailed": "Issue",
+      "historyNewReview": "New review",
+      "historyRename": "Rename",
+      "historyDelete": "Delete",
+      "historyRenamePlaceholder": "Enter a new name…",
+      "uploadTitle": "Upload thesis",
+      "uploadSubmitting": "Uploading…",
+      "uploadParsingPages": "Reading page count…",
+      "domainPlaceholder": "Research domain (optional), e.g. CS, medicine",
+      "submitUpload": "Start setup",
+      "chatWelcomeAfterUpload": "Welcome to ThesisAI — I’ve received your thesis for this review session. Below are your paper and domain; then you’ll see the review plan.",
+      "paperReplaceHover": "Replace PDF",
+      "paperReplacing": "Uploading…",
+      "domainNotSet": "Not specified",
+      "domainEditPencilAria": "Edit research domain",
+      "domainCancel": "Cancel",
+      "chatPlanIntro": "Your review plan is ready — adjust if needed, then hit Start.",
+      "chatPlanRunningIntro": "Review started — this is the plan we’re running.",
+      "planRunningFooter": "Open the Progress tab for live stage updates.",
+      "paperCardTitle": "Uploaded paper",
+      "paperPages": "{count} pages",
+      "paperPagesUnknown": "Page count pending",
+      "domainBubbleTitle": "Domain",
+      "domainEditHint": "Editing domain will regenerate the static review plan",
+      "domainSave": "Update domain",
+      "domainSaving": "Saving…",
+      "planTitle": "Review plan (static)",
+      "planBadge": "Capability + domain",
+      "planBadgeGeneral": "General",
+      "planItemFormat": "Format & structural integrity",
+      "planItemLogic": "Argument flow & chapter coherence",
+      "planItemRefs": "References & citations (GB/T 7714)",
+      "planStart": "Start review",
+      "planStarting": "Starting…",
+      "progressTitle": "Task progress",
+      "progressSubtitle": "Stages update live from the server",
+      "progressAgentFormat": "Format agent",
+      "progressAgentLogic": "Logic agent",
+      "progressAgentRefs": "Reference agent",
+      "progressWaitLog": "[orchestrator] Waiting for subtask updates…",
+      "reportTabStructure": "Structure",
+      "reportTabLogic": "Logic",
+      "reportTabRefs": "References",
+      "reportPlaceholder": "When the run finishes, this tab shows structured findings and suggestions.",
+      "reportEmptySection": "No data for this section yet",
+      "reportDownload": "Export JSON",
+      "assistantLabel": "ThesisAI · Assistant",
+      "chatRoleUser": "You",
+      "chatUserAvatarMark": "Me",
+      "errorBannerTitle": "Review error",
+      "copyError": "Copy error",
+      "copied": "Copied",
+      "errors": {
+        "NOT_AUTHENTICATED": "Please sign in",
+        "FILE_REQUIRED": "Please choose a PDF file",
+        "DOMAIN_REQUIRED": "Please enter a research domain",
+        "FILE_TOO_LARGE": "File too large (max 50MB)",
+        "FILE_NOT_PDF": "Only PDF files are supported",
+        "UPLOAD_FAILED": "Upload failed, try again",
+        "NOT_FOUND": "Record not found",
+        "NOT_FOUND_DOMAIN": "Review not found",
+        "INVALID_STATUS": "Cannot start review in this state",
+        "PAGE_COUNT_OUT_OF_RANGE": "Page count out of allowed range",
+        "PAGE_COUNT_REQUIRED": "Valid page count is required—please re-select the file and try again",
+        "PAGE_COUNT_INVALID": "Invalid page count or exceeds the allowed maximum",
+        "PAGE_COUNT_PARSE": "Could not read this PDF’s page count—try another file or try again later",
+        "COST_UNAVAILABLE": "Could not estimate credit cost",
+        "INSUFFICIENT_CREDITS": "Not enough credits—please top up",
+        "DOMAIN_UPDATE_FAILED": "Could not update domain",
+        "START_FAILED": "Failed to start review",
+        "GENERIC": "Something went wrong, try again later"
+      },
+      "uploadDragLabel": "Drag & drop or click to select PDF",
+      "uploadSizeHint": "Max 50 MB · Domain is optional",
+      "uploadClearFile": "Remove file"
     }
   },
   "billing": {
