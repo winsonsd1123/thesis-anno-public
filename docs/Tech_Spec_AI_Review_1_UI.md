@@ -1,5 +1,7 @@
 # AI 审阅引擎实施方案 1/3: 前端交互与三层架构设计 (Conversational UI)
 
+> **文档同步**：下文目录与代码路径以仓库当前实现为准（2026-03-21）。与初版差异包括：`reviews` 用户写操作走 **`createClient` + RLS**；无 JWT 的后台写库集中在 **`review.admin.dal.ts`**；PDF 页数在浏览器用 **`pdfjs-dist`** 解析；审阅详情只读使用 **`GET /api/reviews/[id]`**。
+
 ## 1. 模块定位与交互范式 (DeepResearch 风格)
 本模块负责实现类似 **DeepResearch** 的 Agentic UI 工作台。它接管用户上传 PDF、收集领域意图、展示调度进度、以及最终渲染审阅报告的全生命周期。
 
@@ -14,67 +16,78 @@
 
 ## 2. 目录结构与三层架构划分
 
-严格遵循 App Router 的 Server Component First 架构，划分为展示层、业务逻辑层（Server Actions）和数据访问层（DAL）。
+严格遵循 App Router 的 **Server Component First** 架构：页面与数据预取以 RSC 为主；工作台内交互为 Client Components。领域上划分为 **展示层**、**业务层（Server Actions / Route Handler）**、**数据访问层（DAL）**；**`lib/services/review.service.ts`** 为审阅域对外唯一入口（Actions / API 不直连 DAL）。
 
 ```text
 /app/[locale]/dashboard/
-  ├── layout.tsx               # [已有] 控制台全局布局，包含顶栏导航等
-  ├── (withNav)/               # [已有] 带导航的页面组
-  │   ├── page.tsx             # [修改] 控制台首页 (Server Component)，在此处引入工作台内容
-  ├── _components/             # [新增] 工作台专属展示层组件
-  │   ├── HistorySidebar.tsx   # 侧边栏：历史审阅记录 (Client Component)
-  │   ├── ReviewChatBoard.tsx  # 核心对话区：处理本地状态的对话流气泡渲染
-  │   ├── UploadForm.tsx       # 包含文件上传与领域填写的表单
-  │   ├── PaperCardBubble.tsx  # 展示已上传论文信息的气泡
-  │   ├── DomainInfoBubble.tsx # 展示并允许修改论文领域的气泡
-  │   ├── PlanConfirmBubble.tsx# 静态生成的审阅计划确认气泡
-  │   ├── ProgressConsole.tsx  # 模拟终端的实时任务进度追踪器
-  │   └── ReportViewer.tsx     # 最终的多维度审阅报告渲染
+  ├── layout.tsx               # 控制台全局布局
+  ├── (withNav)/
+  │   ├── page.tsx             # 首页 RSC：预取历史列表与余额，挂载 ReviewWorkbench
+  │   ├── billing/ … settings/ …
+  ├── _components/             # 工作台展示层（Client）
+  │   ├── ReviewWorkbench.tsx  # 壳：侧栏 + 主面板 Tab（对话 / 进度 / 报告）
+  │   ├── HistorySidebar.tsx   # 历史列表；支持重命名、删除
+  │   ├── ReviewChatBoard.tsx  # 对话流、上传、领域、计划、开始审阅
+  │   ├── ChatMessageRows.tsx  # 对话消息行渲染
+  │   ├── UploadForm.tsx
+  │   ├── PaperCardBubble.tsx / DomainInfoBubble.tsx / PlanConfirmBubble.tsx
+  │   ├── ProgressConsole.tsx
+  │   └── ReportViewer.tsx     # 报告三 Tab（当前以 JSON 文本展示各子结果）
+/app/api/reviews/[id]/route.ts # GET 审阅详情（只读，JWT + RLS）
 /lib/
-  ├── dal/                     # [数据访问层] 仅允许在此进行数据库直接交互
-  │   ├── review.dal.ts        # reviews 表的 CRUD (读用 GET，写为供 Action 调用的函数)
-  │   └── storage.dal.ts       # Supabase Storage 交互 (上传 PDF、获取签名 URL)
-  ├── actions/                 # [业务逻辑层] Server Actions
-  │   ├── review.action.ts     # 处理表单/上传逻辑，组装 DAL 存库
-  │   └── trigger.action.ts    # 负责向后端 Trigger Orchestrator 发送任务请求
-  └── store/
-      └── useDashboardStore.ts # [状态管理] Zustand 管理跨组件的复杂 UI 状态
+  ├── dal/
+  │   ├── review.dal.ts        # 用户 JWT：列表/详情/用户发起的 insert/update/delete 等（RLS 兜底）
+  │   ├── review.admin.dal.ts  # Service Role：仅后台编排回写 status/stages/result 等（无用户会话场景）
+  │   └── storage.dal.ts       # Service Role：Storage 上传/删除（bucket thesis-pdfs）
+  ├── services/
+  │   └── review.service.ts    # 聚合 reviewDAL / reviewAdminDAL，供 Action 与 Route 调用
+  ├── actions/
+  │   ├── review.action.ts     # initializeReview、updateDomain、rename、delete、replaceReviewPdf
+  │   └── trigger.action.ts    # startReviewEngine（写 processing + 可选 Trigger）
+  ├── client/
+  │   ├── pdfPageCount.ts      # 浏览器 pdfjs 解析页数
+  │   └── fetchReviewRow.ts    # GET /api/reviews/[id] 客户端封装
+  ├── hooks/useReviewRealtime.ts
+  ├── review/buildStaticPlan.ts / stagesUi.ts
+  ├── types/review.ts
+  └── store/useDashboardStore.ts
 ```
 
 ## 3. 各层核心实现细节
 
 ### 3.1 数据访问层 (DAL)
-`lib/dal/review.dal.ts` - 封装 Supabase 客户端操作：
+- **`review.dal.ts`**：一律 `await createClient()`（用户 Cookie 会话）。在表上启用 RLS 的前提下，**用户发起的写库**（insert、更新 file/domain、重命名、删除、`updateProcessingStart` 等）与读库均受策略约束，避免 Action 层疏漏时 Service Role 越权写任意行。
+- **`review.admin.dal.ts`**：`createAdminClient()`，仅供 **无用户 JWT** 的 Trigger / 后台任务更新 `stages`、`result`、终态等；不得从面向用户的 Action 直接调用。
+- **`storage.dal.ts`**：大文件上传/删除仍用 Service Role（Storage 策略与 DB RLS 分离）。
+
+业务代码通过 **`reviewService`** 调用上述 DAL，而非在 Action 内散落 Supabase 调用。RSC 列表/详情示例（路径示意）：
+
 ```typescript
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from "@/lib/supabase/server";
+import { reviewService } from "@/lib/services/review.service";
 
-export async function createReviewRecord(userId: string, fileUrl: string, fileName: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('reviews')
-    .insert([{ user_id: userId, file_url: fileUrl, file_name: fileName, status: 'interviewing' }])
-    .select('id')
-    .single();
-  if (error) throw new Error('DB_ERROR: ' + error.message);
-  return data.id;
-}
-
-// 供页面 Server Component 使用的 GET 请求
-export async function getReviewHistory(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from('reviews').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-  return data;
-}
+// RSC：按 userId 拉历史（与 page.tsx 一致时可委托 reviewService.listReviewsForUser）
+const supabase = await createClient();
+const { data: auth } = await supabase.auth.getUser();
+if (!auth.user) { /* redirect */ }
+const rows = await reviewService.listReviewsForUser(auth.user.id);
 ```
 
-### 3.2 业务逻辑层 (Server Actions)
+新建记录由 Action 内 `reviewService.insertReview({ userId, fileUrl, fileName, domain, pageCount })` 完成；**初始 `status` 为 `pending`**（非示例中的 `interviewing`）。
+
+### 3.2 业务逻辑层 (Server Actions / API)
 1. **初始化上传与信息保存 (`review.action.ts`)**:
-   前端组件 `UploadForm` 收集到文件和领域信息后，调用 Server Action `initializeReview(formData)`。Action 内调用 `storage.dal` 上传文件，随后调用 `review.dal` 创建记录（同时存入 `domain` 等信息），返回 `reviewId` 存入 Zustand。
-2. **静态计划组装**:
-   前端获取到文件信息和领域后，直接在 Zustand Store 中本地生成审阅计划数据结构（不再依赖 LLM 和 `/api/chat`）。
-3. **触发底层引擎 (`trigger.action.ts`)**:
-   前端点击气泡上的“开始审阅”时，调用 `startReviewEngine(reviewId, contextData)`。
-   该 Action 负责调用 Trigger.dev SDK 触发 `Tech_Spec_AI_Review_2_Trigger.md` 中的 `orchestrateReview` 任务，并调用 DAL 将状态更新为 `processing`。
+   `UploadForm` 在浏览器用 `pdfjs-dist` 得到页数后，将 `file`、`domain`、`pageCount` 一并提交。`initializeReview(formData)` 校验认证与大小/MIME 后，调用 `storageDAL.uploadReviewPdf` 与 **`reviewService.insertReview`**，返回 `reviewId` 写入 Zustand。
+2. **领域与文件维护**:
+   - `updateReviewDomain` → `reviewService.updateDomain`。
+   - `renameReview` / `deleteReview` → `reviewService`；删除成功后尝试 **`storageDAL.removeObject`** 清理 PDF。
+   - `replaceReviewPdf`：仅当 `status === "pending"` 时替换文件并 `updateReviewFile`，并删除旧 Storage 对象（尽力而为）。
+3. **静态计划组装**:
+   前端根据领域调用 `buildStaticPlan`，在 Store 中生成计划气泡数据（无 LLM）。
+4. **触发底层引擎 (`trigger.action.ts`)**:
+   「开始审阅」调用 `startReviewEngine`：校验余额与页数上限后，经 **`reviewService.updateProcessingStart`**（用户客户端 + RLS）写入 `processing` 与初始 `stages`；若配置了 Trigger 密钥则触发 `orchestrate-review`（详见 `Tech_Spec_AI_Review_2_Trigger.md`）。**扣点与事务**仍待与计费模块闭环。
+5. **只读详情（GET）**:
+   切换历史或刷新上下文时，客户端使用 **`fetchReviewRow(reviewId)`** → `GET /api/reviews/[id]`，避免用 Server Action 做纯查询。
 
 ### 3.3 前端展示层 (Presentation)
 1. **工作台嵌入与历史会话恢复 (`page.tsx` & `HistorySidebar.tsx`)**:
@@ -101,20 +114,10 @@ export async function getReviewHistory(userId: string) {
 ```
 
 ### 3.4 进度实时监听 (Supabase Realtime)
-当状态切为 `processing`，挂载 `ProgressConsole.tsx`。
-使用 Supabase 客户端监听 `reviews` 表的 `progress` 字段变化，实现 DeepResearch 般的“打字机终端”效果：
+当状态为 `processing`，由 `useReviewRealtime` 订阅 `public.reviews` 上 `id=eq.{reviewId}` 的 **`UPDATE`**。实现上消费整行变更，其中 **`stages`（JSONB 数组）** 经 `stagesUi` 映射为 `ProgressConsole` 的进度条与日志；**不存在单独的 `progress` 列**（与早期规格示例不同）。
 ```typescript
-const channel = supabase
-  .channel('review_progress')
-  .on(
-    'postgres_changes',
-    { event: 'UPDATE', schema: 'public', table: 'reviews', filter: `id=eq.${reviewId}` },
-    (payload) => {
-      // payload.new.progress 包含 Trigger 实时推送的 { format: 'running', logic: 'done', log: '...' }
-      // 更新控制台日志和进度条
-    }
-  )
-  .subscribe();
+// 逻辑位置：lib/hooks/useReviewRealtime.ts — 订阅后 merge 到 Zustand patchFromServer
+// payload.new.stages、payload.new.status、payload.new.result 等驱动 UI
 ```
 
 ## 4. 核心数据结构与前端消费逻辑
@@ -132,3 +135,16 @@ const channel = supabase
     *   **消费逻辑**: 当任务完成时，`ReportViewer.tsx` 解析此 JSON，按结构分配给「格式检查」、「逻辑审查」、「参考文献」三个子 Tab 渲染。
 *   **`error_message` (Text)**: 
     *   **消费逻辑**: 若任务失败，在 UI 中心醒目展示此错误原因，并允许用户一键复制去提工单。
+
+---
+
+## 5. 工程配置备忘
+- **`next.config.ts`**：`experimental.serverActions.bodySizeLimit` 提升至 **52mb**，与 PDF 上传体积一致。
+- **国际化**：文案键位于 `messages/zh.json`、`messages/en.json` 的 `dashboard.review` 等命名空间。
+
+---
+
+## 6. 关联文档
+- 实施记录与差异表：[issues/2026-03-21+AI审阅工作台.md](../issues/2026-03-21+AI审阅工作台.md)
+- 需求追踪 RTM：[AI_Thesis_Review_Requirement_Traceability.md](./AI_Thesis_Review_Requirement_Traceability.md)
+- 数据库字段全貌：[AI_Thesis_Review_Database_Schema_v2.0.md](./AI_Thesis_Review_Database_Schema_v2.0.md)

@@ -6,9 +6,9 @@
 | **文档版本** | V2.0 |
 | **关联 PRD** | [AI_Thesis_Review_PRD_v2.0.md](./AI_Thesis_Review_PRD_v2.0.md) |
 | **关联架构** | [AI_Thesis_Review_Architecture_Design.md](./AI_Thesis_Review_Architecture_Design.md) |
-| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md)、[Tech_Spec_Admin_Config_v1.0.md](./Tech_Spec_Admin_Config_v1.0.md) |
+| **关联技术方案** | [Tech_Spec_Auth_v1.0.md](./Tech_Spec_Auth_v1.0.md)、[Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md)、[Tech_Spec_Admin_Config_v1.0.md](./Tech_Spec_Admin_Config_v1.0.md)、[Tech_Spec_AI_Review_1_UI.md](./Tech_Spec_AI_Review_1_UI.md)、[Tech_Spec_AI_Review_2_Trigger.md](./Tech_Spec_AI_Review_2_Trigger.md) |
 | **作者** | Colin |
-| **最后更新** | 2026-03-17 |
+| **最后更新** | 2026-03-21 |
 
 ---
 
@@ -20,7 +20,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **FR-01-01** | 支持邮箱/密码注册登录 | **Supabase Auth** + **Server Actions** | ✅ 已实现 | `lib/actions/auth.actions.ts` (signUp/signIn)、`lib/dal/auth.dal.ts`、`app/[locale]/(auth)/login`、`register` |
 | **FR-01-02** | 支持 OAuth (Google/GitHub) | **Supabase Auth** (Social providers) | ✅ 已实现 | `signInWithOAuth`、`app/auth/callback/route.ts`。需在 Supabase 控制台配置 Client ID/Secret |
-| **FR-01-03** | 数据隔离 (RLS) | **Supabase RLS Policies** | ✅ 已设计 | `profiles` 表 RLS 已配置；`reviews` 表需配置 `auth.uid() = user_id` |
+| **FR-01-03** | 数据隔离 (RLS) | **Supabase RLS Policies** | ✅ 已实现 | `profiles` 已配置；`reviews` 已配置 `SELECT` 及用户态 `INSERT`/`UPDATE`/`DELETE`（`auth.uid() = user_id`），见 `docs/sql/reviews_rls_user_insert_update_delete.sql` |
 | **FR-01-04** | 个人档案 (头像、昵称) | **Profile DAL/Service** + **Dashboard Settings** | ✅ 已实现 | `lib/dal/profile.dal.ts`、`lib/actions/profile.actions.ts`、`app/[locale]/dashboard/settings`、`AvatarUpload` 组件 |
 | **FR-01-05** | 密码重置 (找回密码) | **resetPasswordForEmail** + **updateUser** | ✅ 已实现 | `forgot-password`、`update-password` 页面，回调 `/auth/callback?next=/update-password` |
 | **FR-01-06** | 会话管理与路由保护 | **Middleware** + **Supabase SSR** | ✅ 已实现 | `middleware.ts`、`lib/supabase/middleware.ts`，未登录访问 `/dashboard` 重定向 `/login` |
@@ -38,8 +38,8 @@
 
 | 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 备注/Gap Analysis |
 | :--- | :--- | :--- | :--- | :--- |
-| **FR-03-01** | PDF 文件拖拽上传 | **Frontend** (Upload Component) + **Supabase Storage** | ✅ 已设计 | Bucket: `thesis-files` |
-| **FR-03-02** | 前端解析页码 (预估费用) | **Frontend** (`pdf.js` / `react-pdf`) | ⚠️ 待确认 | 架构未明确前端解析库选型，需确认是否在前端做 Pre-check |
+| **FR-03-01** | PDF 文件拖拽上传 | **Frontend** (Upload Component) + **Supabase Storage** | ✅ 已实现 | 私有 Bucket **`thesis-pdfs`**；上传经 `lib/dal/storage.dal.ts`（Service Role）；`lib/actions/review.action.ts` `initializeReview` |
+| **FR-03-02** | 前端解析页码 (预估费用) | **Frontend** (`pdfjs-dist`) | ✅ 已实现 | `lib/client/pdfPageCount.ts`；页数经表单字段提交服务端校验（`getMaxAllowedPages`） |
 | **FR-03-03** | 后端文本提取 | **Trigger.dev Job** (`pdf-parse` / `unstructured`) | ✅ 已设计 | `downloadAndParse` 函数 |
 
 ### FR-04: AI 智能审阅 (Agentic Review)
@@ -50,16 +50,16 @@
 | **FR-04-02** | 格式规范检查 (GB/T) | **OpenRouter** (Prompt Engineering) | ✅ 已设计 | 对应 `checkFormat` 函数 |
 | **FR-04-03** | 逻辑深度分析 (Logic Agent) | **OpenRouter** (Long Context LLM) | ✅ 已设计 | 对应 `checkLogic` 函数 |
 | **FR-04-04** | 参考文献核查 (联网/数据库) | **OpenRouter** (Search Tool / RAG) | ⚠️ 待细化 | 架构中仅提到 LLM 调用，未明确是否集成 Search API (如 Tavily/Serper) |
-| **FR-04-05** | 对话式引导输入 (Conversational UI) | **Frontend** (Chat Interface) + **API Route** | ⚠️ 待设计 | 架构重点在后台任务，前端交互逻辑需补充 |
+| **FR-04-05** | 对话式引导输入 (Conversational UI) | **Frontend** (气泡流 + Zustand) + **Server Actions** | ✅ 已实现 (MVP) | `ReviewWorkbench` / `ReviewChatBoard` / `useDashboardStore`；静态计划 `buildStaticPlan`；后台编排仍待 Trigger（见 FR-04 其余项） |
 
 ### FR-05: 结果呈现与下载 (Result & Export)
 
 | 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 备注/Gap Analysis |
 | :--- | :--- | :--- | :--- | :--- |
-| **FR-05-01** | 实时进度展示 (Real-time Stream) | **Supabase Realtime** (Postgres Changes) | ✅ 已设计 | 监听 `reviews` 表 `stages` 字段变更 |
-| **FR-05-02** | 分 Tab 结果页 (总览/逻辑/格式/引用) | **Frontend** (Tabs Component) + **JSON Schema** | ✅ 已设计 | 数据库 `result` JSON 结构已预留 |
+| **FR-05-01** | 实时进度展示 (Real-time Stream) | **Supabase Realtime** (Postgres Changes) | ✅ 已实现 | `lib/hooks/useReviewRealtime.ts`；`processing` 时订阅 `reviews` 更新，消费 **`stages`** 等列 |
+| **FR-05-02** | 分 Tab 结果页 (总览/逻辑/格式/引用) | **Frontend** (Tabs) + **`result` JSONB** | ⚠️ 部分实现 | `ReportViewer.tsx` 三 Tab 展示 `format_result` / `logic_result` / `reference_result`，当前为 **JSON 文本**；富文本/结构化渲染待增强 |
 | **FR-05-03** | PDF 报告下载 | **Frontend** (`react-pdf` / `jspdf`) | ⚠️ 待设计 | 架构未提及 PDF 生成服务 (前端生成 vs 后端生成) |
-| **FR-05-04** | Markdown 源码下载 | **Frontend** (Direct Download) | ✅ 已设计 | 直接将 JSON 转 MD 即可 |
+| **FR-05-04** | Markdown 源码下载 | **Frontend** (Direct Download) | ⚠️ 部分实现 | 当前 `ReportViewer` 导出为 **JSON 文件** (`thesis-review-report.json`)；Markdown 导出待产品确认格式后再做 |
 
 ### FR-06: 后台管理与配置 (Admin & Configuration)
 
@@ -98,12 +98,12 @@
     *   **Action**: 决定在前端 (`@react-pdf/renderer`) 生成还是后端 (Puppeteer) 生成。
 
 3.  **对话式引导状态管理**:
-    *   **Gap**: PRD 的 Step 1 是复杂的对话交互，架构主要描述了 Step 2 之后的异步任务。
-    *   **Action**: 前端需设计 `useChat` 或类似的状态机来管理上传前的引导对话。
+    *   **状态**: 工作台已用 **Zustand 气泡链** + Server Actions 覆盖上传、领域、静态计划、开始审阅；未使用 Vercel AI SDK `useChat`。
+    *   **余量**: 若产品要求多轮 LLM 引导，再评估是否引入对话 API。
 
 4.  **核心审阅流程集成**:
-    *   **Gap**: 虽然 `Trigger.dev` SDK 已安装，但核心的上传、解析、审阅 Job 定义尚未实现。
-    *   **Action**: 需开发 `lib/trigger/review.ts` 并打通 Frontend Upload -> Storage -> Trigger 链路.
+    *   **状态**: **Frontend → Storage → DB →（可选）Trigger** 中，上传与写库、Realtime 进度壳、报告 Tab 已落地；**`orchestrate-review` 编排与扣费原子化**仍待按 `Tech_Spec_AI_Review_2_Trigger.md` 接通。
+    *   **Action**: 实现 Trigger 任务并令 `reviewAdminDAL` 仅被后台任务调用；`startReviewEngine` 侧完成扣点与事务一致性。
 
 ---
 
@@ -115,3 +115,4 @@
 | **i18n 国际化** | [Tech_Spec_i18n_Plugin_v1.0.md](./Tech_Spec_i18n_Plugin_v1.0.md) | [issues/2026-03-15+i18n国际化开发.md](../issues/2026-03-15+i18n国际化开发.md) | 2026-03-15 |
 | **计费与点数** | [Tech_Spec_Billing_v1.0.md](./Tech_Spec_Billing_v1.0.md) | [issues/2026-03-16+计费模块开发.md](../issues/2026-03-16+计费模块开发.md) | 2026-03-16 |
 | **后台管理与配置** | [Tech_Spec_Admin_Config_v1.0.md](./Tech_Spec_Admin_Config_v1.0.md) | [issues/2026-03-17+Admin_Config_工作记录.md](../issues/2026-03-17+Admin_Config_工作记录.md) | 2026-03-17 |
+| **AI 审阅工作台 (UI 方案 1/3)** | [Tech_Spec_AI_Review_1_UI.md](./Tech_Spec_AI_Review_1_UI.md) | [issues/2026-03-21+AI审阅工作台.md](../issues/2026-03-21+AI审阅工作台.md) | 2026-03-21 |
