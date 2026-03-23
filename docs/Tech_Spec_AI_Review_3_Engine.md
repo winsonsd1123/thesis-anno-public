@@ -138,20 +138,21 @@ export async function analyzeFormat(
 }
 ```
 
-### 3.4 参考文献多源核查服务 (`reference.service.ts`): 原子化拆分
+### 3.4 参考文献多源核查服务 (`reference.service.ts`): 批量化与原子拆分
 
-为了解决 OpenRouter 的并发限流 (Rate Limit 429) 问题，引擎层**不再**自己使用 `p-limit` 做本地并发控制，而是将其拆分为两个“原子方法”，交由 Trigger 调度器去进行分布式批量调用。
+为了极大提升效率、降低 Token 消耗，并解决 OpenRouter 的并发限流 (Rate Limit 429) 问题，引擎层被拆分为两个“原子方法”。其中核心的核查逻辑采用**“攒批 (Batching)”**模式，交由 Trigger 调度器去进行分布式调度。
 
 **业务流程描述：**
 1. **原子方法 1: 文献列表提取 (`extractReferencesFromPDF`)**：调用速度较快的大模型（如 Flash 模型），扫描整篇论文，剥离出文末的参考文献列表，提取为结构化的数组（包含：标题、作者、原文原始文本）。
-2. **原子方法 2: 单条文献核查 (`verifySingleReference`)**：只接收**一条**文献作为输入。
-   *   **瀑布流降级检索 (Sequential Fallback via Clients)**：优先请求最权威的 **CrossRef**。未命中则降级请求 **OpenAlex**。仍未命中，最后请求 **ArXiv**。
-   *   **LLM 裁判比对**：拿到权威元数据 Candidate 后，将其与原文原始文本一起发送给 LLM（裁判模型），判定是否存在格式错误或造假。
+2. **原子方法 2: 批量文献核查 (`verifyReferenceBatch`)**：接收**一批（例如 10 条）**文献作为输入。
+   *   **并发外部检索 (API Clients)**：针对这 10 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：优先请求最权威的 **CrossRef**，未命中则降级请求 **OpenAlex**，最后请求 **ArXiv**。
+   *   **批量 LLM 裁判 (Batched LLM Call)**：收集到这 10 条文献的候选元数据 (Candidate) 后，将它们与原文打包成一个大的 JSON，**只发起一次大模型调用**。由大模型一次性返回这 10 条文献的比对结果（格式错误、造假等）。
 
 **核心代码骨架：**
 
 ```typescript
 import { searchCrossRef, searchOpenAlex, searchArxiv } from '../clients/academic';
+import { z } from 'zod';
 
 /**
  * 瀑布流降级检索策略
@@ -177,31 +178,50 @@ export async function extractReferencesFromPDF(
 ) {
   // 调用 generateObject 提取列表...
   return [
-    { title: "Attention is all you need", rawText: "[1] Vaswani A, et al. Attention..." },
-    // ...
+    { id: 1, title: "Attention is all you need", rawText: "[1] Vaswani A, et al. Attention..." },
+    // ... 可能有 50 条
   ];
 }
 
 /**
- * 原子方法 2: 仅负责单条核查。并发与重试由外层 Trigger 接管。
+ * 原子方法 2: 批量核查 (一次处理 N 条，减少 LLM 调用次数)
+ * 并发与重试由外层 Trigger 接管。
  */
-export async function verifySingleReference(
-  ref: { title: string, rawText: string },
+export async function verifyReferenceBatch(
+  refsBatch: Array<{ id: number, title: string, rawText: string }>,
   context: { modelConfig: any, promptTemplate: string }
 ) {
-  // a. 瀑布流多源检索
-  const candidate = await searchSourcesWaterfall(ref.title);
+  // a. 并发执行瀑布流多源检索 (仅查 API，不调 LLM)
+  const candidates = await Promise.all(
+    refsBatch.map(async (ref) => {
+      const candidate = await searchSourcesWaterfall(ref.title);
+      return { id: ref.id, rawText: ref.rawText, candidate };
+    })
+  );
   
-  // b. LLM 裁判比对
+  // b. 攒够一批后，发起唯一一次 LLM 裁判比对
+  const BatchVerificationSchema = z.object({
+    results: z.array(z.object({
+      id: z.number(),
+      status: z.enum(['match', 'mismatch', 'not_found']),
+      reason: z.string()
+    }))
+  });
+
   const model = getLLMModel(context.modelConfig.model);
-  const { object: verification } = await generateObject({
+  const { object: verificationBatch } = await generateObject({
     model,
     system: context.promptTemplate,
-    messages: buildVerificationMessages(ref.rawText, candidate),
-    schema: VerificationSchema
+    // 将 10 条原文和 10 个 candidate 一起喂进去
+    messages: buildBatchVerificationMessages(candidates), 
+    schema: BatchVerificationSchema
   });
   
-  return { ...ref, ...verification };
+  // 将 LLM 结果与原始输入合并返回
+  return refsBatch.map(ref => {
+    const v = verificationBatch.results.find(res => res.id === ref.id);
+    return { ...ref, ...v };
+  });
 }
 ```
 

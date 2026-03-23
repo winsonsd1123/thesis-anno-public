@@ -1,6 +1,6 @@
 # AI 审阅 Trigger 编排（Spec 2/3）与后续修复 — 工作记录
 
-**日期**: 2026-03-22  
+**日期**: 2026-03-22（首轮）；**2026-03-23**（架构微调，见第六节）  
 **依据文档**: `docs/Tech_Spec_AI_Review_2_Trigger.md`、落地计划 `ai_review_trigger_编排_62eaf030`（未改计划文件本身）  
 **Supabase 项目**: `zelzsbzvweixrjchayhl`
 
@@ -37,12 +37,13 @@
 ### 4. Trigger 工程
 
 - `trigger.config.ts`：`defineConfig`，`TRIGGER_PROJECT_REF`、`dirs: ["./trigger"]`、`maxDuration: 3600`。
-- `trigger/review-orchestrator.ts`：任务 `orchestrate-review`；`storageDAL` + 懒加载 `pdf-parse`；三 agent 并发 + `executeWithFallback`。
+- `trigger/review-orchestrator.ts`（首轮）：任务 `orchestrate-review`；`storageDAL` + 懒加载 `pdf-parse`；**format / logic** 与 **reference** 分工及队列、文献攒批等 **以第六节「架构微调」为准**（当前实现含 `main-review-queue`、`generic-llm-batch-task` + `llm-batch-queue`）。
 - `trigger/utils/pdf-extractor.ts`：多模态失败降级文本，共享 `getParsedText` 缓存。
 
 ### 5. Engine 桩（路径 A）
 
-- `lib/services/review/format.service.ts`、`logic.service.ts`、`reference.service.ts`：占位 JSON（`stub: true`），待 Spec 3 替换真 LLM。
+- `lib/services/review/format.service.ts`、`logic.service.ts`：占位 JSON（`stub: true`），待 Spec 3 替换真 LLM。
+- `reference.service.ts`：首轮为单一 `analyzeReference` 桩；**2026-03-23 起**拆为 **`extractReferencesFromPDF` + `verifyReferenceBatch`**（仍 stub），详见第六节。
 
 ### 6. 依赖
 
@@ -92,6 +93,40 @@
 | Admin DAL | `lib/dal/review.admin.dal.ts` |
 | User DAL | `lib/dal/review.dal.ts` |
 | Storage | `lib/dal/storage.dal.ts` |
-| 编排 | `trigger/review-orchestrator.ts`、`trigger/utils/pdf-extractor.ts`、`trigger.config.ts` |
+| 编排 | `trigger/review-orchestrator.ts`（含 `orchestrate-review` + `genericLlmBatchTask`）、`trigger/utils/pdf-extractor.ts`、`trigger.config.ts` |
 | 桩服务 | `lib/services/review/*.service.ts` |
 | 文案 | `messages/zh.json`、`messages/en.json`（`dashboard.review.errors`） |
+
+---
+
+## 六、架构微调（2026-03-23）：全局主任务排队 + 通用子任务批处理
+
+**背景**：`docs/Tech_Spec_AI_Review_2_Trigger.md` 更新——主审阅任务需专属队列限并发；参考文献核查需「攒批」并走可复用的子任务，避免单次超大 LLM 请求与 API 限流。
+
+### 1. 队列与 Task
+
+| 对象 | 说明 |
+|------|------|
+| `orchestrate-review` | `queue: { name: "main-review-queue", concurrencyLimit: 5 }` — 全局同时处理主审阅的上限，超出在 Trigger 侧排队。 |
+| `generic-llm-batch-task` | 新增；`queue: { name: "llm-batch-queue", concurrencyLimit: 5 }` — 批量子任务（如 OpenRouter 调用）与主任务解耦限流。 |
+
+### 2. 参考文献流水线
+
+- **提取**：`executeWithFallback(extractReferencesFromPDF, …)` → 得到文献列表（数组）。
+- **分块**：内联 `chunkArray(list, 10)`（不引入 lodash），每批最多 10 条。
+- **批调度**：`genericLlmBatchTask.batchTriggerAndWait([{ payload }, …])`；子任务内 `action === "verify_references"` 时调用 **`verifyReferenceBatch(dataBatch, ctx)`**。
+- **合并**：对 `batchResult.runs` 中 `ok` 且 `output` 为数组的项做 `flatMap`，写入 `result.reference_result`。
+- **进度**：`StageAgentStatus` 仍为 `pending \| running \| done \| failed`；子阶段通过 **`updateStageStatus(..., "running", "extracting references" \| "verifying references")`** 写入 RPC 的 **log** 字段（非独立 status 枚举）。
+
+### 3. `reference.service.ts` 拆分
+
+- 新增 **`extractReferencesFromPDF`**、**`verifyReferenceBatch`**（当前为 stub，待 Spec 3/3 替换真引擎）。
+- 保留 **`analyzeReference`** 占位，兼容旧引用。
+
+### 4. 文档
+
+- `docs/Tech_Spec_AI_Review_2_Trigger.md`：示例与实现对齐——`reviewId: number`、`chunkArray` 替代 lodash、`genericLlmBatchTask.batchTriggerAndWait`（并注明可与 `batch.triggerByTaskAndWait` 等价）、`concurrencyLimit` 与正文统一。
+
+### 5. 本地验证提示
+
+- 双终端：`pnpm dev` + `npx trigger.dev@latest dev`；控制台应能看到 **`orchestrate-review`** 与 **`generic-llm-batch-task`** 两类 Run；Queues 中 **`main-review-queue`** / **`llm-batch-queue`**。

@@ -35,7 +35,7 @@
 import { tasks } from "@trigger.dev/sdk/v3";
 import { createClient } from "@/lib/supabase/server";
 
-export async function startReviewEngine(reviewId: string) {
+export async function startReviewEngine(reviewId: number) {
   const supabase = await createClient();
   
   // 1. 鉴权与前置校验（页数上限估算等）
@@ -112,66 +112,90 @@ export const reviewAdminDAL = {
 
 本模块作为纯粹的**调度框架**，负责编排底层 AI 审阅引擎。特别是对于需要高并发且容易触发 API 限流（Rate Limit 429）的参考文献核查任务，必须利用 Trigger.dev 的 `batchTrigger` 或子任务特性进行全局并发控制。
 
-**并发与限流原理**：不在底层业务代码中写死 `p-limit`，而是将几十条文献核查拆分为几十个 Trigger 子任务。Trigger.dev 会根据配置的 `concurrencyLimit` 全局排队执行，并在遇到 429 时自动退避重试 (Exponential Backoff)。
+**企业级并发与调度原理**：
+1. **全局主任务排队**：为了防止大量用户同时涌入导致系统崩溃，主任务 `orchestrate-review` 必须配置专属队列并限制并发（如 `concurrencyLimit: 5`）。超出的请求将在 Trigger 平台排队，不会打挂服务器。
+2. **通用子任务批处理 (Generic Subtask Batching)**：不写死特定业务的子任务。设计一个通用的 `generic-llm-batch-task`。对于大量文献的核查，采用“攒批”策略（如每 10 条一批），通过同一 Task 上的 `batchTriggerAndWait`（即 `genericLlmBatchTask.batchTriggerAndWait`）并发调度这几个批次；亦可用 `batch.triggerByTaskAndWait` 传入 `{ task, payload }[]` 等价触发。
 
 ```typescript
-import { task, batch } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk/v3";
 import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
 import { executeWithFallback } from "./utils/pdf-extractor";
 import { analyzeFormat } from "@/lib/services/review/format.service";
-import { extractReferencesFromPDF, verifySingleReference } from "@/lib/services/review/reference.service";
+import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
 
-// 定义单条文献核查的子任务 (Subtask)
-export const verifyReferenceSubtask = task({
-  id: "verify-reference-subtask",
+/** 内联分块，避免引入 lodash */
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+// 定义通用的 LLM 批处理子任务 (可复用于其他需要批量调 LLM 的场景)
+export const genericLlmBatchTask = task({
+  id: "generic-llm-batch-task",
   queue: {
-    concurrencyLimit: 5 // 全局限制：同时最多只能有 5 个核查请求打向 OpenRouter，防止 429
+    name: "llm-batch-queue",
+    concurrencyLimit: 5 // 全局限制：同时最多只有 5 个批处理请求打向 OpenRouter
   },
-  run: async (payload: { ref: any, context: any }) => {
-    return await verifySingleReference(payload.ref, payload.context);
+  run: async (payload: { action: string, dataBatch: any[], context: any }) => {
+    if (payload.action === 'verify_references') {
+      return await verifyReferenceBatch(payload.dataBatch, payload.context);
+    }
+    // else if (payload.action === 'other_batch_action') ...
+    throw new Error("Unknown batch action");
   }
 });
 
+// 主调度任务
 export const orchestrateReview = task({
   id: "orchestrate-review",
-  run: async (payload: { reviewId: string }, { ctx }) => {
+  queue: {
+    name: "main-review-queue",
+    concurrencyLimit: 5 // 核心保护：主审阅任务全局并发上限（与业务可承受的排队深度一致）
+  },
+  run: async (payload: { reviewId: number }) => {
     try {
       // 1. 数据访问层 (DAL): 获取记录与 PDF Buffer
-      // ... (省略懒加载解析代码，见原文档)
+      // ... (省略懒加载解析代码，见 trigger/review-orchestrator.ts)
 
       // 2. 并发执行常规审阅 (Format / Logic)
       const [formatRes, logicRes] = await Promise.allSettled([
-        runWithProgress('format', () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, review.domain)),
+        runWithProgress('format', () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)),
         // runWithProgress('logic', ...)
       ]);
 
-      // 3. 参考文献核查 (利用 Trigger Batch 解决全局限流与进度同步)
-      await reviewAdminDAL.updateStageStatus(payload.reviewId, 'reference', "extracting");
-      // a. 先提取列表 (调用引擎层原子方法 1)
-      const refList = await executeWithFallback(extractReferencesFromPDF, pdfBuffer, getParsedText, context);
-      
-      // b. 将列表转换为 Trigger Subtasks 进行批量调度
-      await reviewAdminDAL.updateStageStatus(payload.reviewId, 'reference', "verifying");
-      
-      const batchPayloads = refList.map(ref => ({
-        payload: { ref, context }
+      // 3. 参考文献核查 (分块 + 通用子任务并发调度)
+      // stages 的 status 仍为 pending|running|done|failed；细分阶段可写入 RPC 的 log 字段
+      await reviewAdminDAL.updateStageStatus(payload.reviewId, 'reference', "running", "extracting references");
+      const refListRaw = await executeWithFallback(extractReferencesFromPDF, pdfBuffer, getParsedText, ctx);
+      const refList = Array.isArray(refListRaw) ? refListRaw : [];
+
+      await reviewAdminDAL.updateStageStatus(payload.reviewId, 'reference', "running", "verifying references");
+
+      // b. 将文献切分成多块，每块 10 条 (大大减少 LLM 调用次数)
+      const refChunks = chunkArray(refList, 10);
+
+      // c. 组装为通用批处理任务的 batch items（推荐：Task 实例上的 batchTriggerAndWait）
+      const batchPayloads = refChunks.map(dataBatch => ({
+        payload: { action: 'verify_references', dataBatch, context: ctx }
       }));
 
-      // trigger.dev 会自动根据 queue.concurrencyLimit=5 进行并发控制
-      const batchResult = await batch.triggerAndWait(verifyReferenceSubtask, batchPayloads);
-      
-      // 注意：如果需要细粒度进度条，可以在这里通过 batchResult.runs 的状态，
-      // 或者在子任务中触发一个专门更新进度的微型任务来实现。
-      
-      const refFinalRes = batchResult.runs.map(run => run.ok ? run.output : { error: "Verification Failed" });
+      // d. 抛给 Trigger.dev 进行分布式排队和并发执行
+      const batchResult = await genericLlmBatchTask.batchTriggerAndWait(batchPayloads);
+
+      // e. 将分块的结果拍平 (flatten) 为一个一维数组
+      const refFinalRes = batchResult.runs.flatMap(run =>
+        run.ok && Array.isArray(run.output) ? run.output : []
+      );
 
       // 4. 聚合结果并回写完成状态
       const finalResult = {
         format: formatRes.status === 'fulfilled' ? formatRes.value : { error: 'Failed' },
         reference: refFinalRes
       };
-      
+
       await reviewAdminDAL.completeReview(payload.reviewId, finalResult);
 
     } catch (error: any) {
