@@ -289,6 +289,7 @@
       "historyRename": "重命名",
       "historyDelete": "删除",
       "historyRenamePlaceholder": "输入新名称…",
+      "loadingReviewDetail": "正在加载审阅详情…",
       "uploadTitle": "上传论文",
       "uploadDragLabel": "拖入或点击选择 PDF",
       "uploadSizeHint": "最大 50 MB · 领域选填",
@@ -357,6 +358,13 @@
         "INSUFFICIENT_CREDITS": "点数不足，请先充值",
         "DOMAIN_UPDATE_FAILED": "领域更新失败",
         "START_FAILED": "启动审阅失败",
+        "WALLET_NOT_FOUND": "钱包未初始化，请联系支持",
+        "INVALID_CREDITS": "扣点参数无效",
+        "TRIGGER_NOT_CONFIGURED": "后台任务未配置，已退回点数，请稍后再试或联系管理员",
+        "TRIGGER_DISPATCH_FAILED": "后台任务启动失败，已退回点数，请稍后重试",
+        "ROLLBACK_FAILED": "退款失败，请勿重复点击；请联系支持处理",
+        "ROLLBACK_INVALID_COST": "退款校验失败，请联系支持",
+        "RUN_ALREADY_ATTACHED": "任务已创建，请勿重复操作",
         "GENERIC": "操作失败，请稍后重试"
       }
     }

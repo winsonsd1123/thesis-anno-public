@@ -79,6 +79,8 @@ export function UserMessageRow({ name, userMark, children }: UserMessageRowProps
   return (
     <div
       className="animate-fade-up"
+      role="group"
+      aria-label={name}
       style={{
         width: "100%",
         display: "flex",
@@ -98,16 +100,6 @@ export function UserMessageRow({ name, userMark, children }: UserMessageRowProps
           gap: 8,
         }}
       >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            paddingRight: 2,
-          }}
-        >
-          {name}
-        </span>
         <div style={{ width: "100%", maxWidth: 560, display: "flex", justifyContent: "flex-end" }}>
           <div style={{ width: "100%" }}>{children}</div>
         </div>

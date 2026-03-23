@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 import type { ReviewRow } from "@/lib/types/review";
@@ -54,6 +55,8 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
 
   const [panelOverride, setPanelOverride] = useState<Panel | null>(null);
   const [copyHint, setCopyHint] = useState("");
+  /** 切换历史记录拉取详情时：左侧立即高亮、右侧遮罩，避免「点了没反应」 */
+  const [loadingReviewId, setLoadingReviewId] = useState<number | null>(null);
 
   const sidebarItems = useMemo(() => initialReviews.map((r) => toSidebarItem(r, t)), [initialReviews, t]);
 
@@ -78,10 +81,16 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
 
   const selectReview = useCallback(
     async (id: number) => {
-      const r = await fetchReviewRow(id);
-      if (r.ok) hydrateFromReview(r.review);
+      if (activeReview?.id === id) return;
+      setLoadingReviewId(id);
+      try {
+        const r = await fetchReviewRow(id);
+        if (r.ok) hydrateFromReview(r.review);
+      } finally {
+        setLoadingReviewId(null);
+      }
     },
-    [hydrateFromReview]
+    [activeReview?.id, hydrateFromReview]
   );
 
   const newReview = useCallback(() => {
@@ -182,7 +191,8 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
           deleteLabel={t("historyDelete")}
           renamePlaceholder={t("historyRenamePlaceholder")}
           items={sidebarItems}
-          selectedId={activeReview?.id ?? null}
+          selectedId={loadingReviewId ?? activeReview?.id ?? null}
+          loadingItemId={loadingReviewId}
           onSelect={selectReview}
           onNewReview={newReview}
           onRename={handleRename}
@@ -258,10 +268,50 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
           <div
             style={{
               flex: 1,
+              minHeight: 0,
+              position: "relative",
               overflow: "auto",
-              padding: "24px 20px 32px",
             }}
           >
+            {loadingReviewId !== null ? (
+              <div
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  padding: 24,
+                  background: "color-mix(in srgb, var(--surface) 86%, transparent)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <Loader2
+                  className="animate-spin motion-reduce:animate-none"
+                  size={28}
+                  strokeWidth={2}
+                  aria-hidden
+                  style={{ color: "var(--brand)", flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", textAlign: "center" }}>
+                  {t("loadingReviewDetail")}
+                </span>
+              </div>
+            ) : null}
+            <div
+              style={{
+                padding: "24px 20px 32px",
+                opacity: loadingReviewId !== null ? 0.42 : 1,
+                transition: "opacity 0.2s ease",
+                pointerEvents: loadingReviewId !== null ? "none" : "auto",
+              }}
+            >
             {showErrorBanner ? (
               <div
                 style={{
@@ -331,6 +381,7 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
                 />
               </div>
             )}
+            </div>
           </div>
         </section>
       </div>

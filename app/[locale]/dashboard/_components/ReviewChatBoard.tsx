@@ -53,6 +53,11 @@ export function ReviewChatBoard() {
         INSUFFICIENT_CREDITS: t("errors.INSUFFICIENT_CREDITS"),
         DOMAIN_UPDATE_FAILED: t("errors.DOMAIN_UPDATE_FAILED"),
         START_FAILED: t("errors.START_FAILED"),
+        TRIGGER_NOT_CONFIGURED: t("errors.TRIGGER_NOT_CONFIGURED"),
+        TRIGGER_DISPATCH_FAILED: t("errors.TRIGGER_DISPATCH_FAILED"),
+        ROLLBACK_FAILED: t("errors.ROLLBACK_FAILED"),
+        ROLLBACK_INVALID_COST: t("errors.ROLLBACK_INVALID_COST"),
+        RUN_ALREADY_ATTACHED: t("errors.RUN_ALREADY_ATTACHED"),
         GENERIC: t("errors.GENERIC"),
         UNKNOWN: t("errors.GENERIC"),
       };

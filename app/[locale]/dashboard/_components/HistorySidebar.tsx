@@ -18,6 +18,8 @@ type HistorySidebarProps = {
   newReviewLabel: string;
   items: SidebarReviewItem[];
   selectedId: number | null;
+  /** 正在请求该条详情时显示行内加载指示（与 selectedId 可同时为同一条） */
+  loadingItemId?: number | null;
   onSelect: (id: number) => void;
   onNewReview: () => void;
   renameLabel?: string;
@@ -37,6 +39,7 @@ export function HistorySidebar({
   newReviewLabel,
   items,
   selectedId,
+  loadingItemId = null,
   onSelect,
   onNewReview,
   renameLabel = "Rename",
@@ -340,6 +343,7 @@ export function HistorySidebar({
               const isHovered = hoverItemId === item.id;
               const isRenaming = renamingId === item.id;
               const isDeleting = deletingId === item.id;
+              const isLoadingSelection = loadingItemId === item.id;
 
               return (
                 <div
@@ -357,6 +361,7 @@ export function HistorySidebar({
                     }
                     onClick={() => !isRenaming && onSelect(item.id)}
                     disabled={isDeleting}
+                    aria-busy={isLoadingSelection || undefined}
                     style={{
                       width: "100%",
                       textAlign: "left",
@@ -364,7 +369,7 @@ export function HistorySidebar({
                       borderRadius: 10,
                       padding: collapsed ? "10px 6px" : "10px 10px 10px 8px",
                       paddingRight: collapsed ? 6 : !isRenaming && isHovered ? 32 : 10,
-                      cursor: isDeleting ? "wait" : "pointer",
+                      cursor: isDeleting || isLoadingSelection ? "wait" : "pointer",
                       background: selected
                         ? "var(--brand-bg)"
                         : isHovered
@@ -397,7 +402,17 @@ export function HistorySidebar({
                           opacity: item.variant === "pending" ? 0.85 : 1,
                         }}
                       >
-                        <StatusIcon variant={item.variant} />
+                        {isLoadingSelection ? (
+                          <Loader2
+                            size={14}
+                            strokeWidth={2}
+                            className="animate-spin motion-reduce:animate-none"
+                            aria-hidden
+                            style={{ color: "var(--brand)", flexShrink: 0 }}
+                          />
+                        ) : (
+                          <StatusIcon variant={item.variant} />
+                        )}
                       </span>
                     ) : (
                       <>
@@ -458,9 +473,24 @@ export function HistorySidebar({
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                   lineHeight: 1.35,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  minWidth: 0,
                                 }}
                               >
-                                {item.title}
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                                  {item.title}
+                                </span>
+                                {isLoadingSelection ? (
+                                  <Loader2
+                                    size={14}
+                                    strokeWidth={2}
+                                    className="animate-spin motion-reduce:animate-none shrink-0"
+                                    aria-hidden
+                                    style={{ color: "var(--brand)" }}
+                                  />
+                                ) : null}
                               </span>
                               <span
                                 style={{
