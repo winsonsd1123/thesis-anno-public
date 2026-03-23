@@ -29,4 +29,14 @@ export const storageDAL = {
     const { error } = await supabase.storage.from(THESIS_PDFS_BUCKET).remove([path]);
     if (error) throw new Error(`STORAGE_REMOVE: ${error.message}`);
   },
+
+  /** Service role 下载审阅 PDF（Trigger / 后台任务）。 */
+  async downloadReviewPdf(path: string): Promise<Buffer> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.storage.from(THESIS_PDFS_BUCKET).download(path);
+    if (error) throw new Error(`STORAGE_DOWNLOAD: ${error.message}`);
+    if (!data) throw new Error("STORAGE_DOWNLOAD_EMPTY");
+    const ab = await data.arrayBuffer();
+    return Buffer.from(ab);
+  },
 };

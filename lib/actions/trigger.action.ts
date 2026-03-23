@@ -2,17 +2,37 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { reviewService } from "@/lib/services/review.service";
-import { walletDAL } from "@/lib/dal/wallet.dal";
 import { estimateCost, getMaxAllowedPages } from "@/lib/config/billing";
-import { INITIAL_REVIEW_STAGES } from "@/lib/types/review";
 
 export type StartReviewResult =
   | { ok: true; triggerRunId: string | null }
   | { ok: false; error: string };
 
+function mapStartReviewRpcError(message: string): string {
+  const m = message.toUpperCase();
+  if (m.includes("INSUFFICIENT_CREDITS")) return "INSUFFICIENT_CREDITS";
+  if (m.includes("INVALID_STATUS")) return "INVALID_STATUS";
+  if (m.includes("REVIEW_NOT_FOUND")) return "NOT_FOUND";
+  if (m.includes("NOT_AUTHENTICATED")) return "NOT_AUTHENTICATED";
+  if (m.includes("WALLET_NOT_FOUND")) return "WALLET_NOT_FOUND";
+  if (m.includes("INVALID_CREDITS")) return "INVALID_CREDITS";
+  return "START_FAILED";
+}
+
+function mapRollbackRpcError(message: string): string {
+  const m = message.toUpperCase();
+  if (m.includes("REVIEW_NOT_FOUND")) return "NOT_FOUND";
+  if (m.includes("NOT_AUTHENTICATED")) return "NOT_AUTHENTICATED";
+  if (m.includes("INVALID_STATUS")) return "INVALID_STATUS";
+  if (m.includes("RUN_ALREADY_ATTACHED")) return "RUN_ALREADY_ATTACHED";
+  if (m.includes("INVALID_COST")) return "ROLLBACK_INVALID_COST";
+  if (m.includes("WALLET_NOT_FOUND")) return "WALLET_NOT_FOUND";
+  return "ROLLBACK_FAILED";
+}
+
 /**
- * Validates wallet, writes processing + stages, optionally triggers Trigger.dev job.
- * Credit consumption RPC — TODO: call atomic consume when available.
+ * 顺序：RPC 扣费 + processing → tasks.trigger → 回写 trigger_run_id。
+ * Trigger 未配置、派发失败或未取得 run id 时：调用 rollback_review_after_dispatch_failure（pending + 退款）。
  */
 export async function startReviewEngine(reviewId: number): Promise<StartReviewResult> {
   const supabase = await createClient();
@@ -36,42 +56,64 @@ export async function startReviewEngine(reviewId: number): Promise<StartReviewRe
     return { ok: false, error: "COST_UNAVAILABLE" };
   }
 
-  const wallet = await walletDAL.getWallet(auth.user.id);
-  const balance = wallet?.credits_balance ?? 0;
-  if (balance < cost) {
-    return { ok: false, error: "INSUFFICIENT_CREDITS" };
+  const { error: rpcError } = await supabase.rpc("start_review_and_deduct", {
+    p_review_id: reviewId,
+    p_required_credits: cost,
+  });
+
+  if (rpcError) {
+    const code = mapStartReviewRpcError(rpcError.message ?? "");
+    return { ok: false, error: code };
   }
 
-  // TODO: deduct credits atomically (review id as reference_id) before starting engine
-  let triggerRunId: string | null = null;
-
-  const secret = process.env.TRIGGER_SECRET_KEY;
-  if (secret) {
-    try {
-      const { tasks } = await import("@trigger.dev/sdk/v3");
-      const handle = await tasks.trigger("orchestrate-review", {
-        reviewId: review.id,
-        fileUrl: review.file_url,
-        domain: review.domain,
-        userId: auth.user.id,
-      });
-      triggerRunId = handle?.id ?? null;
-    } catch (e) {
-      console.warn("[startReviewEngine] Trigger.dev trigger failed:", e);
+  const secret = process.env.TRIGGER_SECRET_KEY?.trim();
+  if (!secret) {
+    console.error("[startReviewEngine] TRIGGER_SECRET_KEY missing after deduct; rolling back.");
+    const rb = await supabase.rpc("rollback_review_after_dispatch_failure", {
+      p_review_id: reviewId,
+    });
+    if (rb.error) {
+      console.error("[startReviewEngine] rollback after missing secret failed:", rb.error);
+      return { ok: false, error: mapRollbackRpcError(rb.error.message ?? "") };
     }
+    return { ok: false, error: "TRIGGER_NOT_CONFIGURED" };
+  }
+
+  let triggerRunId: string | null = null;
+  try {
+    const { tasks } = await import("@trigger.dev/sdk/v3");
+    const handle = await tasks.trigger("orchestrate-review", { reviewId });
+    triggerRunId = handle?.id ?? null;
+  } catch (e) {
+    console.error("[startReviewEngine] Trigger.dev trigger failed after deduct:", e);
+    const rb = await supabase.rpc("rollback_review_after_dispatch_failure", {
+      p_review_id: reviewId,
+    });
+    if (rb.error) {
+      console.error("[startReviewEngine] rollback after trigger error failed:", rb.error);
+      return { ok: false, error: mapRollbackRpcError(rb.error.message ?? "") };
+    }
+    return { ok: false, error: "TRIGGER_DISPATCH_FAILED" };
+  }
+
+  if (!triggerRunId) {
+    console.error("[startReviewEngine] trigger returned empty run id; rolling back.");
+    const rb = await supabase.rpc("rollback_review_after_dispatch_failure", {
+      p_review_id: reviewId,
+    });
+    if (rb.error) {
+      console.error("[startReviewEngine] rollback after empty run id failed:", rb.error);
+      return { ok: false, error: mapRollbackRpcError(rb.error.message ?? "") };
+    }
+    return { ok: false, error: "TRIGGER_DISPATCH_FAILED" };
   }
 
   try {
-    await reviewService.updateProcessingStart({
-      reviewId: review.id,
-      userId: auth.user.id,
-      cost,
-      stages: INITIAL_REVIEW_STAGES,
-      triggerRunId,
-    });
-    return { ok: true, triggerRunId };
+    await reviewService.updateTriggerRunId(review.id, auth.user.id, triggerRunId);
   } catch (e) {
-    console.error("[startReviewEngine]", e);
+    console.error("[startReviewEngine] updateTriggerRunId", e);
     return { ok: false, error: "START_FAILED" };
   }
+
+  return { ok: true, triggerRunId };
 }

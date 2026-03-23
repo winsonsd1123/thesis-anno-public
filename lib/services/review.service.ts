@@ -59,6 +59,10 @@ export const reviewService = {
     return reviewDAL.updateProcessingStart(input);
   },
 
+  async updateTriggerRunId(reviewId: number, userId: string, triggerRunId: string | null): Promise<void> {
+    return reviewDAL.updateTriggerRunId(reviewId, userId, triggerRunId);
+  },
+
   async updateStages(reviewId: number, userId: string, stages: ReviewStageEntry[]): Promise<void> {
     return reviewAdminDAL.updateStages(reviewId, userId, stages);
   },

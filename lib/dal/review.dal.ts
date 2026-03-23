@@ -141,4 +141,22 @@ export const reviewDAL = {
     if (error) throw new Error(`REVIEW_START: ${error.message}`);
     if (!data) throw new Error("REVIEW_NOT_FOUND");
   },
+
+  /** 扣费与 processing 已由 `start_review_and_deduct` 完成；仅回写 Trigger run id。 */
+  async updateTriggerRunId(reviewId: number, userId: string, triggerRunId: string | null): Promise<void> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("reviews")
+      .update({
+        trigger_run_id: triggerRunId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reviewId)
+      .eq("user_id", userId)
+      .eq("status", "processing")
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(`REVIEW_TRIGGER_RUN: ${error.message}`);
+    if (!data) throw new Error("REVIEW_NOT_FOUND");
+  },
 };
