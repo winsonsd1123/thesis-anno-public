@@ -153,6 +153,9 @@ TRIGGER_DEV_API_KEY=your_trigger_api_key
 
 # OpenRouter (LLM)
 OPENROUTER_API_KEY=your_openrouter_key
+# 可选：OpenRouter 统计（HTTP-Referer / X-Title）；未设 OPENROUTER_HTTP_REFERER 时可复用 NEXT_PUBLIC_APP_URL
+# OPENROUTER_HTTP_REFERER=https://your-site.example
+# OPENROUTER_APP_TITLE=your_app_name
 
 # Zpay (Payment)
 ZPAY_MERCHANT_ID=your_merchant_id

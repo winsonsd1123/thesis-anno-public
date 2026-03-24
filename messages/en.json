@@ -419,6 +419,7 @@
       "domainCancel": "Cancel",
       "chatPlanIntro": "Your review plan is ready — adjust if needed, then hit Start.",
       "chatPlanRunningIntro": "Review started — this is the plan we’re running.",
+      "chatPlanArchiveIntro": "Review finished — this was the plan for this session.",
       "planRunningFooter": "Open the Progress tab for live stage updates.",
       "paperCardTitle": "Uploaded paper",
       "paperPages": "{count} pages",

@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "init-config": "tsx scripts/init-config-storage.ts"
+    "init-config": "tsx scripts/init-config-storage.ts",
+    "verify:openrouter": "tsx scripts/verify-openrouter-client.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
     "@ai-sdk/react": "^3.0.118",
+    "@openrouter/ai-sdk-provider": "^2.3.3",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.1",
     "@trigger.dev/sdk": "^4.4.3",

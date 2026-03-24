@@ -1,6 +1,5 @@
 {
   "reference_check_agent_enabled": true,
   "format_check_agent_enabled": true,
-  "logic_analysis_agent_enabled": true,
   "aitrace_check_agent_enabled": true
 }

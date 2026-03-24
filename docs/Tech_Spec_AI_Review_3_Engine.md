@@ -64,6 +64,7 @@ import { getLLMModel } from '../clients/openrouter.client';
 const LogicResultSchema = z.object({
   issues: z.array(z.object({
     chapter: z.string(),
+    page: z.number().int().min(1), // 所在页码（从 1 起计）
     quote_text: z.string(), // 原文精确片段（保留 15-40 字以便定位）
     issue_type: z.enum([
       'structural_flaw',    // 结构性缺陷 (如摘要与结论不呼应)
@@ -332,6 +333,7 @@ export async function verifyReferenceBatch(
 **输出格式要求:**
 必须且只能返回符合要求的 JSON 数组。为了保证评审质量，请在给出建议前先进行内部推理 (analysis)。每个对象包含：
 - `chapter`: 问题所在的具体章节（如 "3.2 实验结果"）。
+- `page`: 整数，问题所在页码（从 1 起计）。
 - `quote_text`: 问题对应的原文精确片段（保留 15-40 字以便作者定位）。
 - `issue_type`: 必须是上述 5 个关注维度之一。
 - `severity`: 严重程度，必须是以下之一：`High` (核心逻辑/内容错误), `Medium` (局部逻辑不清), `Low` (轻微表述不严谨)。

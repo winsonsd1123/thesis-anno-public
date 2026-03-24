@@ -236,7 +236,11 @@ export function ReviewChatBoard() {
                   display: "inline-block",
                 }}
               >
-                {activeReview.status === "pending" ? t("chatPlanIntro") : t("chatPlanRunningIntro")}
+                {activeReview.status === "pending"
+                  ? t("chatPlanIntro")
+                  : activeReview.status === "processing"
+                    ? t("chatPlanRunningIntro")
+                    : t("chatPlanArchiveIntro")}
               </div>
               {planError ? (
                 <p style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>{planError}</p>

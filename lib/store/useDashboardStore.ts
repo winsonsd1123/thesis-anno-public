@@ -26,17 +26,15 @@ function buildBubbles(r: ReviewRow): ChatBubble[] {
     },
     { id: `domain-${r.id}`, type: "domain_info", reviewId: r.id, domain: r.domain ?? "" },
   ];
-  // 待开始与进行中均保留计划卡片，避免点击「开始审阅」后整条计划突然消失
-  if (r.status === "pending" || r.status === "processing") {
-    const plan = buildStaticPlan(r.domain ?? "");
-    base.push({
-      id: `plan-${r.id}`,
-      type: "review_plan",
-      reviewId: r.id,
-      domain: plan.domain,
-      stepIds: [...plan.stepIds],
-    });
-  }
+  // 待开始、进行中与已结束均保留计划卡片（静态快照），避免任务完成后对话里计划气泡被清空
+  const plan = buildStaticPlan(r.domain ?? "");
+  base.push({
+    id: `plan-${r.id}`,
+    type: "review_plan",
+    reviewId: r.id,
+    domain: plan.domain,
+    stepIds: [...plan.stepIds],
+  });
   return base;
 }
 

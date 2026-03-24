@@ -49,13 +49,13 @@
 
 ```json
 {
-  "logic_analysis_agent": {
-    "description": "逻辑分析智能体的主指令",
-    "version": "1.0.2",
-    "variables": ["paper_type", "focus_area", "content"],
+  "logic_review_pass1": {
+    "description": "逻辑审查 Two-Pass 初审（严苛挑错）",
+    "version": "1.0.0",
+    "variables": ["domain"],
     "templates": {
-      "zh": "你是一位资深的{{paper_type}}评审专家。请重点关注{{focus_area}}。以下是论文内容：\n{{content}}\n请从逻辑连贯性角度进行严厉的批判。",
-      "en": "You are a senior reviewer for {{paper_type}}. Please focus on {{focus_area}}. Here is the content:\n{{content}}\nCritique strictly from the perspective of logical coherence."
+      "zh": "你是一位【{{domain}}】领域的、极其严苛的资深学术论文评审专家。\n...",
+      "en": "You are an extremely strict senior reviewer in the field of {{domain}}. ..."
     },
     "model_config": {
       "temperature": 0.3,
@@ -75,10 +75,10 @@
 ```
 
 #### 3.1.2 运行机制
-1.  **获取模板**: `PromptManager.getTemplate('logic_analysis_agent')`。
+1.  **获取模板**: 例如 `PromptManager.getTemplate('logic_review_pass1', locale, { domain: '计算机科学' })`（具体 key 以 `config/prompts.default.json` 为准）。
 2.  **语言匹配**: 根据当前用户 Session 的 `locale` (from `next-intl`)，自动选择 `templates['zh']` 或 `templates['en']`。
     *   *Fallback 策略*: 如果 `fr` (法语) 不存在，默认回退到 `en`。
-3.  **变量注入**: 使用简单的字符串替换或轻量级模板引擎 (如 Mustache) 将 `{{content}}` 替换为实际数据。
+3.  **变量注入**: 使用简单的字符串替换将 `{{domain}}` 等占位符替换为实际数据。
 
 ### 3.2 配置服务 (ConfigService)
 

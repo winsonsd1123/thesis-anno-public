@@ -2,6 +2,8 @@ import { unstable_cache } from "next/cache";
 import { revalidateTag } from "next/cache";
 import type { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { promptsSchema } from "@/lib/schemas/config.schemas";
+import type { PromptsConfig } from "@/lib/schemas/config.schemas";
 
 const BUCKET = "app-config";
 
@@ -21,6 +23,18 @@ async function fetchFromStorage<T>(key: string): Promise<T> {
 
   const text = await data.text();
   return JSON.parse(text) as T;
+}
+
+/**
+ * 直读 Storage、不经 Next `unstable_cache`。供 Trigger.dev Worker 等非请求上下文使用。
+ */
+export async function getConfigDirect<T>(key: string, schema: z.ZodSchema<T>): Promise<T> {
+  const raw = await fetchFromStorage<unknown>(key);
+  return schema.parse(raw);
+}
+
+export async function getPromptsDirect(): Promise<PromptsConfig> {
+  return getConfigDirect("prompts", promptsSchema);
 }
 
 export class ConfigService {

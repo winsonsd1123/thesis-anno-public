@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { task } from "@trigger.dev/sdk/v3";
 import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
+import { promptsSchema } from "@/lib/schemas/config.schemas";
+import type { PromptsConfig } from "@/lib/schemas/config.schemas";
+import { getPromptsDirect } from "@/lib/services/config.service";
 import { executeWithFallback } from "./utils/pdf-extractor";
 import { analyzeFormat } from "@/lib/services/review/format.service";
 import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
@@ -9,6 +14,28 @@ import { analyzeAiTrace } from "@/lib/services/review/aitrace.service";
 import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
 import type { ReviewResult } from "@/lib/types/review";
 import type { ReviewStageEntry } from "@/lib/types/review";
+
+function interpolateTemplate(template: string, variables: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] ?? `{{${key}}}`);
+}
+
+/**
+ * Trigger Worker 不使用 Next `unstable_cache`；优先直读 Storage，失败时回退本地默认文件便于本地跑任务。
+ */
+async function loadPromptsConfig(): Promise<PromptsConfig> {
+  try {
+    return await getPromptsDirect();
+  } catch (e) {
+    console.warn(
+      "[orchestrate-review] getPromptsDirect failed, falling back to config/prompts.default.json",
+      e
+    );
+    const raw = JSON.parse(
+      readFileSync(join(process.cwd(), "config", "prompts.default.json"), "utf8")
+    );
+    return promptsSchema.parse(raw);
+  }
+}
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   if (size <= 0) return [];
@@ -77,7 +104,29 @@ export const orchestrateReview = task({
       }
 
       const pdfBuffer = await storageDAL.downloadReviewPdf(review.file_url);
-      const ctx = { domain: review.domain };
+
+      const promptsConfig = await loadPromptsConfig();
+      const logicP1 = promptsConfig.logic_review_pass1;
+      const logicP2 = promptsConfig.logic_review_pass2;
+      if (!logicP1?.templates?.zh || !logicP2?.templates?.zh) {
+        throw new Error(
+          "prompts config missing logic_review_pass1 or logic_review_pass2 (templates.zh)"
+        );
+      }
+      const modelConfig = logicP1.model_config ?? { temperature: 0.3, model: "gemini-1.5-pro" };
+      const pass1System = interpolateTemplate(logicP1.templates.zh, {
+        domain: review.domain ?? "学术论文",
+      });
+      const pass2TemplateRaw = logicP2.templates.zh;
+
+      const ctx: ReviewAnalyzeContext = {
+        domain: review.domain,
+        logicReview: {
+          modelConfig,
+          pass1SystemPrompt: pass1System,
+          pass2TemplateRaw,
+        },
+      };
 
       let cachedText: string | null = null;
       const getParsedText = async () => {
