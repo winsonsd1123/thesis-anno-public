@@ -238,26 +238,52 @@ export async function analyzeAiTraceChunk(
 **业务流程描述：**
 1. **原子方法 1: 文献列表提取 (`extractReferencesFromPDF`)**：调用速度较快的大模型（如 Flash 模型），扫描整篇论文，剥离出文末的参考文献列表，提取为结构化的数组（包含：标题、作者、原文原始文本）。
 2. **原子方法 2: 批量文献核查 (`verifyReferenceBatch`)**：接收**一批（例如 20 条）**文献作为输入。
-   *   **并发外部检索 (API Clients)**：针对这 20 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：优先请求最权威的 **CrossRef**，未命中则降级请求 **OpenAlex**，最后请求 **ArXiv**。
+   *   **并发外部检索 (API Clients)**：针对这 20 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：
+       *   **策略优化 (精准 ID 优先)**：尝试从原始文本 (`rawText`) 中用正则提取 **DOI** 或 **PMID**，若有则直接精确请求对应的数据库（CrossRef 或 PubMed）；若无，则用提取的标题依次降级检索 **CrossRef** -> **OpenAlex** -> **Semantic Scholar** -> **PubMed** -> **ArXiv**。
+       *   **合规与限流 (Polite Pool & API Keys)**：在调用 CrossRef 等接口时，务必在 Header 的 `User-Agent` 中带上开发者邮箱（如 `ThesisAnno/1.0 (mailto:...)`），以便进入官方的高优 Polite Pool。对于 Semantic Scholar 等有速率限制的 API，需配置 API Key 管理池。
    *   **批量 LLM 裁判 (Batched LLM Call)**：收集到这 20 条文献的候选元数据 (Candidate) 后，将它们与原文打包成一个大的 JSON，**只发起一次大模型调用**。由大模型一次性返回这 20 条文献的比对结果（格式错误、造假等）。
 
 **核心代码骨架：**
 
 ```typescript
-import { searchCrossRef, searchOpenAlex, searchArxiv } from '../clients/academic';
+import { 
+  searchCrossRefByDoi, searchCrossRefByTitle, 
+  searchOpenAlex, searchSemanticScholar, 
+  searchPubMed, searchArxiv 
+} from '../clients/academic';
 import { z } from 'zod';
 
 /**
  * 瀑布流降级检索策略
  */
-async function searchSourcesWaterfall(title: string) {
-  let candidate = await searchCrossRef(title);
+async function searchSourcesWaterfall(ref: { title: string, rawText: string }) {
+  // 1. 优先尝试正则提取唯一标识符进行精准检索 (DOI, PMID 等)
+  const doiMatch = ref.rawText.match(/10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i);
+  if (doiMatch) {
+    const candidate = await searchCrossRefByDoi(doiMatch[0]);
+    if (candidate) return candidate;
+  }
+  
+  const pmidMatch = ref.rawText.match(/PMID:\s*(\d+)/i);
+  if (pmidMatch) {
+     const candidate = await searchPubMed(pmidMatch[1], { byId: true });
+     if (candidate) return candidate;
+  }
+
+  // 2. 降级为标题检索 (按数据库权威度与通用性排序)
+  let candidate = await searchCrossRefByTitle(ref.title);
   if (candidate) return candidate;
 
-  candidate = await searchOpenAlex(title);
+  candidate = await searchOpenAlex(ref.title);
+  if (candidate) return candidate;
+  
+  candidate = await searchSemanticScholar(ref.title);
+  if (candidate) return candidate;
+  
+  candidate = await searchPubMed(ref.title);
   if (candidate) return candidate;
 
-  candidate = await searchArxiv(title);
+  candidate = await searchArxiv(ref.title);
   return candidate || null;
 }
 
@@ -287,7 +313,7 @@ export async function verifyReferenceBatch(
   // a. 并发执行瀑布流多源检索 (仅查 API，不调 LLM)
   const candidates = await Promise.all(
     refsBatch.map(async (ref) => {
-      const candidate = await searchSourcesWaterfall(ref.title);
+      const candidate = await searchSourcesWaterfall(ref);
       return { id: ref.id, rawText: ref.rawText, candidate };
     })
   );
@@ -296,8 +322,10 @@ export async function verifyReferenceBatch(
   const BatchVerificationSchema = z.object({
     results: z.array(z.object({
       id: z.number(),
-      status: z.enum(['match', 'mismatch', 'not_found']),
-      reason: z.string()
+      fact_status: z.enum(['real', 'fake_or_not_found']), // 真实性核查
+      format_status: z.enum(['standard', 'unstandard']),  // 规范性核查
+      reason: z.string(), // 造假或不规范的具体原因说明
+      standard_format: z.string().optional() // 帮用户生成的正确排版格式
     }))
   });
 
@@ -426,18 +454,23 @@ export async function verifyReferenceBatch(
 
 ### 4.5 参考文献核查裁判 (`reference_verification`)
 ```text
-你是一位细致的学术文献核查员。
+你是一位细致的学术文献核查员与排版专家。
 你将收到一批论文原文中提取的参考文献（Raw Text），以及我们从权威学术数据库（CrossRef/OpenAlex）中检索到的对应元数据候选（Candidate Data）。
+同时，你需要结合目标排版规范（如 GB/T 7714，视系统传入而定）。
 
-你的任务是逐一比对这批文献，判断原文引用是否正确、规范，或者是否存在造假。
-对于每一条文献，请输出其状态：
-- match: 原文引用与数据库记录基本一致。
-- mismatch: 原文引用有误（如作者拼写错误、年份错误、期刊名缩写不规范等）。
-- not_found: 在权威数据库中完全找不到该文献，疑似伪造（学术不端预警）。
+你的任务是逐一比对这批文献，执行“真实性”与“规范性”双重核查：
+
+1. 真实性 (fact_status):
+   - real: 原文引用的核心元数据（作者、标题、年份）与数据库记录吻合，文献真实存在。
+   - fake_or_not_found: 在权威数据库中完全找不到该文献，或核心信息严重错乱疑似伪造。
+
+2. 规范性 (format_status):
+   - standard: 格式排版完全符合学术规范要求（标点、标识符等无误）。
+   - unstandard: 存在拼写错误、标点全半角误用、缺失期刊标识符 [J]、作者缩写不规范等排版问题。
 
 **极速核对指令 (为了最高处理效率)：**
-- 如果状态是 `match`，你的 `reason` 字段必须为空字符串 `""`。
-- 如果是 `mismatch` 或 `not_found`，请用最简短的词语指出差异点（例如：“年份应为2022”、“作者拼写错误”）。**绝对不要解释推理过程，不要说任何废话。**
+- `reason` 字段：如果存在造假或不规范，请用最简短的词语指出差异点（例如：“年份应为2022”、“缺失[J]标识符”、“作者拼写错误”）。完全没问题则留空 `""`。**绝对不要解释推理过程，不要说任何废话。**
+- `standard_format` 字段：如果 `format_status` 为 `unstandard`，请利用 Candidate Data 生成一条排版完全正确的参考文献文本供用户一键替换。如果没有不规范，可省略此字段。
 请仅输出严格的 JSON 格式。
 ```
 
