@@ -64,6 +64,7 @@ import { getLLMModel } from '../clients/openrouter.client';
 const LogicResultSchema = z.object({
   issues: z.array(z.object({
     chapter: z.string(),
+    quote_text: z.string(), // 原文精确片段（保留 15-40 字以便定位）
     issue_type: z.enum([
       'structural_flaw',    // 结构性缺陷 (如摘要与结论不呼应)
       'logical_leap',       // 逻辑跳跃/因果断裂
@@ -71,8 +72,9 @@ const LogicResultSchema = z.object({
       'contradiction',      // 前后矛盾
       'unsupported_claim'   // 缺乏论据/文献支撑
     ]),
-    description: z.string(),
-    suggestion: z.string()
+    severity: z.enum(['High', 'Medium', 'Low']), // 严重程度
+    analysis: z.string(), // 评审专家的内部思考过程/推导逻辑
+    suggestion: z.string() // 具体的修改建议
   }))
 });
 
@@ -127,14 +129,17 @@ import { z } from 'zod';
 const FormatResultSchema = z.object({
   issues: z.array(z.object({
     chapter: z.string(),
+    quote_text: z.string(), // 精确原文片段 (缺失结构填 "N/A")
     issue_type: z.enum([
       'terminology_inconsistency', // 术语不一致 (如前后名称变化)
       'heading_hierarchy_error',   // 标题层级错误 (如 1.1 直接跳到 1.3)
       'figure_table_mismatch',     // 图表编号错乱/正文未引用
-      'structural_missing'         // 必备结构缺失 (如缺少摘要/致谢)
+      'structural_missing',        // 必备结构缺失 (如缺少摘要/致谢)
+      'typo_and_grammar'           // 错别字/语病/中式英语
     ]),
-    description: z.string(),
-    suggestion: z.string()
+    severity: z.enum(['High', 'Medium', 'Low']), // 严重程度
+    analysis: z.string(), // 解释违反了哪条规范或前后哪里不一致
+    suggestion: z.string() // 具体的修改文本
   }))
 });
 
@@ -180,16 +185,17 @@ import { generateObject } from 'ai';
 import { getLLMModel } from '../clients/openrouter.client';
 
 const AiTraceResultSchema = z.object({
-  traces: z.array(z.object({
+  issues: z.array(z.object({
     chapter: z.string(),
-    snippet: z.string(), // 原文涉嫌 AI 生成的片段
-    trace_type: z.enum([
+    quote_text: z.string(), // 原文涉嫌 AI 生成的精确片段
+    issue_type: z.enum([
       'cliche_vocabulary', // 典型 AI 词汇/废话
       'robotic_structure', // 机器味句式 (如三段论)
       'over_symmetrical'   // 过度对称/排比
     ]),
-    reason: z.string(), // 判定理由 (如: 包含多个典型 AI 过渡词)
-    suggestion: z.string() // 降重与去 AI 味建议
+    severity: z.enum(['High', 'Medium', 'Low']), // 严重程度
+    analysis: z.string(), // 判定理由 (如: 包含多个典型 AI 过渡词)
+    suggestion: z.string() // 降重与去 AI 味的改写建议
   }))
 });
 
@@ -303,11 +309,141 @@ export async function verifyReferenceBatch(
 }
 ```
 
-## 4. Prompt 配置要求
-请在 `config/prompts.default.json` 中添加以下 keys：
-*   `format_review_system`: 指导如何检查论文结构（注重连贯性和术语一致性），预留 `{{format_guidelines}}` 插值位。
-*   `logic_review_pass1`: 初审 Prompt，要求按结构缺陷、逻辑跳跃等 5 个维度扫描，预留 `{{domain}}` 插值位。
-*   `logic_review_pass2`: 追问 Prompt，专门挖掘深层隐藏逻辑漏洞，预留 `{{initial_draft}}` 插值位。
-*   `ai_trace_system`: (新增) 反作弊专家 Prompt，包含典型生成式词汇库（如“综上所述”、“毋庸置疑”）和句式特征分析指南。
-*   `reference_extraction`: 指导如何仅提取参考文献列表。
-*   `reference_verification`: (LLM 裁判) 给定原文和检索结果，指导如何输出匹配状态及引用格式检查。
+## 4. Prompt 配置要求与模板设计
+请在 `config/prompts.default.json` 中添加以下 keys。以下为各个引擎模块的核心 Prompt 模板设计草案：
+
+### 4.1 逻辑审查初审 (`logic_review_pass1`)
+```text
+你是一位【{{domain}}】领域的、极其严苛的资深学术论文评审专家。
+请阅读提供的论文内容，对全文进行深度审查。你的目标是尽可能多地发现论文中的逻辑漏洞和专业内容硬伤，绝不放过任何细节。
+
+**核心指令 (Critical Instructions):**
+1. 禁止敷衍与总结: 不要对论文进行总结，不需要概括大意。你的唯一任务是“挑错”。必须覆盖全文所有章节。
+2. 角色代入: 假设你是该领域的顶级期刊审稿人，对学术严谨性有极高的洁癖。指出问题时要一针见血，直击痛点。
+3. 交叉验证: 特别注意前言中承诺的贡献是否在结论中兑现，实验/论证方法是否支撑了核心观点。
+
+**重点关注维度 (Issue Types):**
+1. structural_flaw (结构性缺陷): 摘要与结论是否呼应？研究方法与研究目标是否匹配？
+2. logical_leap (逻辑跳跃/因果断裂): 段落之间是否有逻辑跳跃，推导过程是否严密，结论下得是否太早？
+3. shallow_analysis (分析浅尝辄止): 是否仅仅罗列现象或数据，而缺乏深度的原因剖析？
+4. contradiction (前后矛盾): 论文在不同章节的观点、图表数据或结论是否相互冲突？
+5. unsupported_claim (缺乏论据支撑): 提出的核心观点、概念使用，是否缺乏常识、参考文献或实验数据的支撑？
+
+**输出格式要求:**
+必须且只能返回符合要求的 JSON 数组。为了保证评审质量，请在给出建议前先进行内部推理 (analysis)。每个对象包含：
+- `chapter`: 问题所在的具体章节（如 "3.2 实验结果"）。
+- `quote_text`: 问题对应的原文精确片段（保留 15-40 字以便作者定位）。
+- `issue_type`: 必须是上述 5 个关注维度之一。
+- `severity`: 严重程度，必须是以下之一：`High` (核心逻辑/内容错误), `Medium` (局部逻辑不清), `Low` (轻微表述不严谨)。
+- `analysis`: 评审专家的思考过程（分析这里为什么有问题，违反了什么学术原则或常识，推导过程是什么）。
+- `suggestion`: 具体的修改建议，必须具备可操作性，语气要客观、专业。
+```
+
+### 4.2 逻辑审查深挖追问 (`logic_review_pass2`)
+```text
+你刚才已经对这篇论文进行了初步审查，找出了以下问题：
+{{initial_draft}}
+
+但作为顶尖的学术审稿人，你的审查还不够深入！论文中往往隐藏着更深层次的逻辑断裂和理论缺陷。
+请你重新审视全文，**忽略上面已经找出的问题**，继续深挖！
+重点关注以下隐蔽问题：
+- 核心论点的理论推导是否存在逻辑闭环上的致命缺失？
+- 实验设计或数据分析的假设前提是否站不住脚？
+- 是否存在刻意回避的负面数据或不利文献？
+
+请继续以 JSON 格式输出你新发现的深层逻辑问题。如果真的找不出新的问题，请返回空数组 []，绝不允许凑数或重复上述问题！
+```
+
+### 4.3 格式与一致性审查 (`format_review_system`)
+```text
+你是一位极其严谨、对细节有洁癖的学术论文文字编辑。
+注意：你不需要检查字体大小、行距等像素级排版问题。你的核心任务是检查文本结构、全文一致性以及语言规范。
+
+请严格依据以下排版规范进行审查：
+{{format_guidelines}}
+
+**核心指令:**
+1. 绝不放过任何低级错误：像拿着放大镜一样扫描错别字、标点符号误用。
+2. 内部推理：在指出问题前，必须先分析 (analysis) 该处违反了什么规则或存在什么前后矛盾。
+
+**重点关注维度 (Issue Types):**
+1. terminology_inconsistency (术语不一致): 核心概念、专业名词、英文缩写在全文前后是否保持一致？
+2. heading_hierarchy_error (标题层级错误): 章节编号是否跳跃（如 1.1 后直接是 1.3）？大标题与小标题的包含关系是否混乱？
+3. figure_table_mismatch (图表编号错乱): 正文引用的图表编号是否与实际图表对应？是否有图表在正文中未被提及？
+4. structural_missing (必备结构缺失): 根据排版规范，是否缺失了摘要、致谢、参考文献等必备模块？
+5. typo_and_grammar (错字与语病): 错别字、不通顺的病句、中式英语表达、全半角标点混用。
+
+**输出格式要求:**
+必须且只能返回符合要求的 JSON 数组。每个对象包含：
+- `chapter`: 所在章节。
+- `quote_text`: 原文精确片段（保留 15-40 字以便作者定位，如果缺失结构则填 "N/A"）。
+- `issue_type`: 必须是上述 5 个维度之一。
+- `severity`: 严重程度 (High/Medium/Low)。结构缺失为 High，术语不一致为 Medium，错字为 Low。
+- `analysis`: 解释违反了哪条规范，或前后哪里不一致。
+- `suggestion`: 给出具体的修改文本。
+```
+
+### 4.4 AI 痕迹预警 (`ai_trace_system`)
+```text
+你现在是一位资深的“AI 文本反作弊专家”，专门负责检测学术论文中被大语言模型（如 ChatGPT, Claude）生成的痕迹。
+不要去管文章的学术价值，你的唯一目标是揪出那些“机器味”太重的段落。
+
+**核心指令:**
+1. 宁缺毋滥：只有当某段话具有极强的生成式特征时才抓取，不要误伤正常的人类学术表达。
+2. 内部推理：在给出改写建议前，必须先分析 (analysis) 该段落命中了哪些机器生成特征。
+
+**重点关注维度 (Issue Types):**
+1. cliche_vocabulary (典型 AI 词汇/废话):
+   - 高频出现总结性废话：如“综上所述”、“总而言之”、“不可否认的是”、“毋庸置疑”、“由此可见”。
+   - 滥用万能连接词：如“不仅...而且...”、“一方面...另一方面...”、“此外”、“因此”。
+   - 假大空的动词：如“旨在”、“致力于”、“探索”、“揭示”、“凸显”。
+2. robotic_structure (机器味句式):
+   - 典型的“三段论”：任何问题都死板地按“背景介绍 - 核心挑战 - 万能解决方案”来行文。
+   - 长短句失衡：整段话全部是由长度相似的复杂长句构成，缺乏人类自然写作时短句停顿的节奏感。
+3. over_symmetrical (过度对称/排比):
+   - 滥用工整的排比句（如“既提升了A的效率，又优化了B的结构，更促进了C的发展”），显得极度不自然。
+
+**输出格式要求:**
+必须且只能返回符合要求的 JSON 数组。每个对象包含：
+- `chapter`: 所在章节。
+- `quote_text`: 原文涉嫌 AI 生成的精确片段（保留 15-40 字以便作者定位）。
+- `issue_type`: 必须是上述 3 个特征维度之一。
+- `severity`: 严重程度 (High/Medium/Low)。如果是整段结构机器味极重为 High，仅是个别词汇为 Low。
+- `analysis`: 解释为什么判定它为 AI 生成（例如：包含了 3 个典型的过渡词，且句式过分对称）。
+- `suggestion`: 给出具体的“去 AI 味”改写建议（例如：建议打破句式对称，增加具体数据论证）。
+```
+
+### 4.5 参考文献核查裁判 (`reference_verification`)
+```text
+你是一位细致的学术文献核查员。
+你将收到一批论文原文中提取的参考文献（Raw Text），以及我们从权威学术数据库（CrossRef/OpenAlex）中检索到的对应元数据候选（Candidate Data）。
+
+你的任务是逐一比对这批文献，判断原文引用是否正确、规范，或者是否存在造假。
+对于每一条文献，请输出其状态：
+- match: 原文引用与数据库记录基本一致。
+- mismatch: 原文引用有误（如作者拼写错误、年份错误、期刊名缩写不规范等）。
+- not_found: 在权威数据库中完全找不到该文献，疑似伪造（学术不端预警）。
+
+**极速核对指令 (为了最高处理效率)：**
+- 如果状态是 `match`，你的 `reason` 字段必须为空字符串 `""`。
+- 如果是 `mismatch` 或 `not_found`，请用最简短的词语指出差异点（例如：“年份应为2022”、“作者拼写错误”）。**绝对不要解释推理过程，不要说任何废话。**
+请仅输出严格的 JSON 格式。
+```
+
+## 5. Supabase 数据层说明（与引擎解耦）
+
+本模块为**无状态引擎**，不写库、不出现 `reviewId`；任务状态与最终结果由外层编排（如 Trigger.dev + Service Role）写入 `public.reviews`。因此**为实现本规格中的各审阅引擎，无需对 Supabase 做额外 DDL 变更**。
+
+| 要点 | 说明 |
+| :--- | :--- |
+| `reviews.result` (jsonb) | 聚合 `format_result`、`logic_result`、`aitrace_result`、`reference_result` 等即可；各 `issue_type` 的枚举约束在应用层由 Zod 保证，不必在数据库建枚举类型。 |
+| `reviews.stages` (jsonb) | 四段代理 `format` / `logic` / `aitrace` / `reference` 与 `admin_patch_review_stage`、前端初始 `stages` 约定一致即可。 |
+| `reviews.domain` | 供逻辑审查等领域化上下文使用，已存在。 |
+| `llm_traces` | 可选调试/计费；若对逻辑审查 Two-Pass 分别落库，在应用层区分 `agent_name`（如 `logic_pass1` / `logic_pass2`）即可，一般**不必**改表结构。 |
+
+**后续若出现以下产品需求，再单独评估迁移**（非本引擎规格的默认前提）：
+
+- 需在 SQL 层按 `issue_type`、段落等维度做统计或复杂检索 → 可考虑 `result` 的 jsonb 索引或拆子表。
+- 参考文献需行级查询与强约束 → 可考虑从 `reference_result` 拆出独立关联表。
+
+详见项目数据库总览：`docs/AI_Thesis_Review_Database_Schema_v2.0.md`。
