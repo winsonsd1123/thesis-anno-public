@@ -1,7 +1,7 @@
 /**
  * Static review plan (no LLM). Step ids map to i18n keys dashboard.review.planItem*.
  */
-export const STATIC_PLAN_STEP_IDS = ["format", "logic", "reference"] as const;
+export const STATIC_PLAN_STEP_IDS = ["format", "logic", "aitrace", "reference"] as const;
 
 export type StaticPlanStepId = (typeof STATIC_PLAN_STEP_IDS)[number];
 

@@ -18,6 +18,7 @@ import type { StaticPlanStepId } from "@/lib/review/buildStaticPlan";
 function planItemLabel(id: StaticPlanStepId, tr: (k: string) => string): string {
   if (id === "format") return tr("planItemFormat");
   if (id === "logic") return tr("planItemLogic");
+  if (id === "aitrace") return tr("planItemAitrace");
   return tr("planItemRefs");
 }
 

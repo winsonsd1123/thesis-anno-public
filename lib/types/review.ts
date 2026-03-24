@@ -10,7 +10,7 @@ export type ReviewStatus =
 export type StageAgentStatus = "pending" | "running" | "done" | "failed";
 
 export type ReviewStageEntry = {
-  agent: "format" | "logic" | "reference";
+  agent: "format" | "logic" | "aitrace" | "reference";
   status: StageAgentStatus;
   log?: string;
 };
@@ -37,12 +37,14 @@ export type ReviewRow = {
 export type ReviewResult = {
   format_result?: unknown;
   logic_result?: unknown;
+  aitrace_result?: unknown;
   reference_result?: unknown;
 };
 
 export const INITIAL_REVIEW_STAGES: ReviewStageEntry[] = [
   { agent: "format", status: "pending" },
   { agent: "logic", status: "pending" },
+  { agent: "aitrace", status: "pending" },
   { agent: "reference", status: "pending" },
 ];
 
@@ -53,7 +55,7 @@ export function parseStages(raw: unknown): ReviewStageEntry[] {
     if (!s || typeof s !== "object") continue;
     const o = s as Record<string, unknown>;
     const agent = o.agent;
-    if (agent !== "format" && agent !== "logic" && agent !== "reference") continue;
+    if (agent !== "format" && agent !== "logic" && agent !== "aitrace" && agent !== "reference") continue;
     const st = o.status;
     const status: StageAgentStatus =
       st === "pending" || st === "running" || st === "done" || st === "failed" ? st : "pending";

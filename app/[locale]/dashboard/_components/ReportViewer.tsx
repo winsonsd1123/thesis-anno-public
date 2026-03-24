@@ -6,6 +6,7 @@ import type { ReviewResult } from "@/lib/types/review";
 type ReportViewerProps = {
   tabStructure: string;
   tabLogic: string;
+  tabAiTrace: string;
   tabRefs: string;
   placeholder: string;
   emptySection: string;
@@ -16,17 +17,19 @@ type ReportViewerProps = {
 export function ReportViewer({
   tabStructure,
   tabLogic,
+  tabAiTrace,
   tabRefs,
   placeholder,
   emptySection,
   exportLabel,
   result,
 }: ReportViewerProps) {
-  const [tab, setTab] = useState<"structure" | "logic" | "refs">("structure");
+  const [tab, setTab] = useState<"structure" | "logic" | "aitrace" | "refs">("structure");
 
   const tabs: { id: typeof tab; label: string }[] = [
     { id: "structure", label: tabStructure },
     { id: "logic", label: tabLogic },
+    { id: "aitrace", label: tabAiTrace },
     { id: "refs", label: tabRefs },
   ];
 
@@ -39,6 +42,11 @@ export function ReportViewer({
     }
     if (tab === "logic") {
       const v = result.logic_result;
+      if (v === undefined || v === null) return emptySection;
+      return JSON.stringify(v, null, 2);
+    }
+    if (tab === "aitrace") {
+      const v = result.aitrace_result;
       if (v === undefined || v === null) return emptySection;
       return JSON.stringify(v, null, 2);
     }

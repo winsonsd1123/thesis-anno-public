@@ -123,6 +123,7 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
     const labels = {
       format: t("progressAgentFormat"),
       logic: t("progressAgentLogic"),
+      aitrace: t("progressAgentAitrace"),
       reference: t("progressAgentRefs"),
     };
     return stagesToProgressAgents(activeReview?.stages, labels).map((a) => ({
@@ -373,6 +374,7 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
                 <ReportViewer
                   tabStructure={t("reportTabStructure")}
                   tabLogic={t("reportTabLogic")}
+                  tabAiTrace={t("reportTabAiTrace")}
                   tabRefs={t("reportTabRefs")}
                   placeholder={t("reportPlaceholder")}
                   emptySection={t("reportEmptySection")}

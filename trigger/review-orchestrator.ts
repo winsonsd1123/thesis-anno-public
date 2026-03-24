@@ -5,6 +5,7 @@ import { executeWithFallback } from "./utils/pdf-extractor";
 import { analyzeFormat } from "@/lib/services/review/format.service";
 import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
 import { analyzeLogic } from "@/lib/services/review/logic.service";
+import { analyzeAiTrace } from "@/lib/services/review/aitrace.service";
 import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
 import type { ReviewResult } from "@/lib/types/review";
 import type { ReviewStageEntry } from "@/lib/types/review";
@@ -88,9 +89,10 @@ export const orchestrateReview = task({
         return cachedText;
       };
 
-      const [formatRes, logicRes] = await Promise.all([
+      const [formatRes, logicRes, aitraceRes] = await Promise.all([
         runAgent(reviewId, "format", () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)),
         runAgent(reviewId, "logic", () => executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)),
+        runAgent(reviewId, "aitrace", () => executeWithFallback(analyzeAiTrace, pdfBuffer, getParsedText, ctx)),
       ]);
 
       const refRes = await runAgent(reviewId, "reference", async () => {
@@ -127,6 +129,7 @@ export const orchestrateReview = task({
       const finalResult: ReviewResult = {
         format_result: formatRes.ok ? formatRes.value : { error: formatRes.error },
         logic_result: logicRes.ok ? logicRes.value : { error: logicRes.error },
+        aitrace_result: aitraceRes.ok ? aitraceRes.value : { error: aitraceRes.error },
         reference_result: refRes.ok ? refRes.value : { error: refRes.error },
       };
 

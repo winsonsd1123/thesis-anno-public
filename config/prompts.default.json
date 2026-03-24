@@ -37,5 +37,18 @@
       "temperature": 0.2,
       "model": "gemini-1.5-pro"
     }
+  },
+  "ai_trace_system": {
+    "description": "AI 痕迹与套话检测（反作弊专家）",
+    "version": "1.0.0",
+    "variables": ["content"],
+    "templates": {
+      "zh": "你是一位严谨的学术写作反作弊专家。请从词汇与句式两维度扫描文本：识别典型生成式套话、过渡词滥用、机器味三段论与过度对称结构；对高危片段给出去 AI 味的改写建议。",
+      "en": "You are an expert on academic writing authenticity. Scan for generative clichés, robotic transitions, over-symmetrical structures, and templated argument flow; suggest human-like revisions for high-risk snippets."
+    },
+    "model_config": {
+      "temperature": 0.2,
+      "model": "gemini-1.5-pro"
+    }
   }
 }

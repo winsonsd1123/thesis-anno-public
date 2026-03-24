@@ -1,7 +1,7 @@
 import type { ReviewStageEntry } from "@/lib/types/review";
 
 export type ProgressAgentUi = {
-  key: "format" | "logic" | "reference";
+  key: "format" | "logic" | "aitrace" | "reference";
   label: string;
   progress: number;
   status: "running" | "done" | "pending";
@@ -9,9 +9,9 @@ export type ProgressAgentUi = {
 
 export function stagesToProgressAgents(
   stages: ReviewStageEntry[] | null | undefined,
-  labels: { format: string; logic: string; reference: string }
+  labels: { format: string; logic: string; aitrace: string; reference: string }
 ): ProgressAgentUi[] {
-  const order = ["format", "logic", "reference"] as const;
+  const order = ["format", "logic", "aitrace", "reference"] as const;
   const list = stages ?? [];
 
   return order.map((agent) => {
