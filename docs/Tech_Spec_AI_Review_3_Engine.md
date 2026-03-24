@@ -168,15 +168,19 @@ export async function analyzeFormat(
 }
 ```
 
-### 3.4 AI 痕迹预警服务 (`aitrace.service.ts`): (新增核心卖点)
+### 3.4 AI 痕迹预警服务 (`aitrace.service.ts`): Map-Reduce 并发审查 (核心卖点)
 
-作为区别于传统查重工具的核心护城河，该服务专门检测文本中的生成式 AI 特征。
+作为区别于传统查重工具的核心护城河，该服务专门检测文本中的生成式 AI 特征。由于“AI 味”通常体现在微观的遣词造句（如单句排比、过渡词），将超长文本直接喂给大模型会引发严重的“Lost in the Middle（中间迷失）”和幻觉。
+
+因此，本服务采用**带页码锚点的 Map-Reduce 并发审查策略**，复用 `Trigger.dev` 的通用批处理队列 (`genericLlmBatchTask`)。
 
 **业务流程描述：**
-1. **多维度特征捕获**：要求大模型扮演“反作弊专家”，从两个维度进行扫描：
-   *   **词汇维度 (Lexical)**：高频捕捉“不可否认的是”、“综上所述”、“不仅...而且”等典型生成式套话和过渡词。
-   *   **句式维度 (Syntactic)**：识别长短句失衡（缺乏人类写作的节奏感）、过度使用排比/对仗、以及生硬的“背景-挑战-方案”三段论机器味。
-2. **生成审查报告**：定位高危段落，并给出“去 AI 味”的改写建议（如“建议打破对称结构，增加具体数据论证”）。
+1. **文本预处理与分块 (Chunking)**：在提取 PDF 纯文本时，按页或固定字数进行分块（例如每 5 页作为一个 Chunk）。在每个 Chunk 的文本中，显式注入页码锚点标记，例如：`--- [Page 15] ---`。
+2. **并发调度 (Map)**：将拆分出的多个 Chunk 包装为 `GenericLlmBatchPayload`（`action: "aitrace_chunk"`），通过 Trigger.dev 的 `genericLlmBatchTask.batchTriggerAndWait` 投入并发队列。该队列配置了 `concurrencyLimit: 5`，既保证了处理速度，又避免了触发大模型 API 的 429 限流。
+3. **多维度特征捕获 (单块处理)**：大模型在几千字的小窗口内扮演“反作弊专家”，从两个维度进行高分辨率扫描：
+   *   **词汇维度 (Lexical)**：捕捉“不可否认的是”、“综上所述”等典型生成式套话。
+   *   **句式维度 (Syntactic)**：识别长短句失衡、生硬的“背景-挑战-方案”三段论机器味。
+4. **结果聚合与定位 (Reduce)**：收集所有 Chunk 返回的 JSON 数组，过滤掉空结果并拍平（`flatMap`）。大模型需严格依据 `[Page X]` 输出绝对页码，并根据上下文推断 `chapter`。
 
 **核心代码骨架：**
 
@@ -187,8 +191,9 @@ import { getLLMModel } from '../clients/openrouter.client';
 
 const AiTraceResultSchema = z.object({
   issues: z.array(z.object({
-    chapter: z.string(),
-    quote_text: z.string(), // 原文涉嫌 AI 生成的精确片段
+    chapter: z.string(), // 所在章节 (若块内无标题，允许大模型就近推断或填 "上下文缺失")
+    page: z.number().int().min(1), // 所在页码 (严格依赖输入文本中的 [Page X] 标记提取)
+    quote_text: z.string(), // 原文涉嫌 AI 生成的精确片段（保留 15-40 字）
     issue_type: z.enum([
       'cliche_vocabulary', // 典型 AI 词汇/废话
       'robotic_structure', // 机器味句式 (如三段论)
@@ -200,9 +205,12 @@ const AiTraceResultSchema = z.object({
   }))
 });
 
-export async function analyzeAiTrace(
-  content: string, 
-  contentType: 'base64' | 'text', 
+/**
+ * 接收单个文本块 (Chunk) 进行无状态审查。
+ * 该函数会被 Trigger.dev 的 genericLlmBatchTask 并发调用。
+ */
+export async function analyzeAiTraceChunk(
+  chunkContent: string, 
   context: { 
     modelConfig: { model: string, temperature: number },
     promptTemplate: string 
@@ -215,7 +223,7 @@ export async function analyzeAiTrace(
     // 较低的 temperature 保证判别的稳定性
     temperature: Math.min(context.modelConfig.temperature, 0.3), 
     system: context.promptTemplate,
-    messages: buildMessages(content, contentType),
+    messages: [{ role: 'user', content: chunkContent }],
     schema: AiTraceResultSchema,
   });
   
@@ -229,9 +237,9 @@ export async function analyzeAiTrace(
 
 **业务流程描述：**
 1. **原子方法 1: 文献列表提取 (`extractReferencesFromPDF`)**：调用速度较快的大模型（如 Flash 模型），扫描整篇论文，剥离出文末的参考文献列表，提取为结构化的数组（包含：标题、作者、原文原始文本）。
-2. **原子方法 2: 批量文献核查 (`verifyReferenceBatch`)**：接收**一批（例如 10 条）**文献作为输入。
-   *   **并发外部检索 (API Clients)**：针对这 10 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：优先请求最权威的 **CrossRef**，未命中则降级请求 **OpenAlex**，最后请求 **ArXiv**。
-   *   **批量 LLM 裁判 (Batched LLM Call)**：收集到这 10 条文献的候选元数据 (Candidate) 后，将它们与原文打包成一个大的 JSON，**只发起一次大模型调用**。由大模型一次性返回这 10 条文献的比对结果（格式错误、造假等）。
+2. **原子方法 2: 批量文献核查 (`verifyReferenceBatch`)**：接收**一批（例如 20 条）**文献作为输入。
+   *   **并发外部检索 (API Clients)**：针对这 20 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：优先请求最权威的 **CrossRef**，未命中则降级请求 **OpenAlex**，最后请求 **ArXiv**。
+   *   **批量 LLM 裁判 (Batched LLM Call)**：收集到这 20 条文献的候选元数据 (Candidate) 后，将它们与原文打包成一个大的 JSON，**只发起一次大模型调用**。由大模型一次性返回这 20 条文献的比对结果（格式错误、造假等）。
 
 **核心代码骨架：**
 
@@ -297,7 +305,7 @@ export async function verifyReferenceBatch(
   const { object: verificationBatch } = await generateObject({
     model,
     system: context.promptTemplate,
-    // 将 10 条原文和 10 个 candidate 一起喂进去
+    // 将 20 条原文和 20 个 candidate 一起喂进去
     messages: buildBatchVerificationMessages(candidates), 
     schema: BatchVerificationSchema
   });
@@ -407,7 +415,8 @@ export async function verifyReferenceBatch(
 
 **输出格式要求:**
 必须且只能返回符合要求的 JSON 数组。每个对象包含：
-- `chapter`: 所在章节。
+- `chapter`: 所在章节。请根据文本中出现的最新标题推断，如果当前文本块全是正文无法确定章节，请根据内容简述（如“引言部分”或“方法论段落”）。
+- `page`: 整数，问题所在页码。请严格依据文本中插入的 `--- [Page X] ---` 标记，就近提取出准确的页码。
 - `quote_text`: 原文涉嫌 AI 生成的精确片段（保留 15-40 字以便作者定位）。
 - `issue_type`: 必须是上述 3 个特征维度之一。
 - `severity`: 严重程度 (High/Medium/Low)。如果是整段结构机器味极重为 High，仅是个别词汇为 Low。
