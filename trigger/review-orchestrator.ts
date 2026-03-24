@@ -10,8 +10,9 @@ import { executeWithFallback } from "./utils/pdf-extractor";
 import { analyzeFormat } from "@/lib/services/review/format.service";
 import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
 import { analyzeLogic } from "@/lib/services/review/logic.service";
-import { analyzeAiTrace } from "@/lib/services/review/aitrace.service";
+import { analyzeAiTraceChunk, mergeAiTraceChunkOutputs } from "@/lib/services/review/aitrace.service";
 import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
+import { buildAiTraceChunksWithPageAnchors, extractPdfTextPerPage } from "./utils/pdf-page-text";
 import type { ReviewResult } from "@/lib/types/review";
 import type { ReviewStageEntry } from "@/lib/types/review";
 
@@ -62,6 +63,17 @@ export const genericLlmBatchTask = task({
   run: async (payload: GenericLlmBatchPayload) => {
     if (payload.action === "verify_references") {
       return await verifyReferenceBatch(payload.dataBatch, payload.context);
+    }
+    if (payload.action === "aitrace_chunk") {
+      const chunk = payload.dataBatch[0];
+      if (typeof chunk !== "string") {
+        throw new Error("aitrace_chunk: dataBatch[0] must be a string (chunk text)");
+      }
+      const at = payload.context.aiTrace;
+      if (!at) {
+        throw new Error("aitrace_chunk: context.aiTrace is required");
+      }
+      return await analyzeAiTraceChunk(chunk, at);
     }
     throw new Error(`Unknown batch action: ${payload.action}`);
   },
@@ -119,12 +131,25 @@ export const orchestrateReview = task({
       });
       const pass2TemplateRaw = logicP2.templates.zh;
 
+      const aiTraceCfg = promptsConfig.ai_trace_system;
+      if (!aiTraceCfg?.templates?.zh) {
+        throw new Error("prompts config missing ai_trace_system (templates.zh)");
+      }
+      const aiTraceModelConfig = aiTraceCfg.model_config ?? {
+        temperature: 0.2,
+        model: "google/gemini-3.1-pro-preview",
+      };
+
       const ctx: ReviewAnalyzeContext = {
         domain: review.domain,
         logicReview: {
           modelConfig,
           pass1SystemPrompt: pass1System,
           pass2TemplateRaw,
+        },
+        aiTrace: {
+          modelConfig: aiTraceModelConfig,
+          promptTemplate: aiTraceCfg.templates.zh,
         },
       };
 
@@ -138,11 +163,34 @@ export const orchestrateReview = task({
         return cachedText;
       };
 
-      const [formatRes, logicRes, aitraceRes] = await Promise.all([
+      const [formatRes, logicRes] = await Promise.all([
         runAgent(reviewId, "format", () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)),
         runAgent(reviewId, "logic", () => executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)),
-        runAgent(reviewId, "aitrace", () => executeWithFallback(analyzeAiTrace, pdfBuffer, getParsedText, ctx)),
       ]);
+
+      const aitraceRes = await runAgent(reviewId, "aitrace", async () => {
+        const pages = await extractPdfTextPerPage(pdfBuffer);
+        const chunks = buildAiTraceChunksWithPageAnchors(pages);
+        if (chunks.length === 0) {
+          return { issues: [] as const };
+        }
+        const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
+          chunks.map((chunk) => ({
+            payload: {
+              action: "aitrace_chunk",
+              dataBatch: [chunk],
+              context: ctx,
+            } satisfies GenericLlmBatchPayload,
+          }))
+        );
+        const outputs: unknown[] = [];
+        for (const run of batchResult.runs) {
+          if (run.ok && "output" in run && run.output != null) {
+            outputs.push(run.output);
+          }
+        }
+        return mergeAiTraceChunkOutputs(outputs);
+      });
 
       const refRes = await runAgent(reviewId, "reference", async () => {
         await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "extracting references");

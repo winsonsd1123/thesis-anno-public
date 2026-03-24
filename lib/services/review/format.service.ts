@@ -9,9 +9,16 @@ export type LogicReviewContextPayload = {
   pass2TemplateRaw: string;
 };
 
+/** 由编排层注入；`analyzeAiTraceChunk`（经 genericLlmBatchTask）必填。 */
+export type AiTraceContextPayload = {
+  modelConfig: { model: string; temperature: number };
+  promptTemplate: string;
+};
+
 export type ReviewAnalyzeContext = {
   domain: string | null;
   logicReview?: LogicReviewContextPayload;
+  aiTrace?: AiTraceContextPayload;
 };
 
 /** Spec 3/3 前的桩：打通编排与降级链路，返回可序列化占位结构。 */
