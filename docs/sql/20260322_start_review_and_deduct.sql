@@ -85,6 +85,7 @@ BEGIN
     stages = jsonb_build_array(
       jsonb_build_object('agent', 'format', 'status', 'pending'),
       jsonb_build_object('agent', 'logic', 'status', 'pending'),
+      jsonb_build_object('agent', 'aitrace', 'status', 'pending'),
       jsonb_build_object('agent', 'reference', 'status', 'pending')
     ),
     updated_at = now(),

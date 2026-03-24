@@ -122,6 +122,8 @@ import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
 import { executeWithFallback } from "./utils/pdf-extractor";
 import { analyzeFormat } from "@/lib/services/review/format.service";
+import { analyzeLogic } from "@/lib/services/review/logic.service";
+import { analyzeAiTrace } from "@/lib/services/review/aitrace.service";
 import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
 
 /** 内联分块，避免引入 lodash */
@@ -160,10 +162,12 @@ export const orchestrateReview = task({
       // 1. 数据访问层 (DAL): 获取记录与 PDF Buffer
       // ... (省略懒加载解析代码，见 trigger/review-orchestrator.ts)
 
-      // 2. 并发执行常规审阅 (Format / Logic)
-      const [formatRes, logicRes] = await Promise.allSettled([
+      // 2. 并发执行常规审阅 (Format / Logic / AiTrace)
+      // 注意：这里将三个无状态的全量扫描引擎一并抛入并发池，最大化利用并发优势
+      const [formatRes, logicRes, aitraceRes] = await Promise.allSettled([
         runWithProgress('format', () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)),
-        // runWithProgress('logic', ...)
+        runWithProgress('logic', () => executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)),
+        runWithProgress('aitrace', () => executeWithFallback(analyzeAiTrace, pdfBuffer, getParsedText, ctx))
       ]);
 
       // 3. 参考文献核查 (分块 + 通用子任务并发调度)
@@ -193,6 +197,8 @@ export const orchestrateReview = task({
       // 4. 聚合结果并回写完成状态
       const finalResult = {
         format: formatRes.status === 'fulfilled' ? formatRes.value : { error: 'Failed' },
+        logic: logicRes.status === 'fulfilled' ? logicRes.value : { error: 'Failed' },
+        aitrace: aitraceRes.status === 'fulfilled' ? aitraceRes.value : { error: 'Failed' },
         reference: refFinalRes
       };
 

@@ -15,7 +15,7 @@ AS $$
 DECLARE
   v_n int;
 BEGIN
-  IF p_agent NOT IN ('format', 'logic', 'reference') THEN
+  IF p_agent NOT IN ('format', 'logic', 'aitrace', 'reference') THEN
     RAISE EXCEPTION 'INVALID_AGENT';
   END IF;
 
@@ -36,6 +36,7 @@ BEGIN
             ELSE jsonb_build_array(
               jsonb_build_object('agent', 'format', 'status', 'pending'),
               jsonb_build_object('agent', 'logic', 'status', 'pending'),
+              jsonb_build_object('agent', 'aitrace', 'status', 'pending'),
               jsonb_build_object('agent', 'reference', 'status', 'pending')
             )
           END AS arr
