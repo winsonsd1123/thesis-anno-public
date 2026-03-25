@@ -11,10 +11,12 @@
 
 ```text
 /lib/
-  ├── clients/                 # 外部服务集成层 (绝不叫 DAL)
-  │   ├── openrouter.client.ts # 统一管理大模型调用、Token、超时
-  │   ├── openalex.client.ts   # 学术 API
-  │   └── crossref.client.ts   # 学术 API
+  ├── integrations/            # 第三方 HTTP/SaaS 集成（非 DAL）
+  │   ├── openrouter.ts        # OpenRouter 大模型
+  │   └── academic/            # 学术 API（crossref / openalex / semantic-scholar / pubmed / arxiv + waterfall）
+  ├── browser/                 # 仅浏览器端工具（Dashboard Client Component）
+  │   ├── fetch-review-row.ts
+  │   └── pdf-page-count.ts
   ├── services/
   │   ├── review/              # 纯无状态的核心审阅引擎
   │   │   ├── format.service.ts
@@ -27,7 +29,7 @@
 
 ## 3. 核心实现细节
 
-### 3.1 LLM 客户端封装 (`lib/clients/openrouter.client.ts`)
+### 3.1 LLM 客户端封装 (`lib/integrations/openrouter.ts`)
 统一处理模型初始化、错误重试和 API Key 管理。为了适配 `config/prompts.default.json` 中的动态模型配置，我们不应硬编码模型名称，而是提供一个工厂函数。
 
 ```typescript
@@ -59,7 +61,7 @@ export function getLLMModel(modelName: string) {
 ```typescript
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { getLLMModel } from '../clients/openrouter.client';
+import { getLLMModel } from '@/lib/integrations/openrouter';
 
 const LogicResultSchema = z.object({
   issues: z.array(z.object({
@@ -117,7 +119,7 @@ export async function analyzeLogic(
 ### 3.3 格式审查服务 (`format.service.ts`): 动态规则注入
 
 **业务流程描述：**
-1. **边界划定**：大模型不擅长像素级排版检查（如行距、字体大小），其核心优势在于**文本结构和语义一致性**。因此，格式审查主攻：术语一致性、标题层级连贯性、图表编号对应关系、以及必备结构的完整性。
+1. **边界划定**：大模型不擅长像素级排版检查（如行距、字体大小），其核心优势在于**文本结构和语义一致性**。因此，格式审查主攻：术语一致性、标题层级连贯性、图表编号对应关系、以及必备结构的完整性。（**注：具体每条参考文献的格式排版核查已完全剥离至 3.5 参考文献模块，本模块不作重复检查，遵循单一职责原则**）。
 2. **获取动态排版规范**：格式要求（如特定学校的章节要求或 GB/T 7714 规范）具有很强的时效性。这部分规则作为独立的 Markdown 文本（`formatGuidelines`），通过 `context` 动态传入。
 3. **Prompt 组装与检查**：将动态规则注入到基础 Prompt 的占位符（`{{format_guidelines}}`）中。大模型根据注入的规则，执行全量扫描。
 4. **输出校验**：强制要求输出符合 `FormatResultSchema` 的 JSON，定位具体的不规范段落并给出修改建议。
@@ -187,7 +189,7 @@ export async function analyzeFormat(
 ```typescript
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { getLLMModel } from '../clients/openrouter.client';
+import { getLLMModel } from '@/lib/integrations/openrouter';
 
 const AiTraceResultSchema = z.object({
   issues: z.array(z.object({
@@ -239,9 +241,10 @@ export async function analyzeAiTraceChunk(
 1. **原子方法 1: 文献列表提取 (`extractReferencesFromPDF`)**：调用速度较快的大模型（如 Flash 模型），扫描整篇论文，剥离出文末的参考文献列表，提取为结构化的数组（包含：标题、作者、原文原始文本）。
 2. **原子方法 2: 批量文献核查 (`verifyReferenceBatch`)**：接收**一批（例如 20 条）**文献作为输入。
    *   **并发外部检索 (API Clients)**：针对这 20 条文献，在 Node.js 内存中使用 `Promise.all` 并发调用外部学术 API。这里采用**瀑布流降级检索 (Sequential Fallback)**：
-       *   **策略优化 (精准 ID 优先)**：尝试从原始文本 (`rawText`) 中用正则提取 **DOI** 或 **PMID**，若有则直接精确请求对应的数据库（CrossRef 或 PubMed）；若无，则用提取的标题依次降级检索 **CrossRef** -> **OpenAlex** -> **Semantic Scholar** -> **PubMed** -> **ArXiv**。
+       *   **策略优化 (精准 ID 优先)**：尝试从原始文本 (`rawText`) 中用正则提取 **DOI** 或 **PMID**，若有则直接精确请求对应的数据库（CrossRef 或 PubMed）；若无，则用提取的标题做瀑布检索：**中文题录（CJK 为主）**仅 **CrossRef** -> **OpenAlex**；**非中文题录**为 **CrossRef** -> **OpenAlex** -> **Semantic Scholar** -> **PubMed** -> **ArXiv**。
        *   **合规与限流 (Polite Pool & API Keys)**：在调用 CrossRef 等接口时，务必在 Header 的 `User-Agent` 中带上开发者邮箱（如 `ThesisAnno/1.0 (mailto:...)`），以便进入官方的高优 Polite Pool。对于 Semantic Scholar 等有速率限制的 API，需配置 API Key 管理池。
    *   **批量 LLM 裁判 (Batched LLM Call)**：收集到这 20 条文献的候选元数据 (Candidate) 后，将它们与原文打包成一个大的 JSON，**只发起一次大模型调用**。由大模型一次性返回这 20 条文献的比对结果（格式错误、造假等）。
+       *   **中英双轨核查策略 (语言兜底)**：由于国内知网等数据库缺乏公开 API，对于**中文文献**，如果 API 检索均未命中（Candidate 为空），大模型将被允许动用自身的世界知识进行真实性兜底判断；而对于**英文文献**，则必须严格依赖 API 结果，未命中即判定为造假，杜绝 LLM 幻觉。
 
 **核心代码骨架：**
 
@@ -250,7 +253,7 @@ import {
   searchCrossRefByDoi, searchCrossRefByTitle, 
   searchOpenAlex, searchSemanticScholar, 
   searchPubMed, searchArxiv 
-} from '../clients/academic';
+} from '@/lib/integrations/academic';
 import { z } from 'zod';
 
 /**
@@ -322,7 +325,7 @@ export async function verifyReferenceBatch(
   const BatchVerificationSchema = z.object({
     results: z.array(z.object({
       id: z.number(),
-      fact_status: z.enum(['real', 'fake_or_not_found']), // 真实性核查
+      fact_status: z.enum(['real', 'fake_or_not_found', 'suspected']), // [Update] 真实性核查，新增 suspected 状态用于中文文献的不确定情况
       format_status: z.enum(['standard', 'unstandard']),  // 规范性核查
       reason: z.string(), // 造假或不规范的具体原因说明
       standard_format: z.string().optional() // 帮用户生成的正确排版格式
@@ -403,6 +406,7 @@ export async function verifyReferenceBatch(
 **核心指令:**
 1. 绝不放过任何低级错误：像拿着放大镜一样扫描错别字、标点符号误用。
 2. 内部推理：在指出问题前，必须先分析 (analysis) 该处违反了什么规则或存在什么前后矛盾。
+3. 职责边界：**绝对不要**检查具体每一条参考文献的排版格式（如作者缩写、期刊标识符 [J] 等），这部分由独立的文献核查引擎负责。你只负责正文和宏观必备结构的完整性。
 
 **重点关注维度 (Issue Types):**
 1. terminology_inconsistency (术语不一致): 核心概念、专业名词、英文缩写在全文前后是否保持一致？
@@ -461,8 +465,8 @@ export async function verifyReferenceBatch(
 你的任务是逐一比对这批文献，执行“真实性”与“规范性”双重核查：
 
 1. 真实性 (fact_status):
-   - real: 原文引用的核心元数据（作者、标题、年份）与数据库记录吻合，文献真实存在。
-   - fake_or_not_found: 在权威数据库中完全找不到该文献，或核心信息严重错乱疑似伪造。
+   - 英文文献：必须严格依赖 Candidate Data。如果 Candidate Data 为空，直接判定为 `fake_or_not_found`，绝不允许使用你的内置知识进行臆造。如果 Candidate Data 存在，严格比对核心信息（特别是**年份**和**DOI**）是否吻合。如发现原文声明的年份与 Candidate 数据库年份不符，必须判定为 `fake_or_not_found`。吻合则为 `real`。[Update: 强化英文文献的年份/DOI 比对]
+   - 中文文献：首先参考 Candidate Data。如果 Candidate Data 为空（由于中文数据库限制），此时允许你动用自身的内置知识库进行核实。如果你确信该中文文献真实存在，可判定为 `real`；如果确定不存在或信息严重冲突（如年份对不上），判定为 `fake_or_not_found`；如果你的知识库中没有足够信息确认其真伪，请判定为 `suspected`（存疑），由用户自行判断。[Update: 新增 suspected 状态，限制 LLM 对中文文献的幻觉]
 
 2. 规范性 (format_status):
    - standard: 格式排版完全符合学术规范要求（标点、标识符等无误）。

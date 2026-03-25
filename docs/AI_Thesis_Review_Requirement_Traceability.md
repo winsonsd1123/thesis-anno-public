@@ -39,7 +39,7 @@
 | 需求 ID | PRD 描述 | 架构实现 (Component/Service) | 状态 | 备注/Gap Analysis |
 | :--- | :--- | :--- | :--- | :--- |
 | **FR-03-01** | PDF 文件拖拽上传 | **Frontend** (Upload Component) + **Supabase Storage** | ✅ 已实现 | 私有 Bucket **`thesis-pdfs`**；上传经 `lib/dal/storage.dal.ts`（Service Role）；`lib/actions/review.action.ts` `initializeReview` |
-| **FR-03-02** | 前端解析页码 (预估费用) | **Frontend** (`pdfjs-dist`) | ✅ 已实现 | `lib/client/pdfPageCount.ts`；页数经表单字段提交服务端校验（`getMaxAllowedPages`） |
+| **FR-03-02** | 前端解析页码 (预估费用) | **Frontend** (`pdfjs-dist`) | ✅ 已实现 | `lib/browser/pdf-page-count.ts`；页数经表单字段提交服务端校验（`getMaxAllowedPages`） |
 | **FR-03-03** | 后端文本提取 | **Trigger.dev Job** + **`pdf-parse` 降级** | ✅ 已实现 (MVP) | `lib/dal/storage.dal.ts` `downloadReviewPdf`；`trigger/utils/pdf-extractor.ts` `executeWithFallback`；编排内懒加载 `pdf-parse`（多模态失败时纯文本路径） |
 
 ### FR-04: AI 智能审阅 (Agentic Review)
