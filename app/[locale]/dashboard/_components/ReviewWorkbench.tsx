@@ -9,7 +9,7 @@ import type { ReviewRow } from "@/lib/types/review";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { useReviewRealtime } from "@/lib/hooks/useReviewRealtime";
 import { renameReview, deleteReview } from "@/lib/actions/review.action";
-import { fetchReviewRow } from "@/lib/client/fetchReviewRow";
+import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { stagesToLogLines, stagesToProgressAgents } from "@/lib/review/stagesUi";
 import type { ReviewResult } from "@/lib/types/review";
 import { HistorySidebar, type SidebarReviewItem } from "./HistorySidebar";

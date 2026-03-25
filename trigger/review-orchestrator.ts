@@ -11,10 +11,19 @@ import { analyzeFormat } from "@/lib/services/review/format.service";
 import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
 import { analyzeLogic } from "@/lib/services/review/logic.service";
 import { analyzeAiTraceChunk, mergeAiTraceChunkOutputs } from "@/lib/services/review/aitrace.service";
-import { extractReferencesFromPDF, verifyReferenceBatch } from "@/lib/services/review/reference.service";
+import {
+  chunkReferenceListByLanguageForVerify,
+  extractReferencesFromPDF,
+  sortReferenceVerificationRowsById,
+  verifyReferenceBatch,
+  type ReferenceVerificationRow,
+} from "@/lib/services/review/reference.service";
 import { buildAiTraceChunksWithPageAnchors, extractPdfTextPerPage } from "./utils/pdf-page-text";
 import type { ReviewResult } from "@/lib/types/review";
 import type { ReviewStageEntry } from "@/lib/types/review";
+import { resolveEnabledAgents } from "@/lib/review/planOptions";
+
+const SKIPPED = { skipped: true as const };
 
 function interpolateTemplate(template: string, variables: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] ?? `{{${key}}}`);
@@ -36,15 +45,6 @@ async function loadPromptsConfig(): Promise<PromptsConfig> {
     );
     return promptsSchema.parse(raw);
   }
-}
-
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  if (size <= 0) return [];
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    out.push(arr.slice(i, i + size));
-  }
-  return out;
 }
 
 export type GenericLlmBatchPayload = {
@@ -96,6 +96,10 @@ async function runAgent<T>(
   }
 }
 
+function skippedAgent<T>(agent: ReviewStageEntry["agent"]): { agent: typeof agent; ok: true; value: T } {
+  return { agent, ok: true, value: SKIPPED as unknown as T };
+}
+
 export const orchestrateReview = task({
   id: "orchestrate-review",
   queue: {
@@ -117,111 +121,169 @@ export const orchestrateReview = task({
 
       const pdfBuffer = await storageDAL.downloadReviewPdf(review.file_url);
 
+      /** 以 `stages` 的 skipped 为准（与 start_review_and_deduct 一致），避免仅依赖 plan_options 列未带上。 */
+      const plan = resolveEnabledAgents(review.stages, review.plan_options);
+
       const promptsConfig = await loadPromptsConfig();
-      const logicP1 = promptsConfig.logic_review_pass1;
-      const logicP2 = promptsConfig.logic_review_pass2;
-      if (!logicP1?.templates?.zh || !logicP2?.templates?.zh) {
-        throw new Error(
-          "prompts config missing logic_review_pass1 or logic_review_pass2 (templates.zh)"
-        );
-      }
-      const modelConfig = logicP1.model_config ?? { temperature: 0.3, model: "gemini-1.5-pro" };
-      const pass1System = interpolateTemplate(logicP1.templates.zh, {
-        domain: review.domain ?? "学术论文",
-      });
-      const pass2TemplateRaw = logicP2.templates.zh;
 
-      const aiTraceCfg = promptsConfig.ai_trace_system;
-      if (!aiTraceCfg?.templates?.zh) {
-        throw new Error("prompts config missing ai_trace_system (templates.zh)");
-      }
-      const aiTraceModelConfig = aiTraceCfg.model_config ?? {
-        temperature: 0.2,
-        model: "google/gemini-3.1-pro-preview",
-      };
+      const ctx: ReviewAnalyzeContext = { domain: review.domain };
 
-      const ctx: ReviewAnalyzeContext = {
-        domain: review.domain,
-        logicReview: {
+      if (plan.logic) {
+        const logicP1 = promptsConfig.logic_review_pass1;
+        const logicP2 = promptsConfig.logic_review_pass2;
+        if (!logicP1?.templates?.zh || !logicP2?.templates?.zh) {
+          throw new Error(
+            "prompts config missing logic_review_pass1 or logic_review_pass2 (templates.zh)"
+          );
+        }
+        const modelConfig = logicP1.model_config ?? { temperature: 0.3, model: "gemini-1.5-pro" };
+        const pass1System = interpolateTemplate(logicP1.templates.zh, {
+          domain: review.domain ?? "学术论文",
+        });
+        ctx.logicReview = {
           modelConfig,
           pass1SystemPrompt: pass1System,
-          pass2TemplateRaw,
-        },
-        aiTrace: {
+          pass2TemplateRaw: logicP2.templates.zh,
+        };
+      }
+
+      if (plan.aitrace) {
+        const aiTraceCfg = promptsConfig.ai_trace_system;
+        if (!aiTraceCfg?.templates?.zh) {
+          throw new Error("prompts config missing ai_trace_system (templates.zh)");
+        }
+        const aiTraceModelConfig = aiTraceCfg.model_config ?? {
+          temperature: 0.2,
+          model: "google/gemini-3.1-pro-preview",
+        };
+        ctx.aiTrace = {
           modelConfig: aiTraceModelConfig,
           promptTemplate: aiTraceCfg.templates.zh,
-        },
-      };
+        };
+      }
+
+      let referenceVerifyBatchSize = 10;
+      if (plan.reference) {
+        const refExtractCfg = promptsConfig.reference_extract;
+        const refVerifyCfg = promptsConfig.reference_verification;
+        if (!refExtractCfg?.templates?.zh) {
+          throw new Error("prompts config missing reference_extract (templates.zh)");
+        }
+        if (!refVerifyCfg?.templates?.zh) {
+          throw new Error("prompts config missing reference_verification (templates.zh)");
+        }
+        const referenceExtractModelConfig = refExtractCfg.model_config ?? {
+          temperature: 0.15,
+          model: "google/gemini-3.1-flash-lite-preview",
+        };
+        const referenceVerifyModelConfig = refVerifyCfg.model_config ?? {
+          temperature: 0.1,
+          model: "openai/gpt-4o-mini",
+          model_zh: "openai/gpt-4o-mini:online",
+        };
+        referenceVerifyBatchSize = refVerifyCfg.verify_batch_size ?? 10;
+        ctx.referenceExtract = {
+          modelConfig: referenceExtractModelConfig,
+          promptTemplate: refExtractCfg.templates.zh,
+        };
+        ctx.referenceVerify = {
+          modelConfig: referenceVerifyModelConfig,
+          promptTemplate: refVerifyCfg.templates.zh,
+          batchSize: referenceVerifyBatchSize,
+        };
+      }
 
       let cachedText: string | null = null;
+      let parseInFlight: Promise<string> | null = null;
       const getParsedText = async () => {
-        if (!cachedText) {
-          const pdfParse = (await import("pdf-parse")).default;
-          const data = await pdfParse(pdfBuffer);
-          cachedText = data.text ?? "";
+        if (cachedText !== null) return cachedText;
+        if (!parseInFlight) {
+          parseInFlight = (async () => {
+            const pdfParse = (await import("pdf-parse")).default;
+            const data = await pdfParse(pdfBuffer);
+            cachedText = data.text ?? "";
+            return cachedText;
+          })();
         }
-        return cachedText;
+        return parseInFlight;
       };
 
       const [formatRes, logicRes] = await Promise.all([
-        runAgent(reviewId, "format", () => executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)),
-        runAgent(reviewId, "logic", () => executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)),
+        plan.format
+          ? runAgent(reviewId, "format", () =>
+              executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)
+            )
+          : skippedAgent("format"),
+        plan.logic
+          ? runAgent(reviewId, "logic", () =>
+              executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)
+            )
+          : skippedAgent("logic"),
       ]);
 
-      const aitraceRes = await runAgent(reviewId, "aitrace", async () => {
-        const pages = await extractPdfTextPerPage(pdfBuffer);
-        const chunks = buildAiTraceChunksWithPageAnchors(pages);
-        if (chunks.length === 0) {
-          return { issues: [] as const };
-        }
-        const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
-          chunks.map((chunk) => ({
-            payload: {
-              action: "aitrace_chunk",
-              dataBatch: [chunk],
-              context: ctx,
-            } satisfies GenericLlmBatchPayload,
-          }))
-        );
-        const outputs: unknown[] = [];
-        for (const run of batchResult.runs) {
-          if (run.ok && "output" in run && run.output != null) {
-            outputs.push(run.output);
-          }
-        }
-        return mergeAiTraceChunkOutputs(outputs);
-      });
+      const aitraceRes = plan.aitrace
+        ? await runAgent(reviewId, "aitrace", async () => {
+            const pages = await extractPdfTextPerPage(pdfBuffer);
+            const chunks = buildAiTraceChunksWithPageAnchors(pages);
+            if (chunks.length === 0) {
+              return { issues: [] as const };
+            }
+            const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
+              chunks.map((chunk) => ({
+                payload: {
+                  action: "aitrace_chunk",
+                  dataBatch: [chunk],
+                  context: ctx,
+                } satisfies GenericLlmBatchPayload,
+              }))
+            );
+            const outputs: unknown[] = [];
+            for (const run of batchResult.runs) {
+              if (run.ok && "output" in run && run.output != null) {
+                outputs.push(run.output);
+              }
+            }
+            return mergeAiTraceChunkOutputs(outputs);
+          })
+        : skippedAgent("aitrace");
 
-      const refRes = await runAgent(reviewId, "reference", async () => {
-        await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "extracting references");
-        const refListRaw = await executeWithFallback(extractReferencesFromPDF, pdfBuffer, getParsedText, ctx);
-        const refList = Array.isArray(refListRaw) ? refListRaw : [];
+      const refRes = plan.reference
+        ? await runAgent(reviewId, "reference", async () => {
+            await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "extracting references");
+            const refListRaw = await executeWithFallback(extractReferencesFromPDF, pdfBuffer, getParsedText, ctx);
+            const refList = Array.isArray(refListRaw) ? refListRaw : [];
 
-        await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "verifying references");
-        const refChunks = chunkArray(refList, 10);
-        if (refChunks.length === 0) {
-          return [];
-        }
+            await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "verifying references");
+            const refChunks = chunkReferenceListByLanguageForVerify(
+              refList,
+              referenceVerifyBatchSize
+            );
+            if (refChunks.length === 0) {
+              return [];
+            }
 
-        const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
-          refChunks.map((dataBatch) => ({
-            payload: {
-              action: "verify_references",
-              dataBatch,
-              context: ctx,
-            } satisfies GenericLlmBatchPayload,
-          }))
-        );
+            const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
+              refChunks.map((dataBatch) => ({
+                payload: {
+                  action: "verify_references",
+                  dataBatch,
+                  context: ctx,
+                } satisfies GenericLlmBatchPayload,
+              }))
+            );
 
-        const runs = batchResult.runs;
+            const runs = batchResult.runs;
 
-        return runs.flatMap((run) => {
-          if (run.ok && Array.isArray(run.output)) {
-            return run.output;
-          }
-          return [];
-        });
-      });
+            const merged = runs.flatMap((run) => {
+              if (run.ok && Array.isArray(run.output)) {
+                return run.output;
+              }
+              return [];
+            }) as ReferenceVerificationRow[];
+
+            return sortReferenceVerificationRowsById(merged);
+          })
+        : skippedAgent("reference");
 
       const finalResult: ReviewResult = {
         format_result: formatRes.ok ? formatRes.value : { error: formatRes.error },

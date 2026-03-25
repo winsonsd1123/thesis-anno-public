@@ -8,7 +8,7 @@ type PromptItem = {
   version: string;
   variables: string[];
   templates: Record<string, string>;
-  model_config?: { temperature: number; model: string };
+  model_config?: { temperature: number; model: string; model_zh?: string };
 };
 
 type InitialData = {
@@ -16,7 +16,7 @@ type InitialData = {
   description: string;
   version: string;
   templates: Record<string, string>;
-  model_config: { temperature: number; model: string };
+  model_config: { temperature: number; model: string; model_zh?: string };
   allPrompts: Record<string, PromptItem>;
 };
 
@@ -36,7 +36,9 @@ export function PromptEditForm({ initialData }: { initialData: InitialData }) {
   const [version, setVersion] = useState(initialData.version);
   const [temperature, setTemperature] = useState(String(initialData.model_config.temperature));
   const [model, setModel] = useState(initialData.model_config.model);
+  const [modelZh, setModelZh] = useState(initialData.model_config.model_zh ?? "");
   const [templates, setTemplates] = useState(initialData.templates);
+  const isReferenceVerification = initialData.key === "reference_verification";
 
   const zhContent = templates.zh ?? "";
   const enContent = templates.en ?? "";
@@ -53,6 +55,10 @@ export function PromptEditForm({ initialData }: { initialData: InitialData }) {
     setSaving(true);
 
     try {
+      const baseModelConfig = {
+        temperature: parseFloat(temperature) || 0.3,
+        model: model || "gemini-1.5-pro",
+      };
       const updatedItem: PromptItem = {
         description,
         version,
@@ -61,10 +67,12 @@ export function PromptEditForm({ initialData }: { initialData: InitialData }) {
           zh: templates.zh ?? "",
           en: templates.en ?? "",
         },
-        model_config: {
-          temperature: parseFloat(temperature) || 0.3,
-          model: model || "gemini-1.5-pro",
-        },
+        model_config: isReferenceVerification
+          ? {
+              ...baseModelConfig,
+              ...(modelZh.trim() ? { model_zh: modelZh.trim() } : {}),
+            }
+          : baseModelConfig,
       };
 
       const payload = {
@@ -186,6 +194,30 @@ export function PromptEditForm({ initialData }: { initialData: InitialData }) {
           />
         </div>
       </div>
+
+      {isReferenceVerification && (
+        <div>
+          <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+            {t("modelZh")}
+          </label>
+          <input
+            type="text"
+            value={modelZh}
+            onChange={(e) => setModelZh(e.target.value)}
+            placeholder="openai/gpt-4o-mini:online"
+            style={{
+              width: "100%",
+              padding: 10,
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 14,
+            }}
+          />
+          <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 6 }}>
+            {t("modelZhHint")}
+          </p>
+        </div>
+      )}
 
       <div>
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>

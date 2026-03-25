@@ -47,6 +47,7 @@ export function getOpenRouterProvider(): OpenRouterProvider {
 
 /**
  * 根据 config 中的 model_config.model 动态创建模型实例（OpenRouter 路由 ID，如 google/gemini-2.5-pro-preview）。
+ * 可带 OpenRouter 后缀，例如 `openai/gpt-4o-mini:online` 以启用 Web Search 插件（OpenAI 等走厂商原生搜索，见 OpenRouter 文档）。
  */
 export function getLLMModel(modelName: string): LanguageModel {
   const id = modelName.trim();

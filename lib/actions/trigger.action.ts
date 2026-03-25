@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { reviewService } from "@/lib/services/review.service";
 import { estimateCost, getMaxAllowedPages } from "@/lib/config/billing";
+import type { ReviewPlanOptions } from "@/lib/types/review";
+import { normalizePlanOptions, planHasAtLeastOneEnabled } from "@/lib/review/planOptions";
 
 export type StartReviewResult =
   | { ok: true; triggerRunId: string | null }
@@ -11,6 +13,7 @@ export type StartReviewResult =
 function mapStartReviewRpcError(message: string): string {
   const m = message.toUpperCase();
   if (m.includes("INSUFFICIENT_CREDITS")) return "INSUFFICIENT_CREDITS";
+  if (m.includes("PLAN_EMPTY")) return "PLAN_EMPTY";
   if (m.includes("INVALID_STATUS")) return "INVALID_STATUS";
   if (m.includes("REVIEW_NOT_FOUND")) return "NOT_FOUND";
   if (m.includes("NOT_AUTHENTICATED")) return "NOT_AUTHENTICATED";
@@ -34,7 +37,10 @@ function mapRollbackRpcError(message: string): string {
  * 顺序：RPC 扣费 + processing → tasks.trigger → 回写 trigger_run_id。
  * Trigger 未配置、派发失败或未取得 run id 时：调用 rollback_review_after_dispatch_failure（pending + 退款）。
  */
-export async function startReviewEngine(reviewId: number): Promise<StartReviewResult> {
+export async function startReviewEngine(
+  reviewId: number,
+  planOptionsInput?: ReviewPlanOptions
+): Promise<StartReviewResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: "NOT_AUTHENTICATED" };
@@ -43,6 +49,11 @@ export async function startReviewEngine(reviewId: number): Promise<StartReviewRe
   if (!review) return { ok: false, error: "NOT_FOUND" };
   if (review.status !== "pending") {
     return { ok: false, error: "INVALID_STATUS" };
+  }
+
+  const plan = normalizePlanOptions(planOptionsInput ?? review.plan_options);
+  if (!planHasAtLeastOneEnabled(plan)) {
+    return { ok: false, error: "PLAN_EMPTY" };
   }
 
   const pages = review.page_count ?? 1;
@@ -59,6 +70,7 @@ export async function startReviewEngine(reviewId: number): Promise<StartReviewRe
   const { error: rpcError } = await supabase.rpc("start_review_and_deduct", {
     p_review_id: reviewId,
     p_required_credits: cost,
+    p_plan: plan,
   });
 
   if (rpcError) {

@@ -1,5 +1,5 @@
 /**
- * 本地校验 lib/clients/openrouter.client（不发起 OpenRouter 网络请求）。
+ * 本地校验 lib/integrations/openrouter（不发起 OpenRouter 网络请求）。
  *
  * - 空 modelName
  * - 未配置 OPENROUTER_API_KEY
@@ -13,7 +13,7 @@
 import assert from "node:assert/strict";
 import { config } from "dotenv";
 import type { LanguageModel } from "ai";
-import { getLLMModel } from "../lib/clients/openrouter.client";
+import { getLLMModel } from "../lib/integrations/openrouter";
 
 config({ path: ".env.local" });
 

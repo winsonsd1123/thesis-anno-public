@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { UploadCloud, FileText, X, ArrowRight } from "lucide-react";
-import { getPdfPageCountFromFile } from "@/lib/client/pdfPageCount";
+import { getPdfPageCountFromFile } from "@/lib/browser/pdf-page-count";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

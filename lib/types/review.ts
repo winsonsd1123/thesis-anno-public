@@ -7,7 +7,15 @@ export type ReviewStatus =
   | "needs_manual_review"
   | "refunded";
 
-export type StageAgentStatus = "pending" | "running" | "done" | "failed";
+export type StageAgentStatus = "pending" | "running" | "done" | "failed" | "skipped";
+
+/** 与 `reviews.plan_options` 一致；未落库时由 normalize 视为全 true */
+export type ReviewPlanOptions = {
+  format: boolean;
+  logic: boolean;
+  aitrace: boolean;
+  reference: boolean;
+};
 
 export type ReviewStageEntry = {
   agent: "format" | "logic" | "aitrace" | "reference";
@@ -25,6 +33,8 @@ export type ReviewRow = {
   status: ReviewStatus;
   cost: number;
   stages: ReviewStageEntry[] | null;
+  /** 用户勾选的审阅维度；null 表示尚未持久化（按全选处理） */
+  plan_options: ReviewPlanOptions | null;
   result: ReviewResult | null;
   error_message: string | null;
   trigger_run_id: string | null;
@@ -58,7 +68,9 @@ export function parseStages(raw: unknown): ReviewStageEntry[] {
     if (agent !== "format" && agent !== "logic" && agent !== "aitrace" && agent !== "reference") continue;
     const st = o.status;
     const status: StageAgentStatus =
-      st === "pending" || st === "running" || st === "done" || st === "failed" ? st : "pending";
+      st === "pending" || st === "running" || st === "done" || st === "failed" || st === "skipped"
+        ? st
+        : "pending";
     const log = typeof o.log === "string" ? o.log : undefined;
     out.push({ agent, status, ...(log ? { log } : {}) });
   }

@@ -15,10 +15,31 @@ export type AiTraceContextPayload = {
   promptTemplate: string;
 };
 
+/** 由编排层注入；`extractReferencesFromPDF` 必填。 */
+export type ReferenceExtractContextPayload = {
+  modelConfig: { model: string; temperature: number };
+  promptTemplate: string;
+};
+
+/** 由编排层注入；`verifyReferenceBatch`（经 genericLlmBatchTask）必填。 */
+export type ReferenceVerifyContextPayload = {
+  modelConfig: {
+    model: string;
+    temperature: number;
+    /** 中文题录裁判用（通常带 OpenRouter `:online`）；缺省则与 `model` 相同 */
+    model_zh?: string;
+  };
+  promptTemplate: string;
+  /** 每批核查条数，与 `prompts.reference_verification.verify_batch_size` 一致 */
+  batchSize: number;
+};
+
 export type ReviewAnalyzeContext = {
   domain: string | null;
   logicReview?: LogicReviewContextPayload;
   aiTrace?: AiTraceContextPayload;
+  referenceExtract?: ReferenceExtractContextPayload;
+  referenceVerify?: ReferenceVerifyContextPayload;
 };
 
 /** Spec 3/3 前的桩：打通编排与降级链路，返回可序列化占位结构。 */

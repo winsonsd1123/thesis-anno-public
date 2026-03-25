@@ -322,6 +322,7 @@
       "planItemLogic": "论证逻辑与章节连贯性",
       "planItemAitrace": "AI 痕迹与套话检测",
       "planItemRefs": "参考文献与引用规范（GB/T 7714）",
+      "planStepHint": "勾选本次要执行的审阅项（默认全选）。仅测某一维时，可只保留对应勾选。",
       "planStart": "开始审阅",
       "planStarting": "启动中…",
       "progressTitle": "任务进度",
@@ -369,6 +370,7 @@
         "ROLLBACK_FAILED": "退款失败，请勿重复点击；请联系支持处理",
         "ROLLBACK_INVALID_COST": "退款校验失败，请联系支持",
         "RUN_ALREADY_ATTACHED": "任务已创建，请勿重复操作",
+        "PLAN_EMPTY": "请至少勾选一项审阅内容",
         "GENERIC": "操作失败，请稍后重试"
       }
     }
@@ -419,7 +421,9 @@
       "tabZh": "中文",
       "tabEn": "English",
       "temperature": "Temperature",
-      "model": "Model",
+      "model": "Model（英文题录）",
+      "modelZh": "Model（中文题录，可填 :online）",
+      "modelZhHint": "仅参考文献核查使用：英文条目用上方 Model；中文条目用此处（如 openai/gpt-4o-mini:online 以启用联网）。",
       "variables": "变量",
       "backToList": "返回列表"
     },

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateObject, zodSchema } from "ai";
-import { getLLMModel } from "@/lib/clients/openrouter.client";
+import { getLLMModel } from "@/lib/integrations/openrouter";
 import type { AiTraceContextPayload } from "./format.service";
 import { ReviewEngineError } from "./review-errors";
 

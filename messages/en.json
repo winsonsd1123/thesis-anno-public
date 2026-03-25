@@ -435,6 +435,7 @@
       "planItemLogic": "Argument flow & chapter coherence",
       "planItemAitrace": "AI traces & cliché detection",
       "planItemRefs": "References & citations (GB/T 7714)",
+      "planStepHint": "Choose which checks to run (all on by default). Uncheck the rest to test a single dimension.",
       "planStart": "Start review",
       "planStarting": "Starting…",
       "progressTitle": "Task progress",
@@ -482,6 +483,7 @@
         "ROLLBACK_FAILED": "Refund step failed—don’t retry repeatedly; contact support.",
         "ROLLBACK_INVALID_COST": "Refund validation failed—contact support.",
         "RUN_ALREADY_ATTACHED": "A run already exists for this review.",
+        "PLAN_EMPTY": "Select at least one review item",
         "GENERIC": "Something went wrong, try again later"
       },
       "uploadDragLabel": "Drag & drop or click to select PDF",
@@ -535,7 +537,9 @@
       "tabZh": "中文",
       "tabEn": "English",
       "temperature": "Temperature",
-      "model": "Model",
+      "model": "Model (English refs)",
+      "modelZh": "Model (Chinese refs, e.g. :online)",
+      "modelZhHint": "Reference verification only: English items use Model; Chinese items use this field (e.g. openai/gpt-4o-mini:online for web search).",
       "variables": "Variables",
       "backToList": "Back to List"
     },

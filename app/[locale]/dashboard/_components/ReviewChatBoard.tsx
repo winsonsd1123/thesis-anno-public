@@ -4,9 +4,9 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { initializeReview, updateReviewDomain, replaceReviewPdf } from "@/lib/actions/review.action";
-import { fetchReviewRow } from "@/lib/client/fetchReviewRow";
+import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { startReviewEngine } from "@/lib/actions/trigger.action";
-import { getPdfPageCountFromFile } from "@/lib/client/pdfPageCount";
+import { getPdfPageCountFromFile } from "@/lib/browser/pdf-page-count";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { AssistantMessageRow, UserMessageRow } from "./ChatMessageRows";
 import { UploadForm } from "./UploadForm";
@@ -31,6 +31,7 @@ export function ReviewChatBoard() {
   const hydrateFromReview = useDashboardStore((s) => s.hydrateFromReview);
   const updateLocalDomain = useDashboardStore((s) => s.updateLocalDomain);
   const bumpPlanVersion = useDashboardStore((s) => s.bumpPlanVersion);
+  const updatePlanOptions = useDashboardStore((s) => s.updatePlanOptions);
 
   const [uploadError, setUploadError] = useState("");
   const [planError, setPlanError] = useState("");
@@ -252,7 +253,13 @@ export function ReviewChatBoard() {
                     ? planBubble.domain
                     : t("planBadgeGeneral")
                 }
-                items={planBubble.stepIds.map((id) => planItemLabel(id, t))}
+                steps={planBubble.stepIds.map((id) => ({
+                  id,
+                  label: planItemLabel(id, t),
+                }))}
+                planOptions={planBubble.planOptions}
+                planEditable={activeReview.status === "pending"}
+                onPlanChange={updatePlanOptions}
                 startLabel={t("planStart")}
                 startingLabel={t("planStarting")}
                 showStartButton={activeReview.status === "pending"}
@@ -260,7 +267,7 @@ export function ReviewChatBoard() {
                 disabled={activeReview.status !== "pending"}
                 onStart={async () => {
                   setPlanError("");
-                  const r = await startReviewEngine(planBubble.reviewId);
+                  const r = await startReviewEngine(planBubble.reviewId, planBubble.planOptions);
                   if (!r.ok) {
                     setPlanError(te(r.error));
                     return;

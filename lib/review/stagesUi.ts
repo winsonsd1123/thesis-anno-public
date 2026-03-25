@@ -19,7 +19,7 @@ export function stagesToProgressAgents(
     const st = e?.status ?? "pending";
     let progress = 0;
     let status: ProgressAgentUi["status"] = "pending";
-    if (st === "done" || st === "failed") {
+    if (st === "done" || st === "failed" || st === "skipped") {
       progress = 100;
       status = "done";
     } else if (st === "running") {

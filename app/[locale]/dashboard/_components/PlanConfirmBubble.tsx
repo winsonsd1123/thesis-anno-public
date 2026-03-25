@@ -2,11 +2,23 @@
 
 import { useState } from "react";
 import { Play } from "lucide-react";
+import type { StaticPlanStepId } from "@/lib/review/buildStaticPlan";
+import type { ReviewPlanOptions } from "@/lib/types/review";
+
+export type PlanStepRow = {
+  id: StaticPlanStepId;
+  label: string;
+};
 
 type PlanConfirmBubbleProps = {
   title: string;
   badge: string;
-  items: string[];
+  steps: PlanStepRow[];
+  planOptions: ReviewPlanOptions;
+  /** pending 时可勾选；已开始后只读展示 */
+  planEditable: boolean;
+  onPlanChange: (next: ReviewPlanOptions) => void;
+  planHint?: string;
   startLabel: string;
   startingLabel: string;
   /** false：仅展示计划列表（如批阅已启动），不显示开始按钮 */
@@ -20,7 +32,11 @@ type PlanConfirmBubbleProps = {
 export function PlanConfirmBubble({
   title,
   badge,
-  items,
+  steps,
+  planOptions,
+  planEditable,
+  onPlanChange,
+  planHint,
   startLabel,
   startingLabel,
   showStartButton = true,
@@ -29,6 +45,11 @@ export function PlanConfirmBubble({
   onStart,
 }: PlanConfirmBubbleProps) {
   const [busy, setBusy] = useState(false);
+
+  function toggleStep(id: StaticPlanStepId) {
+    if (!planEditable) return;
+    onPlanChange({ ...planOptions, [id]: !planOptions[id] });
+  }
 
   async function handleClick() {
     setBusy(true);
@@ -93,11 +114,17 @@ export function PlanConfirmBubble({
           ) : null}
         </div>
 
-        {/* 计划条目 */}
+        {planHint ? (
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.5 }}>
+            {planHint}
+          </p>
+        ) : null}
+
+        {/* 计划条目（可勾选） */}
         <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {items.map((item, i) => (
+          {steps.map((step, i) => (
             <li
-              key={i}
+              key={step.id}
               style={{
                 display: "flex",
                 alignItems: "flex-start",
@@ -106,28 +133,53 @@ export function PlanConfirmBubble({
                 color: "var(--text-primary)",
                 lineHeight: 1.55,
                 padding: "9px 0",
-                borderBottom: i < items.length - 1 ? "1px solid var(--border)" : undefined,
+                borderBottom: i < steps.length - 1 ? "1px solid var(--border)" : undefined,
               }}
             >
-              <span
+              <label
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: "var(--brand-bg)",
-                  color: "var(--brand)",
-                  fontSize: 11,
-                  fontWeight: 700,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: 2,
+                  alignItems: "flex-start",
+                  gap: 10,
+                  cursor: planEditable ? "pointer" : "default",
+                  flex: 1,
+                  margin: 0,
                 }}
               >
-                {i + 1}
-              </span>
-              <span>{item}</span>
+                <input
+                  type="checkbox"
+                  checked={planOptions[step.id]}
+                  disabled={!planEditable}
+                  onChange={() => toggleStep(step.id)}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    marginTop: 3,
+                    flexShrink: 0,
+                    accentColor: "var(--brand)",
+                    cursor: planEditable ? "pointer" : "not-allowed",
+                  }}
+                />
+                <span
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "var(--brand-bg)",
+                    color: "var(--brand)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span>{step.label}</span>
+              </label>
             </li>
           ))}
         </ul>
