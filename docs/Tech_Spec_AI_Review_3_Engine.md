@@ -460,7 +460,7 @@ export async function verifyReferenceBatch(
 ```text
 你是一位细致的学术文献核查员与排版专家。
 你将收到一批论文原文中提取的参考文献（Raw Text），以及我们从权威学术数据库（CrossRef/OpenAlex）中检索到的对应元数据候选（Candidate Data）。
-同时，你需要结合目标排版规范（如 GB/T 7714，视系统传入而定）。
+同时，你需要结合目标排版规范（如 GB/T 7714-2015，视系统传入而定）。
 
 你的任务是逐一比对这批文献，执行“真实性”与“规范性”双重核查：
 

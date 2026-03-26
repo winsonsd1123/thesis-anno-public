@@ -1,14 +1,17 @@
 import { z } from "zod";
 import { generateObject, zodSchema } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
+import type { DocxCompressedImagePart } from "@/lib/types/docx-hybrid";
 import type { ReviewAnalyzeContext, ReviewContentType } from "./format.service";
-import { buildReviewMessages } from "./review-messages";
+import { buildDocxMultimodalMessages, buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
 
 const logicIssueSchema = z.object({
-  chapter: z.string(),
-  /** 问题所在页码（从 1 起计）；合并后排序：先 severity，再 page 升序 */
-  page: z.number().int().min(1),
+  /**
+   * 问题在 Markdown 中的定位锚点：最近上级标题路径（如「第 2 章 相关工作」「2.3 实验设置」），
+   * 勿使用 PDF 页码；若仅有章名可只写该章标题。
+   */
+  section_heading: z.string(),
   quote_text: z.string(),
   issue_type: z.enum([
     "structural_flaw",
@@ -31,13 +34,13 @@ const SEVERITY_ORDER: Record<LogicIssue["severity"], number> = {
 };
 
 /**
- * 合并 Pass1+Pass2 后统一排序：先按严重程度（High→Medium→Low），再按页码升序。
+ * 合并 Pass1+Pass2 后统一排序：先按严重程度（High→Medium→Low），再按 section_heading 字典序稳定排列。
  */
 export function sortLogicIssues(issues: LogicIssue[]): LogicIssue[] {
   return [...issues].sort((a, b) => {
     const bySev = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
     if (bySev !== 0) return bySev;
-    return a.page - b.page;
+    return a.section_heading.localeCompare(b.section_heading, "zh-Hans-CN");
   });
 }
 
@@ -66,10 +69,16 @@ function failPass(phase: string, e: unknown): never {
   throw new ReviewEngineError(`logic review ${phase} failed: ${msg}`, e);
 }
 
+export type AnalyzeLogicOptions = {
+  /** DOCX Hybrid：Markdown 正文 + 压缩图多模态；与 PDF base64 路径互斥 */
+  docxImages?: DocxCompressedImagePart[];
+};
+
 export async function analyzeLogic(
   content: string,
   contentType: ReviewContentType,
-  ctx: ReviewAnalyzeContext
+  ctx: ReviewAnalyzeContext,
+  options?: AnalyzeLogicOptions
 ): Promise<LogicReviewResult> {
   const lr = ctx.logicReview;
   if (!lr) {
@@ -80,7 +89,10 @@ export async function analyzeLogic(
 
   const model = getLLMModel(lr.modelConfig.model);
   const temperature = lr.modelConfig.temperature;
-  const messages = buildReviewMessages(content, contentType);
+  const messages =
+    options?.docxImages !== undefined
+      ? buildDocxMultimodalMessages(content, options.docxImages)
+      : buildReviewMessages(content, contentType);
   const schema = zodSchema(LogicResultSchema);
 
   let initialDraft: LogicLlmObject;

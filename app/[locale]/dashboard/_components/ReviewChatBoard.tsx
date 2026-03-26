@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createReviewFromDocxUpload,
+  updateReviewDomain,
+  replaceReviewPdf,
+  updateReviewFormatGuidelines,
+  getDefaultFormatGuidelinesZh,
+} from "@/lib/actions/review.action";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { initializeReview, updateReviewDomain, replaceReviewPdf } from "@/lib/actions/review.action";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { startReviewEngine } from "@/lib/actions/trigger.action";
-import { getPdfPageCountFromFile } from "@/lib/browser/pdf-page-count";
+import { estimateCost } from "@/lib/actions/billing.actions";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { AssistantMessageRow, UserMessageRow } from "./ChatMessageRows";
 import { UploadForm } from "./UploadForm";
@@ -35,6 +41,15 @@ export function ReviewChatBoard() {
 
   const [uploadError, setUploadError] = useState("");
   const [planError, setPlanError] = useState("");
+  const [planEstimatedCredits, setPlanEstimatedCredits] = useState<number | null>(null);
+  const [planCreditsLoading, setPlanCreditsLoading] = useState(false);
+  const [formatDraft, setFormatDraft] = useState("");
+  const [importFormatBusy, setImportFormatBusy] = useState(false);
+
+  useEffect(() => {
+    const fg = activeReview?.format_guidelines;
+    setFormatDraft(typeof fg === "string" ? fg : "");
+  }, [activeReview?.id, activeReview?.format_guidelines]);
 
   const te = useCallback(
     (code: string) => {
@@ -43,7 +58,7 @@ export function ReviewChatBoard() {
         FILE_REQUIRED: t("errors.FILE_REQUIRED"),
         DOMAIN_REQUIRED: t("errors.DOMAIN_REQUIRED"),
         FILE_TOO_LARGE: t("errors.FILE_TOO_LARGE"),
-        FILE_NOT_PDF: t("errors.FILE_NOT_PDF"),
+        FILE_NOT_DOCX: t("errors.FILE_NOT_DOCX"),
         UPLOAD_FAILED: t("errors.UPLOAD_FAILED"),
         NOT_FOUND: t("errors.NOT_FOUND"),
         INVALID_STATUS: t("errors.INVALID_STATUS"),
@@ -51,6 +66,9 @@ export function ReviewChatBoard() {
         PAGE_COUNT_REQUIRED: t("errors.PAGE_COUNT_REQUIRED"),
         PAGE_COUNT_INVALID: t("errors.PAGE_COUNT_INVALID"),
         PAGE_COUNT_PARSE: t("errors.PAGE_COUNT_PARSE"),
+        WORD_COUNT_OUT_OF_RANGE: t("errors.WORD_COUNT_OUT_OF_RANGE"),
+        WORD_COUNT_FAILED: t("errors.WORD_COUNT_FAILED"),
+        STAGING_INVALID: t("errors.STAGING_INVALID"),
         COST_UNAVAILABLE: t("errors.COST_UNAVAILABLE"),
         INSUFFICIENT_CREDITS: t("errors.INSUFFICIENT_CREDITS"),
         DOMAIN_UPDATE_FAILED: t("errors.DOMAIN_UPDATE_FAILED"),
@@ -60,6 +78,7 @@ export function ReviewChatBoard() {
         ROLLBACK_FAILED: t("errors.ROLLBACK_FAILED"),
         ROLLBACK_INVALID_COST: t("errors.ROLLBACK_INVALID_COST"),
         RUN_ALREADY_ATTACHED: t("errors.RUN_ALREADY_ATTACHED"),
+        FORMAT_GUIDELINES_REQUIRED: t("errors.FORMAT_GUIDELINES_REQUIRED"),
         GENERIC: t("errors.GENERIC"),
         UNKNOWN: t("errors.GENERIC"),
       };
@@ -68,13 +87,41 @@ export function ReviewChatBoard() {
     [t]
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    const wc = activeReview?.word_count;
+    if (activeReview?.status === "pending" && wc != null && wc > 0) {
+      setPlanCreditsLoading(true);
+      setPlanEstimatedCredits(null);
+      estimateCost(wc).then((r) => {
+        if (cancelled) return;
+        setPlanCreditsLoading(false);
+        setPlanEstimatedCredits(r.cost ?? null);
+      });
+    } else {
+      setPlanCreditsLoading(false);
+      setPlanEstimatedCredits(null);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [activeReview?.id, activeReview?.status, activeReview?.word_count]);
+
+  const paperMetaLabel = useCallback(
+    (wordCount: number | null) => {
+      if (wordCount != null) return t("paperSubtitleInPlan");
+      return t("paperMetaPending");
+    },
+    [t]
+  );
+
   const paperBubble = useMemo(() => bubbles.find((b) => b.type === "paper_info"), [bubbles]);
   const domainBubble = useMemo(() => bubbles.find((b) => b.type === "domain_info"), [bubbles]);
   const planBubble = useMemo(() => bubbles.find((b) => b.type === "review_plan"), [bubbles]);
 
-  async function handleUpload(fd: FormData): Promise<boolean> {
+  async function handleCreateReview(fd: FormData): Promise<boolean> {
     setUploadError("");
-    const r = await initializeReview(fd);
+    const r = await createReviewFromDocxUpload(fd);
     if (!r.ok) {
       setUploadError(te(r.error));
       return false;
@@ -108,11 +155,10 @@ export function ReviewChatBoard() {
               sizeHint={t("uploadSizeHint")}
               clearFileLabel={t("uploadClearFile")}
               domainPlaceholder={t("domainPlaceholder")}
-              submitLabel={t("submitUpload")}
-              submittingLabel={t("uploadSubmitting")}
-              parsingPagesLabel={t("uploadParsingPages")}
-              parsePagesErrorLabel={t("errors.PAGE_COUNT_PARSE")}
-              onSubmitUpload={handleUpload}
+              submitLabel={t("uploadConfirmCreate")}
+              submitBusyLabel={t("uploadConfirmBusy")}
+              invalidFileLabel={t("uploadInvalidFile")}
+              onSubmit={handleCreateReview}
               errorMessage={uploadError}
             />
           </UserMessageRow>
@@ -143,27 +189,18 @@ export function ReviewChatBoard() {
               {/* 论文卡 */}
               <PaperCardBubble
                 title={t("paperCardTitle")}
+                formatBadgeLabel={t("paperFormatBadge")}
                 fileName={paperBubble.fileName}
-                pagesLabel={
-                  paperBubble.pageCount != null
-                    ? t("paperPages", { count: paperBubble.pageCount })
-                    : t("paperPagesUnknown")
-                }
+                pagesLabel={paperMetaLabel(paperBubble.wordCount)}
+                invalidFileLabel={t("uploadInvalidFile")}
                 allowReplace={activeReview.status === "pending"}
                 replaceLabel={t("paperReplaceHover")}
                 replacingLabel={t("paperReplacing")}
                 onReplaceFile={
                   activeReview.status === "pending"
                     ? async (file) => {
-                        let pageCount: number;
-                        try {
-                          pageCount = await getPdfPageCountFromFile(file);
-                        } catch {
-                          return { ok: false, message: te("PAGE_COUNT_PARSE") };
-                        }
                         const fd = new FormData();
                         fd.set("file", file);
-                        fd.set("pageCount", String(pageCount));
                         const r = await replaceReviewPdf(paperBubble.reviewId, fd);
                         if (!r.ok) return { ok: false, message: te(r.error) };
                         const row = await fetchReviewRow(paperBubble.reviewId);
@@ -260,6 +297,41 @@ export function ReviewChatBoard() {
                 planOptions={planBubble.planOptions}
                 planEditable={activeReview.status === "pending"}
                 onPlanChange={updatePlanOptions}
+                wordCount={activeReview.word_count}
+                showCreditsEstimate={activeReview.status === "pending"}
+                creditsLoading={planCreditsLoading}
+                estimatedCredits={planEstimatedCredits}
+                labelWordCount={t("planStatsWordLabel")}
+                labelEstimatedCredits={t("planStatsCreditsLabel")}
+                creditsLoadingText={t("planStatsCreditsLoading")}
+                creditsValueText={
+                  planEstimatedCredits != null
+                    ? t("planStatsCreditsValue", { credits: planEstimatedCredits })
+                    : undefined
+                }
+                showFormatRequirements={planBubble.planOptions.format}
+                formatGuidelinesValue={formatDraft}
+                onFormatGuidelinesChange={setFormatDraft}
+                onImportDefaultFormat={
+                  activeReview.status === "pending"
+                    ? async () => {
+                        setImportFormatBusy(true);
+                        try {
+                          const r = await getDefaultFormatGuidelinesZh();
+                          if (r.ok) setFormatDraft(r.text);
+                          else setPlanError(te(r.error));
+                        } finally {
+                          setImportFormatBusy(false);
+                        }
+                      }
+                    : undefined
+                }
+                formatRequirementsLabel={t("formatRequirementsLabel")}
+                formatRequirementsPlaceholder={t("formatRequirementsPlaceholder")}
+                formatRequirementsHint={t("formatRequirementsHint")}
+                importDefaultFormatLabel={t("importDefaultFormat")}
+                importDefaultFormatBusy={importFormatBusy}
+                importDefaultFormatBusyLabel={t("importDefaultFormatBusy")}
                 startLabel={t("planStart")}
                 startingLabel={t("planStarting")}
                 showStartButton={activeReview.status === "pending"}
@@ -267,6 +339,18 @@ export function ReviewChatBoard() {
                 disabled={activeReview.status !== "pending"}
                 onStart={async () => {
                   setPlanError("");
+                  if (planBubble.planOptions.format) {
+                    const trimmed = formatDraft.trim();
+                    if (!trimmed) {
+                      setPlanError(te("FORMAT_GUIDELINES_REQUIRED"));
+                      return;
+                    }
+                    const save = await updateReviewFormatGuidelines(planBubble.reviewId, formatDraft);
+                    if (!save.ok) {
+                      setPlanError(te(save.error));
+                      return;
+                    }
+                  }
                   const r = await startReviewEngine(planBubble.reviewId, planBubble.planOptions);
                   if (!r.ok) {
                     setPlanError(te(r.error));

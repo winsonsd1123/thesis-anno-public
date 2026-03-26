@@ -6,22 +6,23 @@ import { storageDAL } from "@/lib/dal/storage.dal";
 import { promptsSchema } from "@/lib/schemas/config.schemas";
 import type { PromptsConfig } from "@/lib/schemas/config.schemas";
 import { getPromptsDirect } from "@/lib/services/config.service";
-import { executeWithFallback } from "./utils/pdf-extractor";
+import { parseHybridDocx } from "@/lib/review/hybrid-docx-parser";
 import { analyzeFormat } from "@/lib/services/review/format.service";
 import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
 import { analyzeLogic } from "@/lib/services/review/logic.service";
 import { analyzeAiTraceChunk, mergeAiTraceChunkOutputs } from "@/lib/services/review/aitrace.service";
 import {
   chunkReferenceListByLanguageForVerify,
-  extractReferencesFromPDF,
+  extractReferences,
   sortReferenceVerificationRowsById,
   verifyReferenceBatch,
   type ReferenceVerificationRow,
 } from "@/lib/services/review/reference.service";
-import { buildAiTraceChunksWithPageAnchors, extractPdfTextPerPage } from "./utils/pdf-page-text";
+import { buildAiTraceChunksFromMarkdown } from "@/lib/review/aitrace-markdown-chunks";
 import type { ReviewResult } from "@/lib/types/review";
 import type { ReviewStageEntry } from "@/lib/types/review";
 import { resolveEnabledAgents } from "@/lib/review/planOptions";
+import { loadEngineBaselineFromDisk } from "@/lib/services/review/format-review-config";
 
 const SKIPPED = { skipped: true as const };
 
@@ -119,7 +120,8 @@ export const orchestrateReview = task({
         return;
       }
 
-      const pdfBuffer = await storageDAL.downloadReviewPdf(review.file_url);
+      const fileBuffer = await storageDAL.downloadReviewPdf(review.file_url);
+      const hybrid = await parseHybridDocx(fileBuffer);
 
       /** 以 `stages` 的 skipped 为准（与 start_review_and_deduct 一致），避免仅依赖 plan_options 列未带上。 */
       const plan = resolveEnabledAgents(review.stages, review.plan_options);
@@ -193,38 +195,57 @@ export const orchestrateReview = task({
         };
       }
 
-      let cachedText: string | null = null;
-      let parseInFlight: Promise<string> | null = null;
-      const getParsedText = async () => {
-        if (cachedText !== null) return cachedText;
-        if (!parseInFlight) {
-          parseInFlight = (async () => {
-            const pdfParse = (await import("pdf-parse")).default;
-            const data = await pdfParse(pdfBuffer);
-            cachedText = data.text ?? "";
-            return cachedText;
-          })();
+      if (plan.format) {
+        const fg = typeof review.format_guidelines === "string" ? review.format_guidelines.trim() : "";
+        if (!fg) {
+          throw new Error("[orchestrate-review] format agent enabled but format_guidelines is empty");
         }
-        return parseInFlight;
-      };
+        const fmtSemantic = promptsConfig.format_review_system;
+        const fmtExtract = promptsConfig.format_physical_spec_extract;
+        if (!fmtSemantic?.templates?.zh) {
+          throw new Error("prompts config missing format_review_system (templates.zh)");
+        }
+        if (!fmtExtract?.templates?.zh) {
+          throw new Error("prompts config missing format_physical_spec_extract (templates.zh)");
+        }
+        const semanticMc = fmtSemantic.model_config ?? {
+          temperature: 0.25,
+          model: "google/gemini-3.1-pro-preview",
+        };
+        const extractMc = fmtExtract.model_config ?? {
+          temperature: 0.1,
+          model: "google/gemini-3.1-flash-lite-preview",
+        };
+        ctx.formatReview = {
+          formatGuidelines: fg,
+          semantic: {
+            modelConfig: { model: semanticMc.model, temperature: semanticMc.temperature },
+            promptTemplate: fmtSemantic.templates.zh,
+          },
+          extract: {
+            modelConfig: { model: extractMc.model, temperature: extractMc.temperature },
+            promptTemplate: fmtExtract.templates.zh,
+          },
+          engineBaseline: loadEngineBaselineFromDisk(),
+        };
+      }
 
       const [formatRes, logicRes] = await Promise.all([
         plan.format
           ? runAgent(reviewId, "format", () =>
-              executeWithFallback(analyzeFormat, pdfBuffer, getParsedText, ctx)
+              analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx)
             )
           : skippedAgent("format"),
         plan.logic
           ? runAgent(reviewId, "logic", () =>
-              executeWithFallback(analyzeLogic, pdfBuffer, getParsedText, ctx)
+              analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images })
             )
           : skippedAgent("logic"),
       ]);
 
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
-            const pages = await extractPdfTextPerPage(pdfBuffer);
-            const chunks = buildAiTraceChunksWithPageAnchors(pages);
+            const chunks = buildAiTraceChunksFromMarkdown(hybrid.markdown);
             if (chunks.length === 0) {
               return { issues: [] as const };
             }
@@ -250,7 +271,7 @@ export const orchestrateReview = task({
       const refRes = plan.reference
         ? await runAgent(reviewId, "reference", async () => {
             await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "extracting references");
-            const refListRaw = await executeWithFallback(extractReferencesFromPDF, pdfBuffer, getParsedText, ctx);
+            const refListRaw = await extractReferences(hybrid.markdown, ctx);
             const refList = Array.isArray(refListRaw) ? refListRaw : [];
 
             await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "verifying references");

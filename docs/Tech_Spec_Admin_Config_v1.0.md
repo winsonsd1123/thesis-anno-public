@@ -67,7 +67,7 @@
     "version": "1.0.0",
     "variables": ["content"],
     "templates": {
-      "zh": "请检查以下文本是否符合 GB/T 7714 标准...",
+      "zh": "请检查以下文本是否符合 GB/T 7714-2015 标准...",
       "en": "Please check if the following text complies with APA style..."
     }
   }

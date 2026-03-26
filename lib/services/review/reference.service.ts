@@ -3,13 +3,19 @@ import { generateObject, zodSchema } from "ai";
 import type { ModelMessage } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
 import { searchSourcesWaterfall, type ReferenceCandidate } from "@/lib/integrations/academic";
-import type { ReviewAnalyzeContext, ReviewContentType } from "./format.service";
+import type { ReviewAnalyzeContext } from "./format.service";
 import { buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
 import { declaredYearMismatchCandidate } from "./reference-citation-year";
+import {
+  extractReferencesFromMarkdown,
+  findLastBibliographyHeadingLineStart,
+} from "./reference-markdown-extract";
 
 /** 题录提取/核查：大 payload 时避免默认过短超时导致 Abort（与 OpenRouter 长请求一致）。 */
 const REFERENCE_GENERATE_OBJECT_TIMEOUT_MS = 600_000;
+
+const REF_EXTRACT_LOG = "[reference extract]";
 
 /**
  * 纯文本降级时整篇论文可能超出模型/上游上下文，输入被截断时常裁掉**文末**参考文献。
@@ -17,31 +23,12 @@ const REFERENCE_GENERATE_OBJECT_TIMEOUT_MS = 600_000;
  */
 const REFERENCE_EXTRACT_TEXT_MAX_CHARS = 90_000;
 
-const REF_SECTION_HEADING_RE =
-  /(?:^|\n)[ \t]*(?:参考文献|References|REFERENCE|Bibliography|BIBLIOGRAPHY)[^\n]*/gi;
-
-function lastHeadingIndexIn(s: string): number {
-  let last = -1;
-  let m: RegExpExecArray | null;
-  const re = new RegExp(REF_SECTION_HEADING_RE.source, REF_SECTION_HEADING_RE.flags);
-  while ((m = re.exec(s)) !== null) {
-    last = m.index;
-  }
-  return last;
-}
-
-/** 仅用于 reference extract 的 text 路径；PDF 多模态路径不经过此函数。 */
-export function prepareTextForReferenceExtract(
-  content: string,
-  contentType: ReviewContentType
-): { text: string; clipped: boolean } {
-  if (contentType !== "text") {
-    return { text: content, clipped: false };
-  }
-  const trimmed = content.trim();
+/** LLM 兜底前：对 Hybrid 产出的 Markdown 做长度截断，尽量保留文末参考文献区块。 */
+export function prepareTextForReferenceExtract(markdown: string): { text: string; clipped: boolean } {
+  const trimmed = markdown.trim();
   if (trimmed.length === 0) {
     throw new ReviewEngineError(
-      "reference extract: 纯文本路径下 PDF 解析文本为空（可能为扫描版或版面解析失败），无法提取参考文献"
+      "reference extract: Markdown 正文为空，无法提取参考文献"
     );
   }
   const max = REFERENCE_EXTRACT_TEXT_MAX_CHARS;
@@ -49,11 +36,11 @@ export function prepareTextForReferenceExtract(
     return { text: trimmed, clipped: false };
   }
   const tail = trimmed.slice(-max);
-  const hi = lastHeadingIndexIn(tail);
-  if (hi >= 0 && tail.length - hi >= 400) {
+  const hi = findLastBibliographyHeadingLineStart(tail);
+  if (hi !== null && tail.length - hi >= 400) {
     const fromHeading = tail.slice(hi);
     console.info(
-      `[reference extract] text path: using ${fromHeading.length} chars from last bibliography heading (full text ${trimmed.length} chars)`
+      `${REF_EXTRACT_LOG} LLM兜底截断: 自末次参考文献标题起 ${fromHeading.length} 字符（全文 ${trimmed.length} 字符）`
     );
     return {
       text: `【论文全文较长，以下为末尾 ${max} 字符内、自参考文献标题起的片段】\n\n${fromHeading}`,
@@ -61,7 +48,7 @@ export function prepareTextForReferenceExtract(
     };
   }
   console.info(
-    `[reference extract] text path: using last ${max} chars only (full text ${trimmed.length} chars)`
+    `${REF_EXTRACT_LOG} LLM兜底截断: 仅保留末尾 ${max} 字符（全文 ${trimmed.length} 字符）`
   );
   return {
     text: `【论文全文较长，以下为末尾 ${max} 字符；参考文献通常在文末】\n\n${tail}`,
@@ -181,11 +168,11 @@ function fail(phase: string, e: unknown): never {
 }
 
 /**
- * 从全文/PDF 提取文末参考文献列表（结构化）。
+ * 从 Hybrid 解析得到的 Markdown 提取文末参考文献列表（结构化）。
+ * 优先纯代码切片分条；无标题或 0 条时用 `reference_extract`（Flash 等）对同一段 Markdown（可截断）做 LLM 结构化提取。
  */
-export async function extractReferencesFromPDF(
-  content: string,
-  contentType: ReviewContentType,
+export async function extractReferences(
+  markdown: string,
   ctx: ReviewAnalyzeContext
 ): Promise<ReferenceListItem[]> {
   const rx = ctx.referenceExtract;
@@ -195,9 +182,23 @@ export async function extractReferencesFromPDF(
     );
   }
 
+  const codeRefs = extractReferencesFromMarkdown(markdown);
+  if (codeRefs.length > 0) {
+    console.info(
+      `${REF_EXTRACT_LOG} 来源=纯代码(Markdown标题+分条) 条数=${codeRefs.length}（未调用 reference_extract LLM）`
+    );
+    return codeRefs;
+  }
+  console.info(
+    `${REF_EXTRACT_LOG} 来源=LLM兜底 原因=未命中参考文献标题或代码分条为0 将调用 reference_extract model=${rx.modelConfig.model}`
+  );
+
   const model = getLLMModel(rx.modelConfig.model);
-  const prepared = prepareTextForReferenceExtract(content, contentType);
-  const messages = buildReviewMessages(prepared.text, contentType);
+  const prepared = prepareTextForReferenceExtract(markdown);
+  console.info(
+    `${REF_EXTRACT_LOG} 来源=LLM兜底 输入 text_clipped=${prepared.clipped} 输入长度=${prepared.text.length}`
+  );
+  const messages = buildReviewMessages(prepared.text, "text");
   const schema = zodSchema(referenceExtractSchema);
 
   try {
@@ -209,7 +210,11 @@ export async function extractReferencesFromPDF(
       schema,
       abortSignal: AbortSignal.timeout(REFERENCE_GENERATE_OBJECT_TIMEOUT_MS),
     });
-    return object.references;
+    const refs = object.references;
+    console.info(
+      `${REF_EXTRACT_LOG} 来源=LLM兜底 完成 条数=${refs.length} model=${rx.modelConfig.model}`
+    );
+    return refs;
   } catch (e) {
     fail("extract", e);
   }
@@ -362,11 +367,10 @@ export function sortReferenceVerificationRowsById(
  * 兼容旧编排：提取后按语言分流再按批大小核查并拍平（与 `reference_verification.verify_batch_size` / `ctx.referenceVerify.batchSize` 一致）。
  */
 export async function analyzeReference(
-  content: string,
-  contentType: ReviewContentType,
+  markdown: string,
   ctx: ReviewAnalyzeContext
 ): Promise<ReferenceVerificationRow[]> {
-  const refs = await extractReferencesFromPDF(content, contentType, ctx);
+  const refs = await extractReferences(markdown, ctx);
   if (refs.length === 0) return [];
 
   const batchSize = ctx.referenceVerify?.batchSize ?? 10;

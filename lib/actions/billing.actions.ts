@@ -3,8 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   getPackageById,
-  estimateCost as estimateCostFromConfig,
-  getMaxAllowedPages,
+  estimateCostByWords as estimateCostByWordsFromConfig,
+  getMaxAllowedWords,
 } from "@/lib/config/billing";
 import { orderDAL } from "@/lib/dal/order.dal";
 import { walletDAL } from "@/lib/dal/wallet.dal";
@@ -86,14 +86,14 @@ export async function getWalletBalance(): Promise<number | null> {
   return wallet?.credits_balance ?? null;
 }
 
-export async function estimateCost(pageCount: number): Promise<{
+export async function estimateCost(wordCount: number): Promise<{
   cost: number | null;
   error?: string;
 }> {
-  const maxPages = await getMaxAllowedPages();
-  if (pageCount <= 0 || pageCount > maxPages) {
-    return { cost: null, error: "页数超出范围" };
+  const maxWords = await getMaxAllowedWords();
+  if (wordCount <= 0 || wordCount > maxWords) {
+    return { cost: null, error: "字数超出范围" };
   }
-  const cost = await estimateCostFromConfig(pageCount);
+  const cost = await estimateCostByWordsFromConfig(wordCount);
   return { cost: cost ?? null, error: cost === null ? "无法估算" : undefined };
 }

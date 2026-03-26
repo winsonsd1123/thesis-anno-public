@@ -73,40 +73,43 @@ export default async function BillingPage({
         <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>
           {t("rules")}
         </span>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 100,
-              background: "var(--brand-bg)",
-              color: "var(--brand)",
-            }}
-          >
-            {t("rule1")} → {t("rule1Cost")}
-          </span>
-          <span
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 100,
-              background: "var(--teal-bg)",
-              color: "var(--teal)",
-            }}
-          >
-            {t("rule2")} → {t("rule2Cost")}
-          </span>
-          <span
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 100,
-              background: "var(--accent-bg)",
-              color: "var(--accent)",
-            }}
-          >
-            {t("rule3")} → {t("rule3Cost")}
-          </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 100,
+                background: "var(--brand-bg)",
+                color: "var(--brand)",
+              }}
+            >
+              {t("rule1")} → {t("rule1Cost")}
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 100,
+                background: "var(--teal-bg)",
+                color: "var(--teal)",
+              }}
+            >
+              {t("rule2")} → {t("rule2Cost")}
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                borderRadius: 100,
+                background: "var(--accent-bg)",
+                color: "var(--accent)",
+              }}
+            >
+              {t("rule3")} → {t("rule3Cost")}
+            </span>
+          </div>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{t("ruleMaxNote")}</span>
         </div>
       </div>
     </div>

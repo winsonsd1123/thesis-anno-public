@@ -17,25 +17,25 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
       level: "高",
       color: C.danger,
       text: "第三章 3.3 节数据分析逻辑存在循环论证，建议重新梳理推理链。",
-      page: "P.42",
+      anchor: "§3.3",
     },
     {
       level: "中",
       color: C.warning,
       text: "英文摘要第二句存在 Chinglish：「make the experiment」建议替换为「conduct the experiment」。",
-      page: "P.3",
+      anchor: "Abstract",
     },
     {
       level: "中",
       color: C.warning,
       text: "参考文献 [12] 格式不符合 GB/T 7714-2015，缺少出版年份。",
-      page: "P.78",
+      anchor: "参考文献",
     },
     {
       level: "低",
       color: C.teal,
       text: "图 2-3 与正文「如图 2-4 所示」引用不一致，请核查编号。",
-      page: "P.28",
+      anchor: "§2.2",
     },
   ];
 
@@ -251,7 +251,7 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
                     marginTop: 1,
                   }}
                 >
-                  {issue.page}
+                  {issue.anchor}
                 </span>
               </div>
             ))}

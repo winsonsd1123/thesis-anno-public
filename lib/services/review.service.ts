@@ -19,13 +19,17 @@ export const reviewService = {
     fileUrl: string;
     fileName: string;
     domain: string;
-    pageCount: number | null;
+    wordCount: number | null;
   }): Promise<number> {
     return reviewDAL.insertReview(input);
   },
 
   async updateDomain(reviewId: number, userId: string, domain: string): Promise<void> {
     return reviewDAL.updateDomain(reviewId, userId, domain);
+  },
+
+  async updateFormatGuidelines(reviewId: number, userId: string, formatGuidelines: string): Promise<void> {
+    return reviewDAL.updateFormatGuidelines(reviewId, userId, formatGuidelines);
   },
 
   async renameReview(reviewId: number, userId: string, name: string): Promise<void> {
@@ -40,7 +44,7 @@ export const reviewService = {
   async updateReviewFile(
     reviewId: number,
     userId: string,
-    input: { fileUrl: string; fileName: string; pageCount: number | null }
+    input: { fileUrl: string; fileName: string; wordCount: number | null }
   ): Promise<void> {
     return reviewDAL.updateReviewFile(reviewId, userId, input);
   },

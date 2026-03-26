@@ -228,28 +228,35 @@ export function Pricing({ packages }: { packages: BillingPackage[] }) {
           }}
         >
           <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{t("rules")}</span>
-          {[
-            { pages: t("rule1"), cost: t("rule1Cost"), color: C.brand },
-            { pages: t("rule2"), cost: t("rule2Cost"), color: C.teal },
-            { pages: t("rule3"), cost: t("rule3Cost"), color: C.accent },
-          ].map((rule) => (
-            <div key={rule.pages} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  background: `${rule.color}0E`,
-                  border: `1px solid ${rule.color}1A`,
-                  color: rule.color,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  padding: "4px 12px",
-                  borderRadius: 100,
-                }}
-              >
-                {rule.pages}
-              </span>
-              <span style={{ fontSize: 12, color: C.textMuted }}>{rule.cost}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 24, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+              {[
+                { pages: t("rule1"), cost: t("rule1Cost"), color: C.brand },
+                { pages: t("rule2"), cost: t("rule2Cost"), color: C.teal },
+                { pages: t("rule3"), cost: t("rule3Cost"), color: C.accent },
+              ].map((rule) => (
+                <div key={rule.pages} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      background: `${rule.color}0E`,
+                      border: `1px solid ${rule.color}1A`,
+                      color: rule.color,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "4px 12px",
+                      borderRadius: 100,
+                    }}
+                  >
+                    {rule.pages}
+                  </span>
+                  <span style={{ fontSize: 12, color: C.textMuted }}>{rule.cost}</span>
+                </div>
+              ))}
             </div>
-          ))}
+            <span style={{ fontSize: 12, color: C.textMuted, textAlign: "center", lineHeight: 1.5 }}>
+              {t("ruleMaxNote")}
+            </span>
+          </div>
         </div>
       </div>
     </section>

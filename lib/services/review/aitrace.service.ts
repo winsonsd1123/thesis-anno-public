@@ -6,7 +6,8 @@ import { ReviewEngineError } from "./review-errors";
 
 const aiTraceIssueSchema = z.object({
   chapter: z.string(),
-  page: z.number().int().min(1),
+  /** 与输入中 `--- [章节名 - 第 N 段] ---` 方括号内全文一致，便于定位 */
+  location_anchor: z.string(),
   quote_text: z.string(),
   issue_type: z.enum([
     "cliche_vocabulary",
@@ -26,11 +27,11 @@ const SEVERITY_ORDER: Record<AiTraceIssue["severity"], number> = {
   Low: 2,
 };
 
-/** 合并后阅读顺序：先按页码升序，同页再按严重程度 High→Low。 */
+/** 合并后阅读顺序：先按段落锚点（文档顺序近似），再按严重程度 High→Low。 */
 export function sortAiTraceIssues(issues: AiTraceIssue[]): AiTraceIssue[] {
   return [...issues].sort((a, b) => {
-    const byPage = a.page - b.page;
-    if (byPage !== 0) return byPage;
+    const byLoc = a.location_anchor.localeCompare(b.location_anchor, "zh-CN");
+    if (byLoc !== 0) return byLoc;
     return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
   });
 }

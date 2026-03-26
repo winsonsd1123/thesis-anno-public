@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
-import { estimateCost, getMaxAllowedPages } from "@/lib/config/billing";
+import { estimateCostByWords, getMaxAllowedWords } from "@/lib/config/billing";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const pageCount = body?.pageCount;
-    const num = typeof pageCount === "number" ? pageCount : parseInt(String(pageCount), 10);
+    const raw = body?.wordCount ?? body?.pageCount;
+    const num = typeof raw === "number" ? raw : parseInt(String(raw), 10);
 
     if (Number.isNaN(num) || num <= 0) {
-      return NextResponse.json({ error: "Invalid pageCount" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid wordCount" }, { status: 400 });
     }
 
-    const maxPages = await getMaxAllowedPages();
-    if (num > maxPages) {
+    const maxWords = await getMaxAllowedWords();
+    if (num > maxWords) {
       return NextResponse.json(
-        { error: "File too large", maxPages },
+        { error: "File too large", maxWords },
         { status: 400 }
       );
     }
 
-    const cost = await estimateCost(num);
+    const cost = await estimateCostByWords(num);
     if (cost === null) {
       return NextResponse.json({ error: "Unable to estimate" }, { status: 400 });
     }

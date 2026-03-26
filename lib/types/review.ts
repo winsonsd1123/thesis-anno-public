@@ -28,13 +28,17 @@ export type ReviewRow = {
   user_id: string;
   file_url: string;
   file_name: string | null;
-  page_count: number | null;
+  word_count: number | null;
   domain: string | null;
   status: ReviewStatus;
   cost: number;
   stages: ReviewStageEntry[] | null;
   /** 用户勾选的审阅维度；null 表示尚未持久化（按全选处理） */
   plan_options: ReviewPlanOptions | null;
+  /** 自然语言格式要求；启用格式审阅时须非空 */
+  format_guidelines?: string | null;
+  /** 可选：缓存物理抽取 JSON */
+  format_physical_extract?: unknown | null;
   result: ReviewResult | null;
   error_message: string | null;
   trigger_run_id: string | null;
@@ -50,6 +54,25 @@ export type ReviewResult = {
   aitrace_result?: unknown;
   reference_result?: unknown;
 };
+
+/** 从 `reviews.result` 取出格式物理抽取 JSON，供写入 `reviews.format_physical_extract` */
+export function pickFormatPhysicalExtractFromReviewResult(result: ReviewResult): unknown | null {
+  const fr = result.format_result;
+  if (!fr || typeof fr !== "object") return null;
+  const o = fr as Record<string, unknown>;
+  if ("error" in o || "skipped" in o) return null;
+  const obs = o.observability;
+  if (!obs || typeof obs !== "object") return null;
+  const pe = (obs as Record<string, unknown>).physical_extract;
+  return pe !== undefined ? pe : null;
+}
+
+export type {
+  DocxCompressedImagePart,
+  DocxStyleAstNode,
+  HybridDocxParseResult,
+  MammothMessage,
+} from "./docx-hybrid";
 
 export const INITIAL_REVIEW_STAGES: ReviewStageEntry[] = [
   { agent: "format", status: "pending" },

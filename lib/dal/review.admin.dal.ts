@@ -1,5 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ReviewResult, ReviewRow, ReviewStageEntry, ReviewStatus, StageAgentStatus } from "@/lib/types/review";
+import {
+  pickFormatPhysicalExtractFromReviewResult,
+  type ReviewResult,
+  type ReviewRow,
+  type ReviewStageEntry,
+  type ReviewStatus,
+  type StageAgentStatus,
+} from "@/lib/types/review";
 
 /**
  * 仅用于无用户 JWT 的后台任务（如 Trigger.dev）更新审阅行。
@@ -40,6 +47,7 @@ export const reviewAdminDAL = {
       .update({
         status: "completed",
         result,
+        format_physical_extract: pickFormatPhysicalExtractFromReviewResult(result),
         completed_at: now,
         updated_at: now,
       })
@@ -113,6 +121,7 @@ export const reviewAdminDAL = {
       .update({
         status: "completed",
         result,
+        format_physical_extract: pickFormatPhysicalExtractFromReviewResult(result),
         completed_at: now,
         updated_at: now,
       })

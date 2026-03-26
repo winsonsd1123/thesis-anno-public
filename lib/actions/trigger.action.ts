@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { reviewService } from "@/lib/services/review.service";
-import { estimateCost, getMaxAllowedPages } from "@/lib/config/billing";
+import { estimateCostByWords, getMaxAllowedWords } from "@/lib/config/billing";
 import type { ReviewPlanOptions } from "@/lib/types/review";
 import { normalizePlanOptions, planHasAtLeastOneEnabled } from "@/lib/review/planOptions";
 
@@ -56,13 +56,24 @@ export async function startReviewEngine(
     return { ok: false, error: "PLAN_EMPTY" };
   }
 
-  const pages = review.page_count ?? 1;
-  const maxPages = await getMaxAllowedPages();
-  if (pages < 1 || pages > maxPages) {
-    return { ok: false, error: "PAGE_COUNT_OUT_OF_RANGE" };
+  if (plan.format) {
+    const fg = typeof review.format_guidelines === "string" ? review.format_guidelines.trim() : "";
+    if (!fg) {
+      return { ok: false, error: "FORMAT_GUIDELINES_REQUIRED" };
+    }
   }
 
-  const cost = await estimateCost(pages);
+  const wc = review.word_count;
+  if (wc == null || wc < 1) {
+    return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
+  }
+
+  const maxWords = await getMaxAllowedWords();
+  if (wc > maxWords) {
+    return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
+  }
+
+  const cost = await estimateCostByWords(wc);
   if (cost === null) {
     return { ok: false, error: "COST_UNAVAILABLE" };
   }

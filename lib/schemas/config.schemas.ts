@@ -29,8 +29,9 @@ export const billingPackageSchema = z.object({
   tag: z.string().nullable(),
 });
 
-export const consumptionRuleSchema = z.object({
-  max_pages: z.number(),
+/** 字数阶梯：按 max_words 升序排列，取第一个满足 wordCount <= max_words 的规则 */
+export const wordConsumptionRuleSchema = z.object({
+  max_words: z.number(),
   cost: z.number(),
 });
 
@@ -38,8 +39,8 @@ export const billingSchema = z.object({
   version: z.string().optional(),
   currency: z.string().optional(),
   packages: z.array(billingPackageSchema),
-  consumption_rules: z.array(consumptionRuleSchema),
-  max_allowed_pages: z.number(),
+  word_consumption_rules: z.array(wordConsumptionRuleSchema),
+  max_allowed_words: z.number(),
 });
 
 export const systemSchema = z.record(z.string(), z.boolean());

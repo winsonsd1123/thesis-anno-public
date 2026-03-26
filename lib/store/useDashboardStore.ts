@@ -6,7 +6,7 @@ import { normalizePlanOptions } from "@/lib/review/planOptions";
 import type { ReviewPlanOptions } from "@/lib/types/review";
 
 export type ChatBubble =
-  | { id: string; type: "paper_info"; reviewId: number; fileName: string; pageCount: number | null }
+  | { id: string; type: "paper_info"; reviewId: number; fileName: string; wordCount: number | null }
   | { id: string; type: "domain_info"; reviewId: number; domain: string }
   | {
       id: string;
@@ -31,7 +31,7 @@ function buildBubbles(r: ReviewRow): ChatBubble[] {
       type: "paper_info",
       reviewId: r.id,
       fileName: r.file_name ?? "—",
-      pageCount: r.page_count,
+      wordCount: r.word_count,
     },
     { id: `domain-${r.id}`, type: "domain_info", reviewId: r.id, domain: r.domain ?? "" },
   ];
@@ -51,7 +51,7 @@ function buildBubbles(r: ReviewRow): ChatBubble[] {
 type DashboardState = {
   activeReview: ReviewRow | null;
   bubbles: ChatBubble[];
-  /** Bumps when domain or PDF changes so the plan bubble remounts with fresh copy */
+  /** Bumps when domain or thesis file changes so the plan bubble remounts with fresh copy */
   planVersion: number;
   hydrateFromReview: (r: ReviewRow) => void;
   patchFromServer: (raw: Record<string, unknown>) => void;

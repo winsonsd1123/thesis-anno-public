@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "heading_style_patterns": {
+    "1": ["Heading1", "heading1", "标题1", "标题 1", "章标题", "一级标题", "ChapterTitle", "TOC1"],
+    "2": ["Heading2", "heading2", "标题2", "标题 2", "节标题", "二级标题", "SectionTitle", "TOC2"],
+    "3": ["Heading3", "heading3", "标题3", "标题 3", "三级标题", "小节标题", "SubSectionTitle", "TOC3"],
+    "4": ["Heading4", "heading4", "标题4", "标题 4", "四级标题", "TOC4"]
+  },
+  "size_tolerance_pt": 0.5,
+  "body_rule_skip_style_id_substrings": [
+    "Title",
+    "title",
+    "Subtitle",
+    "subtitle",
+    "DocTitle",
+    "标题",
+    "题注",
+    "Caption"
+  ],
+  "body_rule_oversize_skip_delta_pt": 2.5
+}

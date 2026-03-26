@@ -206,7 +206,7 @@ create table public.reviews (
   -- 文件信息
   file_url text not null, -- Supabase Storage Path
   file_name text, -- 原始文件名
-  page_count int, -- 页数 (用于计费核对)
+  word_count int, -- 字数 (用于计费核对，服务端从 DOCX 统计)
   
   -- 任务状态
   status review_status not null default 'pending',

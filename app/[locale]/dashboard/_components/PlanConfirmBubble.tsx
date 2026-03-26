@@ -18,7 +18,16 @@ type PlanConfirmBubbleProps = {
   /** pending 时可勾选；已开始后只读展示 */
   planEditable: boolean;
   onPlanChange: (next: ReviewPlanOptions) => void;
-  planHint?: string;
+  /** 论文字数；有值时在步骤列表上方展示统计区 */
+  wordCount?: number | null;
+  /** pending 时展示预计扣点；与 creditsLoading / estimatedCredits 配合 */
+  showCreditsEstimate?: boolean;
+  creditsLoading?: boolean;
+  estimatedCredits?: number | null;
+  labelWordCount?: string;
+  labelEstimatedCredits?: string;
+  creditsLoadingText?: string;
+  creditsValueText?: string;
   startLabel: string;
   startingLabel: string;
   /** false：仅展示计划列表（如批阅已启动），不显示开始按钮 */
@@ -27,6 +36,17 @@ type PlanConfirmBubbleProps = {
   footerNote?: string;
   disabled?: boolean;
   onStart: () => Promise<void>;
+  /** 勾选「格式」审阅时展示格式要求输入 */
+  showFormatRequirements?: boolean;
+  formatGuidelinesValue?: string;
+  onFormatGuidelinesChange?: (value: string) => void;
+  onImportDefaultFormat?: () => void | Promise<void>;
+  formatRequirementsLabel?: string;
+  formatRequirementsPlaceholder?: string;
+  formatRequirementsHint?: string;
+  importDefaultFormatLabel?: string;
+  importDefaultFormatBusy?: boolean;
+  importDefaultFormatBusyLabel?: string;
 };
 
 export function PlanConfirmBubble({
@@ -36,13 +56,30 @@ export function PlanConfirmBubble({
   planOptions,
   planEditable,
   onPlanChange,
-  planHint,
+  wordCount,
+  showCreditsEstimate = false,
+  creditsLoading = false,
+  estimatedCredits,
+  labelWordCount,
+  labelEstimatedCredits,
+  creditsLoadingText,
+  creditsValueText,
   startLabel,
   startingLabel,
   showStartButton = true,
   footerNote,
   disabled,
   onStart,
+  showFormatRequirements = false,
+  formatGuidelinesValue = "",
+  onFormatGuidelinesChange,
+  onImportDefaultFormat,
+  formatRequirementsLabel,
+  formatRequirementsPlaceholder,
+  formatRequirementsHint,
+  importDefaultFormatLabel,
+  importDefaultFormatBusy = false,
+  importDefaultFormatBusyLabel,
 }: PlanConfirmBubbleProps) {
   const [busy, setBusy] = useState(false);
 
@@ -114,10 +151,121 @@ export function PlanConfirmBubble({
           ) : null}
         </div>
 
-        {planHint ? (
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px", lineHeight: 1.5 }}>
-            {planHint}
-          </p>
+        {wordCount != null && wordCount > 0 ? (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "var(--bg-subtle)",
+              border: "1px solid var(--border)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: 12,
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>{labelWordCount}</span>
+              <span style={{ fontWeight: 600, color: "var(--text-primary)", textAlign: "right" }}>
+                {wordCount.toLocaleString()}
+              </span>
+            </div>
+            {showCreditsEstimate ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 12,
+                  fontSize: 13,
+                }}
+              >
+                <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>{labelEstimatedCredits}</span>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)", textAlign: "right" }}>
+                  {creditsLoading
+                    ? (creditsLoadingText ?? "…")
+                    : estimatedCredits != null
+                      ? (creditsValueText ?? String(estimatedCredits))
+                      : "—"}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showFormatRequirements && onFormatGuidelinesChange ? (
+          <div
+            style={{
+              marginBottom: 14,
+              padding: "12px 14px",
+              borderRadius: 10,
+              border: "1px solid var(--border)",
+              background: "var(--bg-subtle)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                {formatRequirementsLabel ?? "格式要求"}
+              </span>
+              {onImportDefaultFormat ? (
+                <button
+                  type="button"
+                  disabled={disabled || importDefaultFormatBusy}
+                  onClick={() => void onImportDefaultFormat()}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--brand)",
+                    cursor: disabled || importDefaultFormatBusy ? "not-allowed" : "pointer",
+                    opacity: disabled || importDefaultFormatBusy ? 0.5 : 1,
+                  }}
+                >
+                  {importDefaultFormatBusy
+                    ? (importDefaultFormatBusyLabel ?? "…")
+                    : (importDefaultFormatLabel ?? "导入通用模板")}
+                </button>
+              ) : null}
+            </div>
+            {formatRequirementsHint ? (
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{formatRequirementsHint}</p>
+            ) : null}
+            <textarea
+              value={formatGuidelinesValue}
+              onChange={(e) => onFormatGuidelinesChange(e.target.value)}
+              disabled={disabled}
+              rows={6}
+              placeholder={formatRequirementsPlaceholder}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                fontSize: 13,
+                lineHeight: 1.55,
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--text-primary)",
+                resize: "vertical",
+                minHeight: 120,
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
         ) : null}
 
         {/* 计划条目（可勾选） */}

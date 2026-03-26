@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "init-config": "tsx scripts/init-config-storage.ts",
-    "verify:openrouter": "tsx scripts/verify-openrouter-client.ts"
+    "verify:openrouter": "tsx scripts/verify-openrouter-client.ts",
+    "smoke:hybrid-docx": "tsx scripts/smoke-hybrid-docx.ts",
+    "test": "tsx --test lib/review/aitrace-markdown-chunks.test.ts lib/review/compile-physical-rules.test.ts lib/services/review/format-rules.engine.test.ts lib/services/review/reference-markdown-extract.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
@@ -19,14 +21,17 @@
     "@trigger.dev/sdk": "^4.4.3",
     "ai": "^6.0.116",
     "clsx": "^2.1.1",
+    "fast-xml-parser": "^5.5.9",
     "lucide-react": "^0.577.0",
+    "mammoth": "^1.12.0",
     "next": "16.1.6",
     "next-intl": "^4.8.3",
     "pdf-parse": "^1.1.4",
-    "pdfjs-dist": "^4.10.38",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.5.0",
+    "yauzl": "^3.2.1",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
@@ -36,6 +41,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/yauzl": "^2.10.3",
     "dotenv": "^16.4.7",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

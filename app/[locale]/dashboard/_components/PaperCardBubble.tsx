@@ -2,24 +2,33 @@
 
 import { useCallback, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { isAllowedDocx } from "@/lib/browser/thesis-file";
+
+const DOCX_ACCEPT = ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 type PaperCardBubbleProps = {
   title: string;
+  /** 角标文案，如 DOCX */
+  formatBadgeLabel: string;
   fileName: string;
   pagesLabel: string;
   allowReplace?: boolean;
   replaceLabel?: string;
   replacingLabel?: string;
+  /** 替换时选择了非 DOCX */
+  invalidFileLabel: string;
   onReplaceFile?: (file: File) => Promise<{ ok: boolean; message?: string }>;
 };
 
 export function PaperCardBubble({
   title,
+  formatBadgeLabel,
   fileName,
   pagesLabel,
   allowReplace = false,
-  replaceLabel = "Replace PDF",
+  replaceLabel = "Replace file",
   replacingLabel = "Uploading…",
+  invalidFileLabel,
   onReplaceFile,
 }: PaperCardBubbleProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,13 +47,17 @@ export function PaperCardBubble({
       const f = e.target.files?.[0];
       e.target.value = "";
       if (!f || !onReplaceFile) return;
+      if (!isAllowedDocx(f)) {
+        setErr(invalidFileLabel);
+        return;
+      }
       setReplacing(true);
       setErr(null);
       const r = await onReplaceFile(f);
       setReplacing(false);
       if (!r.ok) setErr(r.message ?? "");
     },
-    [onReplaceFile]
+    [onReplaceFile, invalidFileLabel]
   );
 
   return (
@@ -67,7 +80,7 @@ export function PaperCardBubble({
           borderColor: hover && allowReplace ? "var(--border-strong)" : "var(--border)",
         }}
       >
-        {/* PDF 图标 */}
+        {/* 格式角标 */}
         <div
           aria-hidden
           style={{
@@ -86,14 +99,14 @@ export function PaperCardBubble({
         >
           <span
             style={{
-              fontSize: 8,
+              fontSize: 7,
               fontWeight: 900,
-              letterSpacing: "0.06em",
+              letterSpacing: "0.04em",
               color: "var(--brand)",
               lineHeight: 1,
             }}
           >
-            PDF
+            {formatBadgeLabel}
           </span>
           <span
             style={{
@@ -190,7 +203,7 @@ export function PaperCardBubble({
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={DOCX_ACCEPT}
         style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
         aria-hidden
         tabIndex={-1}

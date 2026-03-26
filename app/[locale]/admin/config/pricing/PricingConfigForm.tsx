@@ -13,12 +13,12 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
 
   const [version, setVersion] = useState(initialConfig.version ?? "1.0.0");
   const [currency, setCurrency] = useState(initialConfig.currency ?? "CNY");
-  const [maxAllowedPages, setMaxAllowedPages] = useState(
-    String(initialConfig.max_allowed_pages)
+  const [maxAllowedWords, setMaxAllowedWords] = useState(
+    String(initialConfig.max_allowed_words)
   );
   const [packages, setPackages] = useState(initialConfig.packages);
   const [consumptionRules, setConsumptionRules] = useState(
-    initialConfig.consumption_rules
+    initialConfig.word_consumption_rules
   );
 
   function updatePackage(index: number, field: string, value: string | number | null) {
@@ -50,8 +50,8 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
           ...p,
           tag: p.tag === "" ? null : p.tag,
         })),
-        consumption_rules: consumptionRules,
-        max_allowed_pages: parseInt(maxAllowedPages, 10) || 150,
+        word_consumption_rules: consumptionRules,
+        max_allowed_words: parseInt(maxAllowedWords, 10) || 120000,
       };
 
       const res = await fetch("/api/admin/config/billing", {
@@ -124,12 +124,12 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
         </div>
         <div>
           <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            {t("maxAllowedPages")}
+            {t("maxAllowedWords")}
           </label>
           <input
             type="number"
-            value={maxAllowedPages}
-            onChange={(e) => setMaxAllowedPages(e.target.value)}
+            value={maxAllowedWords}
+            onChange={(e) => setMaxAllowedWords(e.target.value)}
             style={{
               padding: 10,
               border: "1px solid var(--border)",
@@ -264,11 +264,11 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
                 alignItems: "center",
               }}
             >
-              <span style={{ fontSize: 14 }}>max_pages:</span>
+              <span style={{ fontSize: 14 }}>max_words:</span>
               <input
                 type="number"
-                value={rule.max_pages}
-                onChange={(e) => updateRule(i, "max_pages", parseInt(e.target.value, 10) || 0)}
+                value={rule.max_words}
+                onChange={(e) => updateRule(i, "max_words", parseInt(e.target.value, 10) || 0)}
                 style={{
                   width: 100,
                   padding: 8,

@@ -34,7 +34,7 @@ export const reviewDAL = {
     fileUrl: string;
     fileName: string;
     domain: string;
-    pageCount: number | null;
+    wordCount: number | null;
   }): Promise<number> {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -44,7 +44,7 @@ export const reviewDAL = {
         file_url: input.fileUrl,
         file_name: input.fileName,
         domain: input.domain,
-        page_count: input.pageCount,
+        word_count: input.wordCount,
         status: "pending",
         cost: 0,
         stages: [],
@@ -84,7 +84,7 @@ export const reviewDAL = {
   async updateReviewFile(
     reviewId: number,
     userId: string,
-    input: { fileUrl: string; fileName: string; pageCount: number | null }
+    input: { fileUrl: string; fileName: string; wordCount: number | null }
   ): Promise<void> {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -92,7 +92,7 @@ export const reviewDAL = {
       .update({
         file_url: input.fileUrl,
         file_name: input.fileName,
-        page_count: input.pageCount,
+        word_count: input.wordCount,
         updated_at: new Date().toISOString(),
       })
       .eq("id", reviewId)
@@ -100,6 +100,22 @@ export const reviewDAL = {
       .select("id")
       .maybeSingle();
     if (error) throw new Error(`REVIEW_UPDATE_FILE: ${error.message}`);
+    if (!data) throw new Error("REVIEW_NOT_FOUND");
+  },
+
+  async updateFormatGuidelines(reviewId: number, userId: string, formatGuidelines: string): Promise<void> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("reviews")
+      .update({
+        format_guidelines: formatGuidelines,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reviewId)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(`REVIEW_UPDATE_FORMAT_GUIDELINES: ${error.message}`);
     if (!data) throw new Error("REVIEW_NOT_FOUND");
   },
 

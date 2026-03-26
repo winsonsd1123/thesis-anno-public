@@ -11,8 +11,8 @@ export type BillingPackage = {
   tag: string | null;
 };
 
-export type ConsumptionRule = {
-  max_pages: number;
+export type WordConsumptionRule = {
+  max_words: number;
   cost: number;
 };
 
@@ -30,26 +30,29 @@ export async function getPackageById(id: string): Promise<BillingPackage | null>
   return packages.find((p) => p.id === id) ?? null;
 }
 
-export async function estimateCost(pageCount: number): Promise<number | null> {
+/**
+ * 按字数阶梯估算扣点；规则按 max_words 升序，命中第一条 wordCount <= max_words。
+ */
+export async function estimateCostByWords(wordCount: number): Promise<number | null> {
   const config = await getBillingConfig();
-  if (pageCount <= 0 || pageCount > config.max_allowed_pages) {
+  if (wordCount <= 0 || wordCount > config.max_allowed_words) {
     return null;
   }
-  const rules = config.consumption_rules;
+  const rules = [...config.word_consumption_rules].sort((a, b) => a.max_words - b.max_words);
   for (const rule of rules) {
-    if (pageCount <= rule.max_pages) {
+    if (wordCount <= rule.max_words) {
       return rule.cost;
     }
   }
   return null;
 }
 
-export async function getConsumptionRules(): Promise<ConsumptionRule[]> {
+export async function getWordConsumptionRules(): Promise<WordConsumptionRule[]> {
   const config = await getBillingConfig();
-  return config.consumption_rules as ConsumptionRule[];
+  return config.word_consumption_rules as WordConsumptionRule[];
 }
 
-export async function getMaxAllowedPages(): Promise<number> {
+export async function getMaxAllowedWords(): Promise<number> {
   const config = await getBillingConfig();
-  return config.max_allowed_pages;
+  return config.max_allowed_words;
 }
