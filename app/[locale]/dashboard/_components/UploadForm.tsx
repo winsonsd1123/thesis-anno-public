@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { UploadCloud, FileText, X, ArrowRight } from "lucide-react";
+import { UploadCloud, FileText, X, ArrowRight, Loader2 } from "lucide-react";
+import { EmbeddedObjectTip } from "./EmbeddedObjectTip";
 import { isAllowedDocx } from "@/lib/browser/thesis-file";
 
 function formatFileSize(bytes: number): string {
@@ -20,6 +21,10 @@ type UploadFormProps = {
   domainPlaceholder: string;
   submitLabel: string;
   submitBusyLabel: string;
+  /** Shown under the submit row while busy (e.g. large upload hint). */
+  submitBusyHint?: string;
+  /** 例如 Visio 内置对象等提示：另存为图片再插入 */
+  embeddedObjectTip?: string;
   invalidFileLabel: string;
   onSubmit: (formData: FormData) => Promise<boolean>;
   errorMessage?: string;
@@ -33,6 +38,8 @@ export function UploadForm({
   domainPlaceholder,
   submitLabel,
   submitBusyLabel,
+  submitBusyHint,
+  embeddedObjectTip,
   invalidFileLabel,
   onSubmit,
   errorMessage,
@@ -107,9 +114,25 @@ export function UploadForm({
         gap: 14,
       }}
     >
+      {busy ? (
+        <div
+          className="upload-form-busy-strip"
+          style={{ margin: "-22px -22px 0" }}
+          aria-hidden
+        >
+          <div className="upload-form-busy-strip-inner" />
+        </div>
+      ) : null}
+
       <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{title}</h2>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {embeddedObjectTip ? <EmbeddedObjectTip text={embeddedObjectTip} /> : null}
+
+      <form
+        onSubmit={handleSubmit}
+        aria-busy={busy}
+        style={{ display: "flex", flexDirection: "column", gap: 14 }}
+      >
         <input
           ref={fileInputRef}
           name="file"
@@ -204,6 +227,7 @@ export function UploadForm({
               type="button"
               aria-label={clearFileLabel}
               onClick={clearFile}
+              disabled={busy}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -213,7 +237,8 @@ export function UploadForm({
                 borderRadius: "50%",
                 border: "none",
                 background: "transparent",
-                cursor: "pointer",
+                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy ? 0.35 : 1,
                 color: "var(--text-muted)",
                 flexShrink: 0,
               }}
@@ -235,6 +260,8 @@ export function UploadForm({
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           placeholder={domainPlaceholder}
+          disabled={busy}
+          aria-disabled={busy}
           style={{
             width: "100%",
             padding: "10px 14px",
@@ -242,33 +269,64 @@ export function UploadForm({
             borderRadius: 10,
             border: "1px solid var(--border)",
             outline: "none",
-            background: "var(--surface)",
+            background: busy ? "var(--bg-muted)" : "var(--surface)",
             color: "var(--text-primary)",
+            opacity: busy ? 0.75 : 1,
           }}
         />
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
           <button
             type="submit"
             disabled={busy || !picked}
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
+              gap: 8,
               fontSize: 14,
               fontWeight: 600,
               padding: "10px 20px",
               borderRadius: 999,
               border: "none",
               cursor: busy || !picked ? "not-allowed" : "pointer",
-              opacity: busy || !picked ? 0.45 : 1,
+              opacity: !picked ? 0.45 : 1,
               background: !picked || busy ? "var(--bg-muted)" : "var(--brand)",
               color: !picked || busy ? "var(--text-secondary)" : "#fff",
             }}
           >
-            {busy ? submitBusyLabel : submitLabel}
-            {!busy && <ArrowRight size={14} strokeWidth={2.5} aria-hidden />}
+            {busy ? (
+              <>
+                <Loader2
+                  size={16}
+                  strokeWidth={2.25}
+                  className="animate-spin motion-reduce:animate-none shrink-0"
+                  aria-hidden
+                />
+                <span>{submitBusyLabel}</span>
+              </>
+            ) : (
+              <>
+                <span>{submitLabel}</span>
+                <ArrowRight size={14} strokeWidth={2.5} aria-hidden />
+              </>
+            )}
           </button>
+          {busy && submitBusyHint ? (
+            <p
+              role="status"
+              aria-live="polite"
+              style={{
+                margin: 0,
+                maxWidth: "100%",
+                textAlign: "right",
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: "var(--text-muted)",
+              }}
+            >
+              {submitBusyHint}
+            </p>
+          ) : null}
         </div>
       </form>
     </div>

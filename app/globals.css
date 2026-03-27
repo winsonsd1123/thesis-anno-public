@@ -594,3 +594,32 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 640px) {
   section { padding-left: 20px !important; padding-right: 20px !important; }
 }
+
+/* Upload form: indeterminate busy bar (large DOCX upload feedback) */
+@keyframes upload-form-busy-shuttle {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.upload-form-busy-strip {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  overflow: hidden;
+}
+
+.upload-form-busy-strip-inner {
+  height: 100%;
+  width: 34%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-light), var(--brand));
+  animation: upload-form-busy-shuttle 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-form-busy-strip-inner {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}

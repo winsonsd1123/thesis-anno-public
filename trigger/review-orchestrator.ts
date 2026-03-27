@@ -83,10 +83,11 @@ export const genericLlmBatchTask = task({
 async function runAgent<T>(
   reviewId: number,
   agent: ReviewStageEntry["agent"],
-  serviceFn: () => Promise<T>
+  serviceFn: () => Promise<T>,
+  opts?: { runningLog?: string }
 ): Promise<{ agent: ReviewStageEntry["agent"]; ok: true; value: T } | { agent: ReviewStageEntry["agent"]; ok: false; error: string }> {
   try {
-    await reviewAdminDAL.updateStageStatus(reviewId, agent, "running");
+    await reviewAdminDAL.updateStageStatus(reviewId, agent, "running", opts?.runningLog);
     const value = await serviceFn();
     await reviewAdminDAL.updateStageStatus(reviewId, agent, "done");
     return { agent, ok: true, value };
@@ -200,17 +201,25 @@ export const orchestrateReview = task({
         if (!fg) {
           throw new Error("[orchestrate-review] format agent enabled but format_guidelines is empty");
         }
-        const fmtSemantic = promptsConfig.format_review_system;
+        const fmtGlobal = promptsConfig.format_semantic_global_system;
+        const fmtLocal = promptsConfig.format_semantic_local_system;
         const fmtExtract = promptsConfig.format_physical_spec_extract;
-        if (!fmtSemantic?.templates?.zh) {
-          throw new Error("prompts config missing format_review_system (templates.zh)");
+        if (!fmtGlobal?.templates?.zh) {
+          throw new Error("prompts config missing format_semantic_global_system (templates.zh)");
+        }
+        if (!fmtLocal?.templates?.zh) {
+          throw new Error("prompts config missing format_semantic_local_system (templates.zh)");
         }
         if (!fmtExtract?.templates?.zh) {
           throw new Error("prompts config missing format_physical_spec_extract (templates.zh)");
         }
-        const semanticMc = fmtSemantic.model_config ?? {
+        const semanticGlobalMc = fmtGlobal.model_config ?? {
           temperature: 0.25,
           model: "google/gemini-3.1-pro-preview",
+        };
+        const semanticLocalMc = fmtLocal.model_config ?? {
+          temperature: 0.25,
+          model: "google/gemini-3.1-flash-lite-preview",
         };
         const extractMc = fmtExtract.model_config ?? {
           temperature: 0.1,
@@ -219,8 +228,16 @@ export const orchestrateReview = task({
         ctx.formatReview = {
           formatGuidelines: fg,
           semantic: {
-            modelConfig: { model: semanticMc.model, temperature: semanticMc.temperature },
-            promptTemplate: fmtSemantic.templates.zh,
+            globalModelConfig: {
+              model: semanticGlobalMc.model,
+              temperature: semanticGlobalMc.temperature,
+            },
+            localModelConfig: {
+              model: semanticLocalMc.model,
+              temperature: semanticLocalMc.temperature,
+            },
+            globalPromptTemplate: fmtGlobal.templates.zh,
+            localPromptTemplate: fmtLocal.templates.zh,
           },
           extract: {
             modelConfig: { model: extractMc.model, temperature: extractMc.temperature },
@@ -232,78 +249,155 @@ export const orchestrateReview = task({
 
       const [formatRes, logicRes] = await Promise.all([
         plan.format
-          ? runAgent(reviewId, "format", () =>
-              analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx)
+          ? runAgent(
+              reviewId,
+              "format",
+              () => analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx),
+              { runningLog: "正在对照格式说明进行语义与版式分析…" }
             )
           : skippedAgent("format"),
         plan.logic
-          ? runAgent(reviewId, "logic", () =>
-              analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images })
+          ? runAgent(
+              reviewId,
+              "logic",
+              () => analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images }),
+              { runningLog: "正在通读全文并检测论证与结构问题…" }
             )
           : skippedAgent("logic"),
       ]);
 
+      /** 与 genericLlmBatchTask.queue.concurrencyLimit 对齐，分批并行以便进度仅展示百分比、不暴露块数 */
+      const AITRACE_WAVE_SIZE = 5;
+
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
+            const tAi0 = performance.now();
             const chunks = buildAiTraceChunksFromMarkdown(hybrid.markdown);
             if (chunks.length === 0) {
-              return { issues: [] as const };
+              return {
+                issues: [] as const,
+                observability: { duration_ms: Math.round(performance.now() - tAi0) },
+              };
             }
-            const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
-              chunks.map((chunk) => ({
-                payload: {
-                  action: "aitrace_chunk",
-                  dataBatch: [chunk],
-                  context: ctx,
-                } satisfies GenericLlmBatchPayload,
-              }))
-            );
+            const total = chunks.length;
             const outputs: unknown[] = [];
-            for (const run of batchResult.runs) {
-              if (run.ok && "output" in run && run.output != null) {
-                outputs.push(run.output);
+            let done = 0;
+
+            await reviewAdminDAL.updateStageStatus(
+              reviewId,
+              "aitrace",
+              "running",
+              "约 0% · 正并行检测 AI 痕迹…"
+            );
+
+            for (let i = 0; i < chunks.length; i += AITRACE_WAVE_SIZE) {
+              const wave = chunks.slice(i, i + AITRACE_WAVE_SIZE);
+              const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
+                wave.map((chunk) => ({
+                  payload: {
+                    action: "aitrace_chunk",
+                    dataBatch: [chunk],
+                    context: ctx,
+                  } satisfies GenericLlmBatchPayload,
+                }))
+              );
+              for (const run of batchResult.runs) {
+                if (run.ok && "output" in run && run.output != null) {
+                  outputs.push(run.output);
+                }
               }
+              done += wave.length;
+              const pct = Math.min(100, Math.round((done / total) * 100));
+              await reviewAdminDAL.updateStageStatus(
+                reviewId,
+                "aitrace",
+                "running",
+                `约 ${pct}% · 正并行检测 AI 痕迹…`
+              );
             }
-            return mergeAiTraceChunkOutputs(outputs);
+            const merged = mergeAiTraceChunkOutputs(outputs);
+            return {
+              ...merged,
+              observability: { duration_ms: Math.round(performance.now() - tAi0) },
+            };
           })
         : skippedAgent("aitrace");
 
       const refRes = plan.reference
-        ? await runAgent(reviewId, "reference", async () => {
-            await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "extracting references");
-            const refListRaw = await extractReferences(hybrid.markdown, ctx);
-            const refList = Array.isArray(refListRaw) ? refListRaw : [];
+        ? await runAgent(
+            reviewId,
+            "reference",
+            async () => {
+              const tRef0 = performance.now();
+              await reviewAdminDAL.updateStageStatus(
+                reviewId,
+                "reference",
+                "running",
+                "正在从正文识别参考文献题录…"
+              );
+              const refListRaw = await extractReferences(hybrid.markdown, ctx);
+              const refList = Array.isArray(refListRaw) ? refListRaw : [];
 
-            await reviewAdminDAL.updateStageStatus(reviewId, "reference", "running", "verifying references");
-            const refChunks = chunkReferenceListByLanguageForVerify(
-              refList,
-              referenceVerifyBatchSize
-            );
-            if (refChunks.length === 0) {
-              return [];
-            }
+              const refChunks = chunkReferenceListByLanguageForVerify(
+                refList,
+                referenceVerifyBatchSize
+              );
+              const totalRefs = refList.length;
 
-            const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
-              refChunks.map((dataBatch) => ({
-                payload: {
-                  action: "verify_references",
-                  dataBatch,
-                  context: ctx,
-                } satisfies GenericLlmBatchPayload,
-              }))
-            );
-
-            const runs = batchResult.runs;
-
-            const merged = runs.flatMap((run) => {
-              if (run.ok && Array.isArray(run.output)) {
-                return run.output;
+              if (refChunks.length === 0) {
+                await reviewAdminDAL.updateStageStatus(
+                  reviewId,
+                  "reference",
+                  "running",
+                  totalRefs === 0
+                    ? "未识别到须核查的参考文献条目"
+                    : "未形成核查批次（条目异常或为空）"
+                );
+                return {
+                  rows: [] as ReferenceVerificationRow[],
+                  observability: { duration_ms: Math.round(performance.now() - tRef0) },
+                };
               }
-              return [];
-            }) as ReferenceVerificationRow[];
 
-            return sortReferenceVerificationRowsById(merged);
-          })
+              await reviewAdminDAL.updateStageStatus(
+                reviewId,
+                "reference",
+                "running",
+                `共 ${totalRefs} 条参考文献，分 ${refChunks.length} 批逐批核查（含网络检索，可能较慢）`
+              );
+
+              const merged: ReferenceVerificationRow[] = [];
+              for (let i = 0; i < refChunks.length; i++) {
+                const dataBatch = refChunks[i]!;
+                await reviewAdminDAL.updateStageStatus(
+                  reviewId,
+                  "reference",
+                  "running",
+                  `已核查 ${merged.length}/${totalRefs} 条 · 第 ${i + 1}/${refChunks.length} 批处理中`
+                );
+                const batchResult = await genericLlmBatchTask.batchTriggerAndWait([
+                  {
+                    payload: {
+                      action: "verify_references",
+                      dataBatch,
+                      context: ctx,
+                    } satisfies GenericLlmBatchPayload,
+                  },
+                ]);
+                for (const run of batchResult.runs) {
+                  if (run.ok && Array.isArray(run.output)) {
+                    merged.push(...(run.output as ReferenceVerificationRow[]));
+                  }
+                }
+              }
+
+              return {
+                rows: sortReferenceVerificationRowsById(merged),
+                observability: { duration_ms: Math.round(performance.now() - tRef0) },
+              };
+            },
+            { runningLog: "正在准备参考文献分析…" }
+          )
         : skippedAgent("reference");
 
       const finalResult: ReviewResult = {

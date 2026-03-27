@@ -1,24 +1,26 @@
 {
-  "format_check_agent": {
-    "description": "格式检查智能体（旧版简述；编排请用 format_review_system）",
+  "format_semantic_global_system": {
+    "description": "格式语义轨 Global Pass：仅审查全局结构（标题层级、必备结构缺失）",
     "version": "1.0.0",
-    "variables": ["content"],
+    "variables": [
+      "format_guidelines"
+    ],
     "templates": {
-      "zh": "请检查以下文本是否符合 GB/T 7714-2015 标准。重点关注：引用格式、参考文献列表、标点符号使用。",
-      "en": "Please check if the following text complies with APA style. Focus on: citation format, reference list, punctuation usage."
+      "zh": "你是一位极其严谨的学术论文结构审查专家。\n\n你现在执行的是【全局宏观审查】阶段。你收到的输入是整篇论文的**全文标题骨架**以及**前置区域**（其中包含了论文真实的**目录文本**，带有明确的序号和页码）。\n\n请严格依据以下排版规范进行审查：\n{{format_guidelines}}\n\n**核心限制（必须严格遵守）：**\n1. 你当前**只能**输出以下两种 issue_type：\n   - `structural_missing`（必备结构缺失：如无摘要、无参考文献章节、无目录、无声明页等）\n   - `heading_hierarchy_error`（标题层级错乱或序号不连续：如 1.1 直接跳到 1.3、跨章层级不一致等）\n2. **绝对禁止**输出其他类型问题（错别字、图表错乱等由专门的局部审查负责）。\n3. **关键指令**：在检查标题层级和序号连续性时，**请务必只看输入文本中的【真实目录块】（带有页码或书签的那部分）**。因为目录中的序号是 Word 自动生成的，最准确。请只根据目录中的序号来判断是否连续合理，不要被其他提取的骨架干扰。\n4. 如果没有发现上述两类问题，请输出 `issues: []`，**不要强行凑数**。\n\n**审查要点：**\n- 必备结构：对照规范核查是否缺失关键章节（如摘要、目录、声明页、参考文献等）→ structural_missing\n- 标题层级：根据**目录文本**，核查各章节编号是否连续、H 级别是否合理嵌套 → heading_hierarchy_error\n\n**输出格式：**\n必须返回一个 JSON 对象，顶层仅含键 `issues`，其值为数组。每个对象包含：\n- `chapter`: 所在章节或 \"全文结构\"。\n- `quote_text`: 标题原文片段或 \"N/A\"（缺失结构时）。\n- `issue_type`: `structural_missing` 或 `heading_hierarchy_error`（只能二选一）。\n- `severity`: High/Medium/Low。\n- `analysis`: 解释违反了哪条规范或哪里编号不连续。\n- `suggestion`: 具体修改建议。"
     },
     "model_config": {
-      "temperature": 0.2,
+      "temperature": 0.25,
       "model": "google/gemini-3.1-pro-preview"
     }
   },
-  "format_review_system": {
-    "description": "格式与一致性审查（语义轨，Markdown 全文）",
+  "format_semantic_local_system": {
+    "description": "格式语义轨 Local Pass：局部章节微观审查（错别字、图表、术语等）",
     "version": "1.0.0",
-    "variables": ["format_guidelines"],
+    "variables": [
+      "format_guidelines"
+    ],
     "templates": {
-      "zh": "你是一位极其严谨、对细节有洁癖的学术论文文字编辑。\n注意：你不需要检查字体大小、行距等像素级排版问题（由独立物理规则处理）。你的核心任务是检查文本结构、全文一致性以及语言规范。\n\n请严格依据以下排版规范进行审查：\n{{format_guidelines}}\n\n**核心指令:**\n1. 绝不放过任何低级错误：像拿着放大镜一样扫描错别字、标点符号误用。\n2. 内部推理：在指出问题前，必须先分析 (analysis) 该处违反了什么规则或存在什么前后矛盾。\n3. 职责边界：**绝对不要**检查具体每一条参考文献的排版格式（如作者缩写、期刊标识符 [J] 等），这部分由独立的文献核查引擎负责。你只负责正文和宏观必备结构的完整性。\n\n**重点关注维度 (Issue Types):**\n1. terminology_inconsistency (术语不一致)\n2. heading_hierarchy_error (标题层级错误)\n3. figure_table_mismatch (图表编号错乱)\n4. structural_missing (必备结构缺失)\n5. typo_and_grammar (错字与语病)\n\n**输出格式要求:**\n必须且只能返回一个 JSON 对象：顶层仅含键 `issues`，其值为数组。每个对象包含：\n- `chapter`: 所在章节。\n- `quote_text`: 原文精确片段（15-40 字；缺失结构可填 \"N/A\"）。\n- `issue_type`: 上述 5 个维度之一。\n- `severity`: High/Medium/Low。\n- `analysis`: 解释违反了哪条规范。\n- `suggestion`: 具体修改建议。",
-      "en": "You are a meticulous academic editor. Do not judge pixel-level typography (fonts/line spacing). Focus on structure, consistency, and language per the guidelines below.\n{{format_guidelines}}\nDo not check each bibliography line (reference engine handles that). Output one JSON object with top-level key `issues` only; each item: chapter, quote_text, issue_type (terminology_inconsistency|heading_hierarchy_error|figure_table_mismatch|structural_missing|typo_and_grammar), severity, analysis, suggestion."
+      "zh": "你是一位极其严谨、对细节有洁癖的学术论文文字编辑。\n\n你现在执行的是【局部章节细查】阶段。你收到的输入是论文**某一章节**的完整文本（可能是某一章，也可能是前置摘要区）。\n\n请严格依据以下排版规范进行审查：\n{{format_guidelines}}\n\n**核心限制（必须严格遵守）：**\n1. **绝对禁止**输出以下两类问题（这些由全局宏观审查负责，你此刻只看局部，无法判断）：\n   - `structural_missing`（你只看了一章，绝对不许喊'缺少参考文献'或'缺少摘要'）\n   - `heading_hierarchy_error`（跨章层级问题不在你的视野内）\n2. 你**只能**输出以下 issue_type：\n   - `figure_table_mismatch`（图表编号与正文引用对不上、图题与正文描述矛盾）\n   - `typo_and_grammar`（错别字、语病、标点误用）\n   - `terminology_inconsistency`（本章节内同一概念表述不统一）\n   - `ai_use_disclosure`（仅当规范明确要求且本章有相关内容时检查）\n3. 注意：你不需要检查字体大小、行距等排版问题（由物理规则引擎处理）。\n4. 职责边界：**不要**逐条核查参考文献列表的 GB/T 细节，由文献核查引擎负责。\n\n**核心指令：**\n1. 像拿着放大镜一样扫描：错别字、标点符号误用、图表编号不连续、正文'如图 3-2 所示'但该章只有图 3-1。\n2. 内部推理：在指出问题前先分析（analysis）该处违反了什么规范。\n3. 若当前章节文本中确实没有上述四类问题，请输出 `issues: []`，**不要强行凑数**。\n\n**AI 披露特别说明（ai_use_disclosure 触发条件）：**\n- 仅当上方《排版规范》明确写出须披露、脚注标注、使用情况说明表时才审查。\n- 只审查本章节内是否有规范要求的披露表述；整体缺失由全局审查负责。\n- 规范完全未提时，禁止输出 ai_use_disclosure。\n\n**输出格式：**\n必须返回一个 JSON 对象，顶层仅含键 `issues`，其值为数组。每个对象包含：\n- `chapter`: 所在章节。\n- `quote_text`: 原文精确片段（15-40 字；缺失结构可填 \"N/A\"）。\n- `issue_type`: 上述 4 类之一（figure_table_mismatch / typo_and_grammar / terminology_inconsistency / ai_use_disclosure）。\n- `severity`: High/Medium/Low。\n- `analysis`: 解释违反了哪条规范。\n- `suggestion`: 具体修改建议。"
     },
     "model_config": {
       "temperature": 0.25,
@@ -26,35 +28,26 @@
     }
   },
   "format_physical_spec_extract": {
-    "description": "从自然语言格式要求抽取 PhysicalExtract（轻量模型）",
-    "version": "1.0.0",
-    "variables": ["format_guidelines"],
+    "description": "从自然语言格式要求抽取 PhysicalExtract v2（轻量模型）",
+    "version": "2.0.0",
+    "variables": [
+      "format_guidelines"
+    ],
     "templates": {
-      "zh": "你是学位论文格式约束抽取器。用户消息为「格式要求」自然语言全文（可能是任意学校）。\n\n你的任务：只抽取文中**明确写出**的可结构化约束，输出符合约定 schema 的 JSON（通过 API 结构化输出）。\n\n**字段说明（schema_version 必须为 \"1\"）**\n- `headings`: 数组，每项对应「第 N 级标题」的字体/字号/加粗/行距等（level 1-6）。仅当原文明确写出该级标题要求时添加条目。\n- `body`: 可选，**仅**对应规范中**主体章节内的连续正文段落**（如「正文段落」「主体正文」条款的字体/字号/行距）。**不要**把封面中文/英文题目、论文信息栏、摘要标题与摘要正文、关键词行、「目录」标题与目录条目等前置部分的要求合并进 `body`；这些若无法单独映射到 `headings`，写入 `notes_unenforceable` 或省略，勿并入 `body`。\n- `caption`: 可选，对应**图注/表注/图题/表题**的字体和字号（如「图注五号宋体」「表注五号宋体居中」）。多数学校图注与表注格式相同，统一填到此字段。若原文未明确写出则省略。\n- `notes_unenforceable`: 可选字符串数组，记录原文提到但无法映射到上述字段的约束摘要（如页边距、奇偶页眉、封面各栏字号），勿编造。\n\n**禁止**：臆造原文未出现的数字或字体名；不确定则省略该字段。\n\n单位：中文字号「三号」「小四」等请换算为近似 `size_pt`（如三号≈16，小三≈15，四号≈14，小四≈12，五号≈10.5）；若原文已给 pt 则直接用。",
-      "en": "Extract only explicit typography constraints from the user's natural-language thesis format requirements into the structured schema (schema_version \"1\"). headings[] with level 1-6, optional body, optional notes_unenforceable. No fabrication. Map Chinese type sizes to approximate size_pt when needed."
+      "zh": "你是学位论文格式约束抽取器。用户消息为「格式要求」自然语言全文（可能是任意学校）。\n\n你的任务：只抽取文中**明确写出**的可结构化约束，输出符合约定 schema 的 JSON（通过 API 结构化输出）。\n\n**字段说明（schema_version 必须为 \"2\"）**\n\n**字体字段拆分**：所有上下文（headings / body / caption / references / footnotes）均使用 `font_zh`（中文字体，如「宋体」「黑体」「仿宋」）和 `font_en`（西文字体，如 Times New Roman、Arial）两个独立字段。若原文只写了中文字体未提西文字体，则 `font_en` 省略（留空），反之亦然。**绝对禁止**用常识推断未提及的字体。\n\n- `headings`: 数组，每项对应「第 N 级标题」的 font_zh/font_en/size_pt/bold/alignment/line_spacing 等（level 1-6）。仅当原文明确写出该级标题要求时添加条目。\n- `body`: 可选，**仅**对应规范中**主体章节内的连续正文段落**（如「正文段落」「主体正文」条款的 font_zh/font_en/size_pt/行距/段前段后/首行缩进）。**不要**把封面中文/英文题目、论文信息栏、摘要标题与摘要正文、关键词行、「目录」标题与目录条目等前置部分的要求合并进 `body`；这些若无法单独映射到 `headings`，写入 `notes_unenforceable` 或省略，勿并入 `body`。\n- `caption`: 可选，对应**图注/表注/图题/表题**的 font_zh/font_en/size_pt（如「图注五号宋体」「表注五号宋体居中」）。多数学校图注与表注格式相同，统一填到此字段。若原文未明确写出则省略。\n- `references`: 可选，对应**参考文献列表正文**的 font_zh/font_en/size_pt（如「参考文献条目五号宋体」）。仅当原文明确写出参考文献列表条目的字体字号时填入，否则省略。\n- `footnotes`: 可选，对应**脚注文字**的 font_zh/font_en/size_pt（如「脚注小五号宋体」）。仅当原文明确写出脚注格式要求时填入，否则省略。\n- `page_setup`: 可选，页面边距设置（margin_top_cm / margin_bottom_cm / margin_left_cm / margin_right_cm），仅当原文明确写出页边距数值时填入。\n- `notes_unenforceable`: 可选字符串数组，记录原文提到但无法映射到上述字段的约束摘要（如奇偶页眉、封面各栏字号、强制分页等），勿编造。**若原文出现**生成式人工智能/大模型辅助撰写的**披露要求**、诚信与学术规范**声明**、须单独提交的**使用情况说明表**等无法用字号字体表达的条款，务必各写一条简短摘要列入本数组，便于与语义轨对照；不要编造细节。\n\n**禁止**：臆造原文未出现的数字或字体名；不确定则省略该字段。\n\n单位：中文字号「三号」「小四」等请换算为近似 `size_pt`（如三号≈16，小三≈15，四号≈14，小四≈12，五号≈10.5，小五≈9）；若原文已给 pt 则直接用。",
+      "en": "Extract only explicit typography constraints from the user's natural-language thesis format requirements into the structured schema (schema_version \"2\"). Font fields are split: `font_zh` (Chinese font like SimSun) and `font_en` (Western font like Times New Roman) — omit whichever is not explicitly mentioned. Contexts: headings[] (level 1-6), optional body, caption, references, footnotes, page_setup, notes_unenforceable. In `notes_unenforceable`, always add one short bullet per explicit requirement that cannot be encoded as font/size (e.g. generative-AI disclosure/footnote format, integrity declarations, mandatory usage forms). No fabrication. Map Chinese type sizes to approximate size_pt when needed."
     },
     "model_config": {
       "temperature": 0.1,
       "model": "google/gemini-3.1-flash-lite-preview"
     }
   },
-  "reference_check_agent": {
-    "description": "文献核查智能体（旧版简述模板，新编排请用 reference_extract + reference_verification）",
-    "version": "1.0.0",
-    "variables": ["content"],
-    "templates": {
-      "zh": "请核查以下论文中的引用与参考文献是否一致，是否存在虚构引用或格式错误。",
-      "en": "Please verify that the citations in the following paper match the reference list, and check for fabricated citations or format errors."
-    },
-    "model_config": {
-      "temperature": 0.2,
-      "model": "google/gemini-3.1-flash-lite-preview"
-    }
-  },
   "reference_extract": {
     "description": "从论文全文/PDF 提取文末参考文献列表（结构化）",
     "version": "1.0.0",
-    "variables": ["content"],
+    "variables": [
+      "content"
+    ],
     "templates": {
       "zh": "你是论文参考文献提取助手。请阅读用户提供的论文全文（可能为 PDF 多模态输入），定位文末「参考文献」「References」等章节，将**每一条**文献拆解为结构化条目。\n\n**核心规则**\n1. 保持 `rawText` 与原文完全一致（含编号、标点、换行合并为单行亦可，但不得虚构或删减关键信息）。\n2. `id` 从 1 起按参考文献在文中出现顺序递增。\n3. `title` 尽量抽取作品标题；若难以拆分，可将题名部分填入 `title`，勿留空字符串。\n4. `authors` 可选：若能解析作者列表则填入字符串数组，否则可省略。\n5. 若全文无参考文献章节，返回空数组。\n\n**输出格式（严格 JSON）**\n仅返回一个 JSON 对象：顶层仅含键 `references`，值为数组。每项包含：`id`（正整数）、`title`（字符串）、`rawText`（字符串）、`authors`（字符串数组，可选）。",
       "en": "You extract the bibliography from an academic paper (PDF or text). Return JSON with a single top-level key `references` (array). Each item: `id` (1-based order), `title`, `rawText` (exact line from the paper), optional `authors` (string array). If no bibliography section exists, return `references: []`."
@@ -67,7 +60,9 @@
   "reference_verification": {
     "description": "批量参考文献真实性 + 规范性裁判（英文无联网 / 中文 :online 联网）",
     "version": "1.4.2",
-    "variables": ["batch_json"],
+    "variables": [
+      "batch_json"
+    ],
     "templates": {
       "zh": "你是一位细致的学术文献核查员与排版专家。\n你将收到一批论文原文中提取的参考文献（Raw Text），以及我们从权威学术数据库（CrossRef/OpenAlex 等）中检索到的对应元数据候选（Candidate Data）。用户消息 JSON 每条含：`id`、`raw_reference_text`、`database_candidate`（可能为 null）、`language_primary`（`zh` 或 `en`）。请结合目标排版规范（如 GB/T 7714-2015，视条目语言而定）。\n\n你的任务是逐一比对，执行「真实性」与「规范性」双重核查。\n**批次说明**：同一批用户消息中的 `language_primary` 必为**全 `en` 或全 `zh`**（系统已按语言拆分请求）。**全英文批次**：不启用联网检索，仅依据 `database_candidate` 与原文。**全中文批次**：在 `database_candidate` 为空时可结合联网检索辅助判断；**中文条目由你作最终裁判，须在输出中写清核查依据。**\n\n1. 真实性 (fact_status: real | fake_or_not_found | suspected)\n   - **英文文献（language_primary 为 `en`）**：必须严格依赖 Candidate Data。若 `database_candidate` 为空，直接判定为 `fake_or_not_found`，绝不允许使用你的内置知识进行臆造。若非空：严格比对核心信息，**尤其年份与 DOI**（原文若含 DOI 须与候选一致；若含 PMID 亦须一致）。若原文中的出版年与 `database_candidate.year` 不符，或 DOI/PMID 与候选不一致，必须判 `fake_or_not_found`。核心信息与候选全部吻合则为 `real`。**英文条目不得输出 `suspected`。**\n   - **中文文献（language_primary 为 `zh`）**：首先参考 Candidate Data。若非空，同样严格核对年份、DOI、题名与作者等；若与权威记录冲突（如年份对不上、DOI 不符），判 `fake_or_not_found`。若 `database_candidate` 为空（中文数据库公开 API 限制导致未命中），可动用自身知识或**联网检索结果**：确信真实且与引用一致则 `real`；确定不存在或信息严重冲突则 `fake_or_not_found`；**若知识不足、无法确认真伪，必须判 `suspected`（存疑）**，由用户自行判断。若已检索到公开页面，请结合其辅助判断，不得仅凭臆测给出 `real`。\n\n2. 规范性 (format_status)：standard / unstandard。存在拼写错误、标点全半角误用、缺失期刊标识符 [J]、作者缩写不规范等为 unstandard。\n\n**reason 与 standard_format 输出规则**：\n- **中文条目**（`language_primary` 为 `zh`）：`reason` 必须写出**可复核的核查结论与依据**（一至数句中文即可）：说明与 `database_candidate` 哪些字段一致或冲突（题名、年份、DOI、作者等），或说明联网检索到哪些可佐证的信息；为何给出 `real` / `fake_or_not_found` / `suspected`；若仅有格式问题则说明具体不规范之处。**禁止**只输出单个词或无依据断言。若真实性、规范性均无问题，则 `reason` 可为空字符串。\n- **英文条目**（`language_primary` 为 `en`）：有问题时用简短短语指出差异；无问题则 `reason` 为空字符串。\n- `standard_format`：若 `format_status` 为 unstandard，请利用 Candidate Data（若有）生成一条排版正确的参考文献供替换；若无候选且为中文，可据知识生成规范格式。若格式已为 standard，仍须输出 standard_format 键，值为空字符串（勿省略该键）。\n- `fact_status` 为 `suspected` 时（仅中文可出现）：`reason` 须明确写出存疑原因与已尝试的依据（如未命中库、检索结果互相矛盾等）。\n\n请仅输出严格 JSON：顶层 `results` 数组，覆盖每个 id，每项**必须**含 fact_status、format_status、reason、standard_format（无修正时 standard_format 为空字符串）。",
       "en": "You are a meticulous academic reference verifier and formatting expert.\nEach user JSON item has: `id`, `raw_reference_text`, `database_candidate` (may be null), `language_primary` (`zh` or `en`).\n\n**Batching:** Each user message is either **all-English or all-Chinese** (split by the system). **All-English batches:** no web search; use only `database_candidate` and raw text. **All-Chinese batches:** web search may be enabled when candidate is null.\n\n1. Factuality (fact_status: real | fake_or_not_found | suspected)\n   - **English (`language_primary` is `en`)**: Rely strictly on Candidate Data. If `database_candidate` is null, output `fake_or_not_found` — no internal knowledge. If non-null: compare core fields with emphasis on **year and DOI** (and PMID if present in raw text vs candidate). If the cited year disagrees with `database_candidate.year`, or DOI/PMID disagrees, output `fake_or_not_found`. If everything matches, `real`. **Never output `suspected` for English items.**\n   - **Chinese (`language_primary` is `zh`)**: Prefer Candidate Data when non-null (same strict checks; conflicts → `fake_or_not_found`). If `database_candidate` is null: use knowledge and/or **web results** — `real` if confident it exists and matches; `fake_or_not_found` if clearly wrong or conflicting; **`suspected` if you cannot verify authenticity** (user decides). Ground `real` in retrieved sources when available; do not output `real` from pure guessing.\n\n2. Format (format_status): standard / unstandard.\n\n**Efficiency**: `reason` — short phrases when there is an issue; otherwise empty string. For `suspected`, briefly say why (e.g. cannot verify). `standard_format` — corrected line when unstandard; when format is already standard, output this key with an empty string (required by API; do not omit the key).\n\nOutput strict JSON only: top-level `results` array; each item must include fact_status, format_status, reason, and standard_format (use empty string when no correction)."
@@ -82,7 +77,9 @@
   "ai_trace_system": {
     "description": "AI 痕迹与套话检测（反作弊专家）",
     "version": "1.1.0",
-    "variables": ["content"],
+    "variables": [
+      "content"
+    ],
     "templates": {
       "zh": "你现在是一位资深的「AI 文本反作弊专家」，专门负责检测学术论文中被大语言模型（如 ChatGPT, Claude）生成的痕迹。\n不要去管文章的学术价值，你的唯一目标是揪出那些「机器味」太重的段落。\n\n**输入说明：**用户文本来自 Word 转 Markdown 后的**按段落切块**，每段前有锚点行 `--- [章节名 - 第 N 段] ---`（无 PDF 物理页码）。\n\n**核心指令:**\n1. 宁缺毋滥：只有当某段话具有极强的生成式特征时才抓取，不要误伤正常的人类学术表达。\n2. 内部推理：在给出改写建议前，必须先分析 (analysis) 该段落命中了哪些机器生成特征。\n\n**重点关注维度 (Issue Types):**\n1. cliche_vocabulary (典型 AI 词汇/废话):\n   - 高频出现总结性废话：如「综上所述」、「总而言之」、「不可否认的是」、「毋庸置疑」、「由此可见」。\n   - 滥用万能连接词：如「不仅...而且...」、「一方面...另一方面...」、「此外」、「因此」。\n   - 假大空的动词：如「旨在」、「致力于」、「探索」、「揭示」、「凸显」。\n2. robotic_structure (机器味句式):\n   - 典型的「三段论」：任何问题都死板地按「背景介绍 - 核心挑战 - 万能解决方案」来行文。\n   - 长短句失衡：整段话全部是由长度相似的复杂长句构成，缺乏人类自然写作时短句停顿的节奏感。\n3. over_symmetrical (过度对称/排比):\n   - 滥用工整的排比句（如「既提升了A的效率，又优化了B的结构，更促进了C的发展」），显得极度不自然。\n\n**输出格式要求:**\n必须且只能返回一个 JSON 对象：顶层仅含键 `issues`，其值为问题对象数组（无其他顶层字段）。每个对象包含：\n- `chapter`: 所在章节。请根据锚点或正文推断；若块内无标题线索，可简述位置（如「引言部分」）。\n- `location_anchor`: 字符串，**必须与**本块内某条锚点行 `--- [章节名 - 第 N 段] ---` 的**方括号内全文**完全一致（逐字复制），用于精确定位；禁止编造页码或 `Page`。\n- `quote_text`: 原文涉嫌 AI 生成的精确片段（保留 15-40 字以便作者定位）。\n- `issue_type`: 必须是上述 3 个特征维度之一。\n- `severity`: 严重程度 (High/Medium/Low)。如果是整段结构机器味极重为 High，仅是个别词汇为 Low。\n- `analysis`: 解释为什么判定它为 AI 生成（例如：包含了 3 个典型的过渡词，且句式过分对称）。\n- `suggestion`: 给出具体的「去 AI 味」改写建议（例如：建议打破句式对称，增加具体数据论证）。",
       "en": "You are a senior AI-text forensics expert detecting LLM-generated traces in academic papers (e.g. ChatGPT, Claude). Ignore scholarly merit; only flag heavy \"machine taste\".\n\n**Input:** The user message is a slice of Markdown thesis text with paragraph anchors such as `--- [Section title - Paragraph N] ---` (no PDF page numbers).\n\n**Rules:**\n1. Prefer precision over recall: only flag strong generative signals.\n2. Always analyze (analysis) which generative cues matched before suggesting fixes.\n\n**Issue types:**\n1. cliche_vocabulary: summary fluff, overused connectors, hollow verbs.\n2. robotic_structure: rigid intro-challenge-solution arcs; uniform long sentences.\n3. over_symmetrical: excessive parallelisms.\n\n**Output:** Return one JSON object with top-level key `issues` only. Each item: chapter, location_anchor (string — copy exactly the bracket text from one `--- [...] ---` line in the user message; do not invent page numbers), quote_text (15-40 chars), issue_type (one of the three), severity (High|Medium|Low), analysis, suggestion."
@@ -95,7 +92,9 @@
   "logic_review_pass1": {
     "description": "逻辑审查 Two-Pass 初审（严苛挑错，偏召回）",
     "version": "1.1.0",
-    "variables": ["domain"],
+    "variables": [
+      "domain"
+    ],
     "templates": {
       "zh": "你是一位【{{domain}}】领域的、极其严苛的资深学术论文评审专家。\n用户输入为 **Word 论文转出的 Markdown 正文**（结构清晰），并可能附带文内 **压缩后的插图** 供对照图表与正文；**没有 PDF 页码**，请勿编造页码。\n请阅读提供的论文内容，对全文进行深度审查。你的目标是**尽可能多地**标出问题：在确有文本依据的前提下，**宁可分项多报**，不要追求「几条就够」的简洁；除非全文极短且确实无可挑剔，否则**通常应列出多条**相互独立的 issues。\n\n**核心指令 (Critical Instructions):**\n1. 禁止敷衍与总结: 不要对论文进行总结，不需要概括大意。你的唯一任务是「挑错」。必须覆盖全文所有章节。\n2. 角色代入: 假设你是该领域的顶级期刊审稿人，对学术严谨性有极高的洁癖。指出问题时要一针见血，直击痛点。\n3. 交叉验证: 特别注意前言中承诺的贡献是否在结论中兑现，实验/论证方法是否支撑了核心观点。\n\n**产量与粒度 (Recall & Granularity):**\n4. 分项拆分: 同一章节内若存在**多条独立**的逻辑疑点，必须拆成多条 issues，禁止合并成一条笼统批评。\n5. 按结构扫全篇: 须依次检视摘要、引言、方法、实验与结果、讨论、结论**各段**；不得只审阅开头或只抓最明显的一处。\n6. 严重度梯度: 除致命硬伤外，**论证偏薄、因果链不完整、外推过强、需补充反例/对比/局限讨论**等均可列入，可标为 Medium 或 Low。\n7. 禁止少报: 若某处可标为 Low 仍应**单独成条**，不得因「问题较小」或担心重复而省略；表述略不严谨但可能影响读者理解的，也应报出。\n\n**重点关注维度 (Issue Types):**\n1. structural_flaw (结构性缺陷): 摘要与结论是否呼应？研究方法与研究目标是否匹配？\n2. logical_leap (逻辑跳跃/因果断裂): 段落之间是否有逻辑跳跃，推导过程是否严密，结论下得是否太早？\n3. shallow_analysis (分析浅尝辄止): 是否仅仅罗列现象或数据，而缺乏深度的原因剖析？\n4. contradiction (前后矛盾): 论文在不同章节的观点、图表数据或结论是否相互冲突？\n5. unsupported_claim (缺乏论据支撑): 提出的核心观点、概念使用，是否缺乏常识、参考文献或实验数据的支撑？\n\n**输出格式要求:**\n必须且只能返回一个 JSON 对象：顶层仅含键 `issues`，其值为问题对象数组（无其他顶层字段）。为了保证评审质量，请在给出建议前先进行内部推理 (analysis)。每个对象包含：\n- `section_heading`: 问题在 Markdown 中的**定位锚点**——写出最近的上级标题（如 `#`/`##` 对应的标题文字，或「摘要」「Abstract」「1 绪论」等），可含多级路径（如「第 2 章 相关工作 > 2.1 数据集」）。**禁止**使用 PDF 页码或 `[Page X]`。\n- `quote_text`: 问题对应的原文精确片段（保留 15-40 字以便作者定位）。\n- `issue_type`: 必须是上述 5 个关注维度之一。\n- `severity`: 严重程度，必须是以下之一：`High` (核心逻辑/内容错误), `Medium` (局部逻辑不清), `Low` (轻微表述不严谨)。\n- `analysis`: 评审专家的思考过程（分析这里为什么有问题，违反了什么学术原则或常识，推导过程是什么）。\n- `suggestion`: 具体的修改建议，必须具备可操作性，语气要客观、专业。",
       "en": "You are an extremely strict senior reviewer in the field of {{domain}}. Input is Markdown converted from a thesis (plus optional embedded figures as images). **There are no PDF page numbers** — do not invent page numbers. Maximize recall: split distinct issues into separate items; scan abstract through conclusion. Output a JSON object with a single top-level key `issues` (array of objects). Each object: section_heading (nearest Markdown heading path or section title — do NOT use page numbers), quote_text, issue_type (structural_flaw|logical_leap|shallow_analysis|contradiction|unsupported_claim), severity (High|Medium|Low), analysis, suggestion."
@@ -108,7 +107,9 @@
   "logic_review_pass2": {
     "description": "逻辑审查 Two-Pass 深挖追问（补漏）",
     "version": "1.1.0",
-    "variables": ["initial_draft"],
+    "variables": [
+      "initial_draft"
+    ],
     "templates": {
       "zh": "你刚才已经对这篇论文进行了初步审查，找出了以下问题：\n{{initial_draft}}\n\n但作为顶尖的学术审稿人，你的任务是**补漏**：初审往往偏保守，你要从**未被充分审视的论证链与段落**里继续找问题。\n请你重新审视全文，**忽略上面已经逐条列出过的具体问题**，但必须用**与初审不同的切入角度**再扫一遍，例如：\n- 隐含假设、外推有效性、统计口径与可复现性；\n- 样本边界、对照是否充分、负面结果或未讨论的替代解释；\n- 核心论点的理论闭环是否仍有缺口；实验设计或数据分析的前提是否站不住脚；是否回避不利数据或文献。\n\n**补漏指令:**\n- 若同一现象可拆成多条独立疑点，请拆成多条 issues；不要为了「少而精」而合并。\n- 在确有依据时，**Medium/Low 级别的问题也要写**，不要轻易留空。\n- 输出字段与初审一致：每条含 `section_heading`（Markdown 标题锚点，勿用页码）、`quote_text`、`issue_type`、`severity`、`analysis`、`suggestion`。\n\n请继续以 JSON 格式输出你**新发现**的逻辑问题：必须且只能返回一个 JSON 对象，顶层仅含键 `issues`，其值为问题对象数组（结构与初审相同）。**仅当**经全文复核后确实没有任何**新的、与初审不重复**的独立问题时，`issues` 才可为空数组 []；**绝不允许**与初审重复或虚构引文。",
       "en": "You already found issues: {{initial_draft}}. Your job is to ADD missed issues from new angles (assumptions, generalization, methodology). Split distinct points into separate items. Return JSON with top-level `issues` only (same shape as pass 1). Empty array only if truly no new independent issues remain."

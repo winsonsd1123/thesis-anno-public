@@ -10,7 +10,8 @@ import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { useReviewRealtime } from "@/lib/hooks/useReviewRealtime";
 import { renameReview, deleteReview } from "@/lib/actions/review.action";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
-import { stagesToLogLines, stagesToProgressAgents } from "@/lib/review/stagesUi";
+import { stagesToLogLines, stagesToProgressModels, type ProgressStageModel } from "@/lib/review/stagesUi";
+import type { ProgressConsoleAgent } from "./ProgressConsole";
 import type { ReviewResult } from "@/lib/types/review";
 import { HistorySidebar, type SidebarReviewItem } from "./HistorySidebar";
 import { ReviewChatBoard } from "./ReviewChatBoard";
@@ -42,9 +43,60 @@ function toSidebarItem(r: ReviewRow, t: ReturnType<typeof useTranslations>): Sid
 type ReviewWorkbenchProps = {
   balance: number | null;
   initialReviews: ReviewRow[];
+  /** 仅管理员可在报告中切换「原始 JSON」 */
+  isAdmin?: boolean;
 };
 
-export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProps) {
+function progressStageToConsoleRow(
+  row: ProgressStageModel,
+  t: (key: string, values?: Record<string, number | string>) => string
+): ProgressConsoleAgent {
+  const badge = t(`progressBadge_${row.stageStatus}`);
+  const badgeTone: ProgressConsoleAgent["badgeTone"] =
+    row.stageStatus === "pending"
+      ? "pending"
+      : row.stageStatus === "running"
+        ? "running"
+        : row.stageStatus === "done"
+          ? "done"
+          : row.stageStatus === "failed"
+            ? "failed"
+            : "skipped";
+
+  let description: string;
+  if (row.stageStatus === "failed" && row.log) {
+    description = row.log;
+  } else if (row.stageStatus === "running" && row.log) {
+    description = row.log;
+  } else if (row.stageStatus === "running") {
+    description = t(`progressRunning_${row.key}`);
+  } else if (row.stageStatus === "pending") {
+    description = t("progressHintPending");
+  } else if (row.stageStatus === "done") {
+    description = t("progressHintDone");
+  } else if (row.stageStatus === "failed") {
+    description = t("progressHintFailedNoLog");
+  } else {
+    description = t("progressHintSkipped");
+  }
+
+  const metricsLine =
+    row.refCounts && row.stageStatus === "running"
+      ? t("progressRefMetrics", { current: row.refCounts.current, total: row.refCounts.total })
+      : undefined;
+
+  return {
+    key: row.key,
+    label: row.label,
+    badge,
+    badgeTone,
+    description,
+    barFillPercent: row.barFillPercent,
+    metricsLine,
+  };
+}
+
+export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: ReviewWorkbenchProps) {
   const t = useTranslations("dashboard.review");
   const tBill = useTranslations("billing");
   const router = useRouter();
@@ -71,7 +123,6 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
   // 切换审阅或状态变化时收回手动 Tab，使界面跟随 derivedPanel（如进入 processing 自动到进度）
   const reviewSyncKey = `${activeReview?.id ?? "none"}:${activeReview?.status ?? "none"}`;
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset manual tab when review context changes
     setPanelOverride(null);
   }, [reviewSyncKey]);
 
@@ -119,18 +170,15 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
     [activeReview?.id, clearSession, router]
   );
 
-  const progressAgents = useMemo(() => {
+  const progressAgents = useMemo((): ProgressConsoleAgent[] => {
     const labels = {
       format: t("progressAgentFormat"),
       logic: t("progressAgentLogic"),
       aitrace: t("progressAgentAitrace"),
       reference: t("progressAgentRefs"),
     };
-    return stagesToProgressAgents(activeReview?.stages, labels).map((a) => ({
-      label: a.label,
-      progress: a.progress,
-      status: a.status,
-    }));
+    const models = stagesToProgressModels(activeReview?.stages, labels);
+    return models.map((row) => progressStageToConsoleRow(row, t));
   }, [activeReview?.stages, t]);
 
   const logLines = useMemo(
@@ -363,10 +411,22 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
                 <ProgressConsole
                   title={t("progressTitle")}
-                  subtitle={t("progressSubtitle")}
+                  barFootnote={t("progressBarFootnote")}
                   agents={progressAgents}
                   logLines={logLines}
                 />
+                <p
+                  style={{
+                    marginTop: 16,
+                    marginBottom: 0,
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    color: "var(--text-secondary)",
+                    textAlign: "center",
+                  }}
+                >
+                  {t("progressFooterHint")}
+                </p>
               </div>
             )}
             {panel === "report" && (
@@ -379,6 +439,8 @@ export function ReviewWorkbench({ balance, initialReviews }: ReviewWorkbenchProp
                   placeholder={t("reportPlaceholder")}
                   emptySection={t("reportEmptySection")}
                   exportLabel={t("reportDownload")}
+                  exportFileStem={activeReview?.file_name ?? null}
+                  allowRawJson={isAdmin}
                   result={(activeReview?.result as ReviewResult | null) ?? null}
                 />
               </div>

@@ -6,21 +6,34 @@
 /** 段落内单个 run（连续同格式文本片段） */
 export type RunSpan = {
   text: string;
-  font?: string;
+  font_zh?: string;
+  font_en?: string;
   size_pt?: number;
   bold?: boolean;
   italic?: boolean;
 };
 
-/** 段落所在的文档上下文 */
-export type ParagraphContext = "body" | "table_cell" | "caption";
+/** 段落所在的文档上下文（局部特征） */
+export type ParagraphContext = "body" | "table_cell" | "caption" | "references" | "footnotes";
+
+/** 全局结构区段（划分文档大块区域） */
+export type DocumentPartition =
+  | "front_cover"
+  | "abstract"
+  | "toc"
+  | "main_body"
+  | "references"
+  /** 致谢、声明等正文后的附录性内容，物理轨跳过 */
+  | "end_matter";
 
 /** 段落级样式节点（用于规则引擎 quote_text 与物理排版比对） */
 export type DocxStyleAstNode = {
   /** 段落内拼接后的纯文本（供定位引用） */
   text: string;
-  /** dominant run（文本最长的 run）的字体；向后兼容 */
-  font?: string;
+  /** dominant run 的中文字体（eastAsia） */
+  font_zh?: string;
+  /** dominant run 的西文字体（ascii/hAnsi） */
+  font_en?: string;
   /** dominant run 的字号（磅） */
   size_pt?: number;
   bold?: boolean;
@@ -28,10 +41,34 @@ export type DocxStyleAstNode = {
   /** w:pStyle 解析出的样式 ID */
   paragraphStyleId?: string;
   characterStyleId?: string;
+  /** 从底层 w:pPr/w:outlineLvl 或样式继承中提取的大纲级别（0=1级，1=2级...） */
+  outlineLevel?: number;
+  /**
+   * 段落级 w:spacing / w:ind（含样式链合并）。行距：固定/至少为磅值；w:lineRule=auto 时为倍数。
+   * twips→pt：1pt=20twips；auto 行距：倍数=line/240。
+   */
+  line_spacing_pt?: number;
+  line_spacing_multiple?: number;
+  space_before_pt?: number;
+  space_after_pt?: number;
+  /** w:beforeLines / w:afterLines（1行=100单位，0.5行则为 0.5） */
+  space_before_lines?: number;
+  space_after_lines?: number;
+  /** w:firstLineChars：1 字符 = 100 单位 */
+  indent_first_line_chars?: number;
+  /** w:firstLine twips 折算 */
+  indent_first_line_pt?: number;
+  /**
+   * 段落对齐：来自 w:pPr/w:jc/@w:val（含样式链继承），小写（如 center、left、both）。
+   * 用于题注推断与「居中却按正文报缩进」时的提示。
+   */
+  paragraph_jc?: string;
   /** 段落内所有 run 的逐 run 样式；空文本 run 已过滤 */
   runs?: RunSpan[];
-  /** 段落所在上下文：body（默认）、table_cell、caption */
+  /** 段落所在上下文（局部特征） */
   context?: ParagraphContext;
+  /** 段落所在的全局区段（用于硬隔离封面、目录） */
+  partition?: DocumentPartition;
 };
 
 export type MammothMessage = {

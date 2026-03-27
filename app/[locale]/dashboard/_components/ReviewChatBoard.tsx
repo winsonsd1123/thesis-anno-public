@@ -157,6 +157,8 @@ export function ReviewChatBoard() {
               domainPlaceholder={t("domainPlaceholder")}
               submitLabel={t("uploadConfirmCreate")}
               submitBusyLabel={t("uploadConfirmBusy")}
+              submitBusyHint={t("uploadConfirmBusyHint")}
+              embeddedObjectTip={t("docxEmbeddedObjectTip")}
               invalidFileLabel={t("uploadInvalidFile")}
               onSubmit={handleCreateReview}
               errorMessage={uploadError}
@@ -285,6 +287,7 @@ export function ReviewChatBoard() {
               ) : null}
               <PlanConfirmBubble
                 title={t("planTitle")}
+                domainBadgePrefix={t("planDomainPrefix")}
                 badge={
                   planBubble.domain.trim().length > 0
                     ? planBubble.domain
@@ -302,6 +305,7 @@ export function ReviewChatBoard() {
                 creditsLoading={planCreditsLoading}
                 estimatedCredits={planEstimatedCredits}
                 labelWordCount={t("planStatsWordLabel")}
+                wordCountScopeHint={t("planStatsWordScope")}
                 labelEstimatedCredits={t("planStatsCreditsLabel")}
                 creditsLoadingText={t("planStatsCreditsLoading")}
                 creditsValueText={
@@ -328,14 +332,26 @@ export function ReviewChatBoard() {
                 }
                 formatRequirementsLabel={t("formatRequirementsLabel")}
                 formatRequirementsPlaceholder={t("formatRequirementsPlaceholder")}
-                formatRequirementsHint={t("formatRequirementsHint")}
+                formatRequirementsHint={
+                  activeReview.status === "pending"
+                    ? t("formatRequirementsHint")
+                    : planBubble.planOptions.format
+                      ? t("formatRequirementsHintApplied")
+                      : t("formatRequirementsHint")
+                }
                 importDefaultFormatLabel={t("importDefaultFormat")}
                 importDefaultFormatBusy={importFormatBusy}
                 importDefaultFormatBusyLabel={t("importDefaultFormatBusy")}
                 startLabel={t("planStart")}
                 startingLabel={t("planStarting")}
                 showStartButton={activeReview.status === "pending"}
+                planScopeSummary={
+                  activeReview.status !== "pending" ? t("planScopeSummary") : undefined
+                }
                 footerNote={activeReview.status === "processing" ? t("planRunningFooter") : undefined}
+                embeddedObjectTip={
+                  activeReview.status === "pending" ? t("docxEmbeddedObjectTip") : undefined
+                }
                 disabled={activeReview.status !== "pending"}
                 onStart={async () => {
                   setPlanError("");

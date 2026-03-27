@@ -90,7 +90,7 @@ void (async () => {
       if (!textPreview) continue;
       const ctxTag = n.context && n.context !== "body" ? ` [${n.context}]` : "";
       console.log(
-        `  [${i}] style="${n.paragraphStyleId ?? "–"}" font="${n.font ?? "–"}" size=${n.size_pt ?? "–"}pt bold=${n.bold ?? "–"}${ctxTag}  「${textPreview}」`
+        `  [${i}] style="${n.paragraphStyleId ?? "–"}" font_zh="${n.font_zh ?? "–"}" font_en="${n.font_en ?? "–"}" size=${n.size_pt ?? "–"}pt bold=${n.bold ?? "–"}${ctxTag}  「${textPreview}」`
       );
       if (n.runs && n.runs.length > 1) {
         for (let j = 0; j < n.runs.length; j++) {
@@ -98,7 +98,7 @@ void (async () => {
           const rt = run.text.trim().slice(0, 40);
           if (!rt) continue;
           console.log(
-            `      run[${j}] font="${run.font ?? "–"}" size=${run.size_pt ?? "–"}pt bold=${run.bold ?? "–"}  「${rt}」`
+            `      run[${j}] font_zh="${run.font_zh ?? "–"}" font_en="${run.font_en ?? "–"}" size=${run.size_pt ?? "–"}pt bold=${run.bold ?? "–"}  「${rt}」`
           );
         }
       }

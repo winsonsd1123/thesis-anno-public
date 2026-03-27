@@ -8,6 +8,14 @@ import { readDocxXmlParts } from "./docx-ooxml-zip";
 import { buildDocxStyleAst } from "./docx-style-ast";
 
 /**
+ * Mammoth 会对部分标点加反斜杠，避免被当成 Markdown 列表/强调/链接语法。
+ * 送给 LLM 审阅时按近纯文本呈现，去掉这些转义以减少「误用反斜杠」类假阳性。
+ */
+export function stripMammothMarkdownEscapes(markdown: string): string {
+  return markdown.replace(/\\([.*_()[\]])/g, "$1");
+}
+
+/**
  * 统一解析层：Mammoth Markdown 主干 + OOXML 样式 AST。
  * 供 `orchestrate-review` 在 DOCX 迁移完成后，于调用 LLM 前注入审阅管线。
  */
@@ -29,7 +37,9 @@ export async function parseHybridDocx(buffer: Buffer): Promise<HybridDocxParseRe
     throw new Error(`HYBRID_DOCX_STYLE_XML: ${reason}`);
   }
 
-  const { value: markdown, messages } = mdRes.value;
+  const markdown = stripMammothMarkdownEscapes(mdRes.value.value);
+  const messages = mdRes.value.messages;
+
   const { documentXml, stylesXml } = xmlRes.value;
 
   let styleAst;

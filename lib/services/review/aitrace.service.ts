@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { generateObject, zodSchema } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
+import { stripEmptyHtmlAnchors } from "@/lib/review/strip-empty-html-anchors";
 import type { AiTraceContextPayload } from "./format.service";
 import { ReviewEngineError } from "./review-errors";
 
@@ -44,13 +45,22 @@ export type AiTraceLlmObject = z.infer<typeof AiTraceResultSchema>;
 
 export type AiTraceReviewResult = AiTraceLlmObject;
 
+function sanitizeAiTraceIssue(issue: AiTraceIssue): AiTraceIssue {
+  return {
+    ...issue,
+    chapter: stripEmptyHtmlAnchors(issue.chapter),
+    location_anchor: stripEmptyHtmlAnchors(issue.location_anchor),
+    quote_text: stripEmptyHtmlAnchors(issue.quote_text),
+  };
+}
+
 /** 聚合各 chunk 子任务输出，丢弃无法解析的条目。 */
 export function mergeAiTraceChunkOutputs(outputs: unknown[]): AiTraceReviewResult {
   const issues: AiTraceIssue[] = [];
   for (const out of outputs) {
     const parsed = AiTraceResultSchema.safeParse(out);
     if (parsed.success) {
-      issues.push(...parsed.data.issues);
+      issues.push(...parsed.data.issues.map(sanitizeAiTraceIssue));
     }
   }
   return { issues: sortAiTraceIssues(issues) };

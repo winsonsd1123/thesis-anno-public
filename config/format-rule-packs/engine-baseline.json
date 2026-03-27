@@ -7,6 +7,7 @@
     "4": ["Heading4", "heading4", "标题4", "标题 4", "四级标题", "TOC4"]
   },
   "size_tolerance_pt": 0.5,
+  "heading_size_tolerance_pt": 7,
   "body_rule_skip_style_id_substrings": [
     "Title",
     "title",
@@ -17,5 +18,10 @@
     "题注",
     "Caption"
   ],
-  "body_rule_oversize_skip_delta_pt": 2.5
+  "body_rule_oversize_skip_delta_pt": 2.5,
+  "spacing_tolerance_pt": 1,
+  "line_spacing_multiple_tolerance": 0.08,
+  "spacing_lines_tolerance": 0.15,
+  "indent_first_line_chars_tolerance": 0.2,
+  "indent_first_line_pt_tolerance": 1.5
 }

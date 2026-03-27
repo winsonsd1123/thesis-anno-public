@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Play } from "lucide-react";
+import { EmbeddedObjectTip } from "./EmbeddedObjectTip";
 import type { StaticPlanStepId } from "@/lib/review/buildStaticPlan";
 import type { ReviewPlanOptions } from "@/lib/types/review";
 
@@ -13,6 +14,8 @@ export type PlanStepRow = {
 type PlanConfirmBubbleProps = {
   title: string;
   badge: string;
+  /** 领域标签前的说明，如「论文领域：」 */
+  domainBadgePrefix?: string;
   steps: PlanStepRow[];
   planOptions: ReviewPlanOptions;
   /** pending 时可勾选；已开始后只读展示 */
@@ -25,6 +28,8 @@ type PlanConfirmBubbleProps = {
   creditsLoading?: boolean;
   estimatedCredits?: number | null;
   labelWordCount?: string;
+  /** 字数统计口径说明，如「全文估算」 */
+  wordCountScopeHint?: string;
   labelEstimatedCredits?: string;
   creditsLoadingText?: string;
   creditsValueText?: string;
@@ -47,11 +52,16 @@ type PlanConfirmBubbleProps = {
   importDefaultFormatLabel?: string;
   importDefaultFormatBusy?: boolean;
   importDefaultFormatBusyLabel?: string;
+  /** 计划只读时（已启动/已结束）在 checklist 上方的总括说明 */
+  planScopeSummary?: string;
+  /** Visio 等内置对象提示：另存为图片再插入 */
+  embeddedObjectTip?: string;
 };
 
 export function PlanConfirmBubble({
   title,
   badge,
+  domainBadgePrefix,
   steps,
   planOptions,
   planEditable,
@@ -61,6 +71,7 @@ export function PlanConfirmBubble({
   creditsLoading = false,
   estimatedCredits,
   labelWordCount,
+  wordCountScopeHint,
   labelEstimatedCredits,
   creditsLoadingText,
   creditsValueText,
@@ -80,6 +91,8 @@ export function PlanConfirmBubble({
   importDefaultFormatLabel,
   importDefaultFormatBusy = false,
   importDefaultFormatBusyLabel,
+  planScopeSummary,
+  embeddedObjectTip,
 }: PlanConfirmBubbleProps) {
   const [busy, setBusy] = useState(false);
 
@@ -118,7 +131,16 @@ export function PlanConfirmBubble({
 
       <div style={{ padding: "16px 18px 18px" }}>
         {/* 标题行 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 14,
+            flexWrap: "wrap",
+          }}
+        >
           <span
             style={{
               fontSize: 11,
@@ -131,25 +153,54 @@ export function PlanConfirmBubble({
             {title}
           </span>
           {badge ? (
-            <span
+            <div
               style={{
-                fontSize: 11,
-                fontWeight: 500,
-                padding: "3px 9px",
-                borderRadius: 999,
-                background: "var(--bg-subtle)",
-                color: "var(--text-secondary)",
-                border: "1px solid var(--border)",
-                whiteSpace: "nowrap",
-                maxWidth: 220,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                flexShrink: 0,
+                maxWidth: "min(100%, 280px)",
+                justifyContent: "flex-end",
               }}
             >
-              {badge}
-            </span>
+              {domainBadgePrefix ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {domainBadgePrefix}
+                </span>
+              ) : null}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  padding: "3px 9px",
+                  borderRadius: 999,
+                  background: "var(--bg-subtle)",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border)",
+                  whiteSpace: "nowrap",
+                  maxWidth: 200,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {badge}
+              </span>
+            </div>
           ) : null}
         </div>
+
+        {embeddedObjectTip ? (
+          <div style={{ marginBottom: 14 }}>
+            <EmbeddedObjectTip text={embeddedObjectTip} />
+          </div>
+        ) : null}
 
         {wordCount != null && wordCount > 0 ? (
           <div
@@ -178,6 +229,9 @@ export function PlanConfirmBubble({
                 {wordCount.toLocaleString()}
               </span>
             </div>
+            {wordCountScopeHint ? (
+              <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>{wordCountScopeHint}</p>
+            ) : null}
             {showCreditsEstimate ? (
               <div
                 style={{
@@ -266,6 +320,19 @@ export function PlanConfirmBubble({
               }}
             />
           </div>
+        ) : null}
+
+        {planScopeSummary && !planEditable ? (
+          <p
+            style={{
+              margin: "0 0 12px",
+              fontSize: 12,
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+            }}
+          >
+            {planScopeSummary}
+          </p>
         ) : null}
 
         {/* 计划条目（可勾选） */}
