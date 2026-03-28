@@ -8,43 +8,46 @@ const STEP_KEYS = ["upload", "chat", "parallel", "report"] as const;
 const STEP_COLORS = [C.brand, C.teal, C.accent, C.success];
 const STEP_ICONS = ["📤", "💬", "🚀", "📊"];
 
+const LEVEL_COLORS: Record<string, string> = {
+  high: C.danger,
+  medium: C.warning,
+  low: C.teal,
+};
+
+const SCORE_COLORS: Record<string, string> = {
+  brand: C.brand,
+  teal: C.teal,
+  accent: C.accent,
+  success: C.success,
+};
+
+type DemoIssue = { levelKey: string; text: string; anchor: string };
+type DemoFinding = { label: string; count: number; colorKey: string };
+
 function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
   const [activeTab, setActiveTab] = useState(0);
   const tabs = t.raw("preview.tabs") as string[];
 
-  const issues = [
-    {
-      level: "高",
-      color: C.danger,
-      text: "第三章 3.3 节数据分析逻辑存在循环论证，建议重新梳理推理链。",
-      anchor: "§3.3",
-    },
-    {
-      level: "中",
-      color: C.warning,
-      text: "英文摘要第二句存在 Chinglish：「make the experiment」建议替换为「conduct the experiment」。",
-      anchor: "Abstract",
-    },
-    {
-      level: "中",
-      color: C.warning,
-      text: "参考文献 [12] 格式不符合 GB/T 7714-2015，缺少出版年份。",
-      anchor: "参考文献",
-    },
-    {
-      level: "低",
-      color: C.teal,
-      text: "图 2-3 与正文「如图 2-4 所示」引用不一致，请核查编号。",
-      anchor: "§2.2",
-    },
-  ];
+  const issuesRaw = t.raw("preview.demoIssues") as DemoIssue[];
+  const issues = issuesRaw.map((issue) => ({
+    level:
+      issue.levelKey === "high"
+        ? t("preview.levels.high")
+        : issue.levelKey === "medium"
+          ? t("preview.levels.medium")
+          : t("preview.levels.low"),
+    color: LEVEL_COLORS[issue.levelKey] ?? C.textMuted,
+    text: issue.text,
+    anchor: issue.anchor,
+  }));
 
-  const scores = [
-    { label: "格式规范", score: 92, color: C.brand },
-    { label: "内容逻辑", score: 85, color: C.teal },
-    { label: "参考文献", score: 78, color: C.accent },
-    { label: "语言表达", score: 89, color: C.success },
-  ];
+  const findingsRaw = t.raw("preview.demoFindings") as DemoFinding[];
+  const findings = findingsRaw.map((row) => ({
+    label: row.label,
+    count: row.count,
+    color: SCORE_COLORS[row.colorKey] ?? C.brand,
+  }));
+  const totalFindings = findings.reduce((sum, f) => sum + f.count, 0);
 
   return (
     <div
@@ -73,8 +76,9 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
         <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "inherit" }}>
           {t("preview.title")}
         </span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
+            type="button"
             style={{
               background: C.brand,
               color: "white",
@@ -86,9 +90,10 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
               cursor: "pointer",
             }}
           >
-            {t("preview.downloadPdf")}
+            {t("preview.downloadMd")}
           </button>
           <button
+            type="button"
             style={{
               background: C.bgMuted,
               color: C.textSecondary,
@@ -100,7 +105,7 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
               cursor: "pointer",
             }}
           >
-            {t("preview.downloadMd")}
+            {t("preview.printHint")}
           </button>
         </div>
       </div>
@@ -150,36 +155,42 @@ function ResultPreview({ t }: { t: ReturnType<typeof useTranslations> }) {
           >
             <div
               style={{
-                fontSize: 52,
+                fontSize: "clamp(30px, 3.6vw, 40px)",
                 fontWeight: 800,
                 fontFamily: "inherit",
-                letterSpacing: "-2px",
+                letterSpacing: "-1.5px",
                 lineHeight: 1,
-                marginBottom: 6,
+                marginBottom: 8,
               }}
               className="gradient-text"
             >
-              87
+              {totalFindings}
             </div>
-            <div style={{ fontSize: 12, color: C.textMuted }}>{t("preview.overallScore")}</div>
+            <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.45, padding: "0 4px" }}>
+              {t("preview.summaryCaption")}
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {scores.map((item) => (
-              <div key={item.label}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <span style={{ fontSize: 12, color: C.textSecondary }}>{item.label}</span>
-                  <span style={{ fontSize: 12, color: C.textPrimary, fontWeight: 600 }}>{item.score}</span>
-                </div>
-                <div style={{ height: 5, background: C.bgMuted, borderRadius: 3, overflow: "hidden" }}>
-                  <div
-                    style={{
-                      width: `${item.score}%`,
-                      height: "100%",
-                      background: `linear-gradient(90deg, ${item.color}, ${item.color}88)`,
-                      borderRadius: 3,
-                    }}
-                  />
-                </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {findings.map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "9px 12px",
+                  background: C.bgSubtle,
+                  borderRadius: 8,
+                  border: `1px solid ${C.border}`,
+                  borderLeft: `3px solid ${item.color}`,
+                }}
+              >
+                <span style={{ fontSize: 12, color: C.textSecondary }}>{item.label}</span>
+                <span style={{ fontSize: 12, color: C.textPrimary, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  {item.count}
+                  <span style={{ fontWeight: 500, color: C.textMuted, marginLeft: 4 }}>{t("preview.findingsUnit")}</span>
+                </span>
               </div>
             ))}
           </div>

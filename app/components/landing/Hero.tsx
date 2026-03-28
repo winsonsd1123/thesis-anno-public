@@ -96,10 +96,10 @@ export function Hero() {
 
             <p
               style={{
-                fontSize: 18,
+                fontSize: "clamp(15px, 1.15vw, 17px)",
                 color: C.textSecondary,
-                lineHeight: 1.7,
-                maxWidth: 440,
+                lineHeight: 1.62,
+                maxWidth: 520,
                 marginBottom: 36,
                 opacity: 0,
                 animation: "fade-up 0.55s ease-out 0.18s forwards",

@@ -9,7 +9,7 @@ export type ReviewStatus =
 
 export type StageAgentStatus = "pending" | "running" | "done" | "failed" | "skipped";
 
-/** 与 `reviews.plan_options` 一致；未落库时由 normalize 视为全 true */
+/** 与 `reviews.plan_options` 一致；未落库时由 normalize 使用默认（格式项默认关闭，其余开启） */
 export type ReviewPlanOptions = {
   format: boolean;
   logic: boolean;
@@ -21,6 +21,10 @@ export type ReviewStageEntry = {
   agent: "format" | "logic" | "aitrace" | "reference";
   status: StageAgentStatus;
   log?: string;
+  /** 局部退款已退回的积分（阶段三写入，幂等守卫） */
+  refunded_amount?: number;
+  /** 局部退款完成时间（存在即表示已退款） */
+  refunded_at?: string;
 };
 
 export type ReviewRow = {
@@ -32,6 +36,10 @@ export type ReviewRow = {
   domain: string | null;
   status: ReviewStatus;
   cost: number;
+  /** 开始审阅时写入的各模块积分单价快照（billing v2），rollback 时清空 */
+  cost_breakdown?: Record<string, number> | null;
+  /** 累计已退款积分；真实净耗 = cost - refunded_amount */
+  refunded_amount?: number;
   stages: ReviewStageEntry[] | null;
   /** 用户勾选的审阅维度；null 表示尚未持久化（按全选处理） */
   plan_options: ReviewPlanOptions | null;

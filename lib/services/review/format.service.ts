@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { generateObject, zodSchema } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
-import type { DocxStyleAstNode } from "@/lib/types/docx-hybrid";
+import type { DocxStyleAstNode, DocumentSetup } from "@/lib/types/docx-hybrid";
 import {
   formatPhysicalExtractSchema,
   type FormatPhysicalExtract,
@@ -113,6 +113,12 @@ const LocalSemanticResultSchema = z.object({
   issues: z.array(localSemanticIssueSchema),
 });
 
+/** 单块 Local Pass 语义结果（供 Trigger 子任务序列化/反序列化）*/
+export type FormatLocalSemanticResult = z.infer<typeof LocalSemanticResultSchema>;
+
+/** 编排层注入的 Local 执行器接口；Trigger 实现时走 batchTriggerAndWait，测试/回退时走进程内批量 */
+export type RunFormatLocalChunksFn = (chunks: string[]) => Promise<FormatLocalSemanticResult[]>;
+
 /** 合并后的完整语义 issue 类型 */
 const semanticIssueSchema = z.discriminatedUnion("issue_type", [
   globalSemanticIssueSchema,
@@ -191,13 +197,42 @@ async function withRetries<T>(
 }
 
 /**
+ * 单块 Local 语义审查，供 Trigger genericLlmBatchTask（action: format_local_chunk）调用。
+ * 带 withRetries（3 次），与进程内 runLocalBatches 容错能力一致。
+ */
+export async function analyzeFormatLocalChunk(
+  chunk: string,
+  fr: FormatReviewContextPayload,
+  contentType: ReviewContentType = "text",
+): Promise<FormatLocalSemanticResult> {
+  const model = getLLMModel(fr.semantic.localModelConfig.model);
+  const system = fr.semantic.localPromptTemplate.replace(
+    "{{format_guidelines}}",
+    fr.formatGuidelines,
+  );
+  const schema = zodSchema(LocalSemanticResultSchema);
+  return withRetries(() =>
+    generateObject({
+      model,
+      temperature: fr.semantic.localModelConfig.temperature,
+      system,
+      messages: buildReviewMessages(chunk, contentType),
+      schema,
+    }).then((r) => r.object),
+  );
+}
+
+/**
  * 双轨：语义轨（高级模型 + Markdown）与 NL→Extract→compile→物理规则引擎（styleAst）。
  */
 export async function analyzeFormat(
   markdown: string,
   styleAst: DocxStyleAstNode[],
   contentType: ReviewContentType,
-  ctx: ReviewAnalyzeContext
+  ctx: ReviewAnalyzeContext,
+  documentSetup?: DocumentSetup,
+  headerFooterAst?: DocxStyleAstNode[],
+  runLocalChunksFn?: RunFormatLocalChunksFn,
 ): Promise<FormatReviewResult> {
   const fr = ctx.formatReview;
   if (!fr) {
@@ -242,12 +277,13 @@ export async function analyzeFormat(
     }).then((r) => r.object)
   );
 
-  // --- 构建 Local Tasks（按章分块，每批 4 个并发，防 429）---
+  // --- 构建 Local Tasks ---
   const localChunks = splitMarkdownByChapters(markdown);
-  const LOCAL_BATCH_SIZE = 4;
+  // 进程内回退并发数（runLocalChunksFn 未注入时使用）；正常由 Trigger batchTriggerAndWait 控制并发
+  const LOCAL_BATCH_SIZE = 2;
 
-  async function runLocalBatches(): Promise<z.infer<typeof LocalSemanticResultSchema>[]> {
-    const results: z.infer<typeof LocalSemanticResultSchema>[] = [];
+  async function runLocalBatches(): Promise<FormatLocalSemanticResult[]> {
+    const results: FormatLocalSemanticResult[] = [];
     for (let i = 0; i < localChunks.length; i += LOCAL_BATCH_SIZE) {
       const batch = localChunks.slice(i, i + LOCAL_BATCH_SIZE);
       const batchResults = await Promise.all(
@@ -279,9 +315,10 @@ export async function analyzeFormat(
     }).then((r) => r.object)
   );
 
-  // Global + Local 并发启动，Extract 同时跑
+  // Global + Local 并发启动，Extract 同时跑；Local 优先走注入的 runLocalChunksFn（Trigger 子任务），
+  // 未注入时回退为进程内进程 runLocalBatches（LOCAL_BATCH_SIZE = 2）
   const [semSettled, extSettled] = await Promise.allSettled([
-    Promise.all([globalTask, runLocalBatches()]),
+    Promise.all([globalTask, runLocalChunksFn ? runLocalChunksFn(localChunks) : runLocalBatches()]),
     extractTask,
   ]);
 
@@ -328,9 +365,21 @@ export async function analyzeFormat(
     );
   }
 
+  const hasGlobalRules = !!(
+    program.global_rules?.page_setup ||
+    program.global_rules?.header ||
+    program.global_rules?.footer ||
+    program.global_rules?.page_number
+  );
   try {
-    if (program.rules.length > 0) {
-      physicalIssues = runPhysicalRuleEngine(styleAst, program, fr.engineBaseline) as PhysicalMergedIssue[];
+    if (program.rules.length > 0 || hasGlobalRules) {
+      physicalIssues = runPhysicalRuleEngine(
+        styleAst,
+        program,
+        fr.engineBaseline,
+        documentSetup,
+        headerFooterAst,
+      ) as PhysicalMergedIssue[];
     }
   } catch (e) {
     spec_extract_ok = false;

@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import type { DocxStyleAstNode, ParagraphContext, RunSpan, DocumentPartition } from "@/lib/types/docx-hybrid";
+import type { DocxStyleAstNode, DocumentSetup, ParagraphContext, RunSpan, DocumentPartition } from "@/lib/types/docx-hybrid";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -503,6 +503,36 @@ function inferFootnotesContext(pStyleId: string | undefined): boolean {
 
 const REFERENCES_HEADING_RE = /^(参\s*考\s*文\s*献|references|bibliography|works?\s*cited)$/i;
 
+/** 1 cm = 1440/2.54 ≈ 566.93 twips；取 567 为整数近似 */
+function twipsToCm(twips: number): number {
+  return twips / 567;
+}
+
+function extractDocumentSetup(finalSectPr: unknown): DocumentSetup {
+  if (!finalSectPr || typeof finalSectPr !== "object") return {};
+  const sectPr = finalSectPr as Record<string, unknown>;
+  const pgMar = sectPr.pgMar;
+  if (!pgMar || typeof pgMar !== "object") return {};
+  const m = pgMar as Record<string, unknown>;
+  const readTwips = (key: string): number | undefined => {
+    const v = m[`@_${key}`];
+    if (v === undefined || v === null) return undefined;
+    const n = typeof v === "number" ? v : parseInt(String(v), 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
+  const top = readTwips("top");
+  const bottom = readTwips("bottom");
+  const left = readTwips("left");
+  const right = readTwips("right");
+  const margins: DocumentSetup["margins"] = {};
+  if (top !== undefined) margins.top_cm = twipsToCm(top);
+  if (bottom !== undefined) margins.bottom_cm = twipsToCm(bottom);
+  if (left !== undefined) margins.left_cm = twipsToCm(left);
+  if (right !== undefined) margins.right_cm = twipsToCm(right);
+  if (Object.keys(margins).length === 0) return {};
+  return { margins };
+}
+
 function parseDocumentParagraphs(documentXml: string): { tagged: TaggedParagraph[], finalSectPr: unknown } {
   const doc = parser.parse(documentXml) as Record<string, unknown>;
   const root = doc.document ?? doc;
@@ -512,6 +542,61 @@ function parseDocumentParagraphs(documentXml: string): { tagged: TaggedParagraph
   const paragraphs: TaggedParagraph[] = [];
   collectParagraphElements(body, paragraphs, false);
   return { tagged: paragraphs, finalSectPr: (body as Record<string, unknown>).sectPr };
+}
+
+/** 检测段落 JSON 树中是否含有 PAGE 域（fldSimple 或 instrText） */
+function hasPAGEField(p: unknown): boolean {
+  if (!p || typeof p !== "object") return false;
+  const po = p as Record<string, unknown>;
+
+  // fldSimple[@_instr] 含 "PAGE"
+  for (const fld of ensureArray(po.fldSimple)) {
+    if (!fld || typeof fld !== "object") continue;
+    const instr = (fld as Record<string, unknown>)["@_instr"];
+    if (typeof instr === "string" && instr.includes("PAGE")) return true;
+  }
+
+  // run 内的 instrText 含 "PAGE"
+  for (const run of ensureArray(po.r)) {
+    if (!run || typeof run !== "object") continue;
+    for (const instrText of ensureArray((run as Record<string, unknown>).instrText)) {
+      const t = extractWText(instrText);
+      if (t.includes("PAGE")) return true;
+    }
+  }
+  return false;
+}
+
+/** 将页眉或页脚 XML 解析为 DocxStyleAstNode 数组，context 统一标记为 hfCtx */
+function parseHeaderFooterXml(
+  xml: string,
+  hfCtx: "header" | "footer",
+  styleMap: Map<string, StyleDef>,
+  docDefaultsRPr: RPrParts,
+): DocxStyleAstNode[] {
+  let doc: Record<string, unknown>;
+  try {
+    doc = parser.parse(xml) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  // 页眉根元素为 w:hdr，页脚为 w:ftr；removeNSPrefix 后去掉 w: 前缀
+  const root = doc.hdr ?? doc.ftr ?? doc;
+  if (!root || typeof root !== "object") return [];
+
+  const tagged: TaggedParagraph[] = [];
+  collectParagraphElements(root, tagged, false);
+
+  const nodes: DocxStyleAstNode[] = [];
+  for (const t of tagged) {
+    const node = paragraphToNode({ raw: t.raw, context: hfCtx }, styleMap, docDefaultsRPr);
+    if (hasPAGEField(t.raw)) {
+      node.has_page_number = true;
+    }
+    // 清理内部标记字段（_isPageReset/_isTocField/_isSectPr 已在 paragraphToNode 末尾 delete）
+    nodes.push(node);
+  }
+  return nodes;
 }
 
 function rprToRunSpan(text: string, rpr: RPrParts): RunSpan {
@@ -729,15 +814,29 @@ function partitionDocumentAst(nodes: InternalAstNode[], finalSectPr: unknown, to
 }
 
 /**
- * 从 `document.xml` + `styles.xml` 构建段落级样式 AST（quote_text + 字体/字号等）。
- * 并在后扫描阶段完成全局区段切分 (Partitioning)。
+ * 从 `document.xml` + `styles.xml`（+ 可选页眉页脚 XML）构建段落级样式 AST。
+ * - `nodes`：正文 AST，经过 partitionDocumentAst 分区标注。
+ * - `headerFooterNodes`：页眉页脚节点，**不**经过分区，独立返回。
+ * - `setup`：文档全局设置（页边距）。
  */
-export function buildDocxStyleAst(documentXml: string, stylesXml: string | null): DocxStyleAstNode[] {
+export function buildDocxStyleAst(
+  documentXml: string,
+  stylesXml: string | null,
+  headerXmls: string[] = [],
+  footerXmls: string[] = [],
+): { nodes: DocxStyleAstNode[]; headerFooterNodes: DocxStyleAstNode[]; setup: DocumentSetup } {
   const { map: styleMap, docDefaultsRPr, tocStyleIds } = parseStyles(stylesXml);
   const { tagged, finalSectPr } = parseDocumentParagraphs(documentXml);
   const nodes = tagged.map((t) => paragraphToNode(t, styleMap, docDefaultsRPr));
 
   partitionDocumentAst(nodes, finalSectPr, tocStyleIds);
 
-  return nodes;
+  const setup = extractDocumentSetup(finalSectPr);
+
+  const headerFooterNodes: DocxStyleAstNode[] = [
+    ...headerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "header", styleMap, docDefaultsRPr)),
+    ...footerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "footer", styleMap, docDefaultsRPr)),
+  ];
+
+  return { nodes, headerFooterNodes, setup };
 }

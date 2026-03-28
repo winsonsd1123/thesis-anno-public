@@ -3,11 +3,18 @@ import yauzl from "yauzl";
 /** 单份 OOXML 文本部件上限，防止异常大包导致 OOM */
 const MAX_XML_BYTES = 20 * 1024 * 1024;
 
+const HEADER_FOOTER_RE = /^word\/(header|footer)\d+\.xml$/;
+
 /**
- * 使用 yauzl 按 entry 读取 DOCX（zip），仅加载 `word/document.xml` 与 `word/styles.xml`，
- * 不展开 `word/media/` 等大文件。
+ * 使用 yauzl 按 entry 读取 DOCX（zip），加载 `word/document.xml`、`word/styles.xml`
+ * 以及所有 `word/header*.xml` / `word/footer*.xml`，不展开 `word/media/` 等大文件。
  */
-export function readDocxXmlParts(buffer: Buffer): Promise<{ documentXml: string; stylesXml: string | null }> {
+export function readDocxXmlParts(buffer: Buffer): Promise<{
+  documentXml: string;
+  stylesXml: string | null;
+  headerXmls: string[];
+  footerXmls: string[];
+}> {
   return new Promise((resolve, reject) => {
     yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
       if (err) {
@@ -21,6 +28,8 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{ documentXml: string;
 
       let documentXml: string | null = null;
       let stylesXml: string | null = null;
+      const headerXmls: string[] = [];
+      const footerXmls: string[] = [];
 
       zipfile.on("error", reject);
       zipfile.on("end", () => {
@@ -28,17 +37,21 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{ documentXml: string;
           reject(new Error("DOCX_INVALID: missing word/document.xml"));
           return;
         }
-        resolve({ documentXml, stylesXml });
+        resolve({ documentXml, stylesXml, headerXmls, footerXmls });
       });
 
       zipfile.on("entry", (entry) => {
         const name = entry.fileName;
-        if (name !== "word/document.xml" && name !== "word/styles.xml") {
+        const isDocument = name === "word/document.xml";
+        const isStyles = name === "word/styles.xml";
+        const hfMatch = HEADER_FOOTER_RE.exec(name);
+
+        if (!isDocument && !isStyles && !hfMatch) {
           zipfile.readEntry();
           return;
         }
         if (entry.uncompressedSize > MAX_XML_BYTES) {
-          if (name === "word/document.xml") {
+          if (isDocument) {
             reject(new Error("DOCX_INVALID: word/document.xml exceeds size limit"));
             return;
           }
@@ -56,10 +69,16 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{ documentXml: string;
           stream.on("error", reject);
           stream.on("end", () => {
             const text = Buffer.concat(chunks).toString("utf8");
-            if (name === "word/document.xml") {
+            if (isDocument) {
               documentXml = text;
-            } else {
+            } else if (isStyles) {
               stylesXml = text;
+            } else if (hfMatch) {
+              if (hfMatch[1] === "header") {
+                headerXmls.push(text);
+              } else {
+                footerXmls.push(text);
+              }
             }
             zipfile.readEntry();
           });

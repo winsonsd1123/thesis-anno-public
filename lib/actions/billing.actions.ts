@@ -3,13 +3,16 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   getPackageById,
-  estimateCostByWords as estimateCostByWordsFromConfig,
+  calculateReviewCost,
   getMaxAllowedWords,
 } from "@/lib/config/billing";
+import type { CostBreakdownSnapshot } from "@/lib/config/billing";
 import { orderDAL } from "@/lib/dal/order.dal";
 import { walletDAL } from "@/lib/dal/wallet.dal";
 import { zpayService } from "@/lib/services/zpay.service";
 import { headers } from "next/headers";
+import { DEFAULT_REVIEW_PLAN_OPTIONS } from "@/lib/review/planOptions";
+import type { ReviewPlanOptions } from "@/lib/types/review";
 
 async function getBaseUrl(): Promise<string> {
   const h = await headers();
@@ -86,14 +89,20 @@ export async function getWalletBalance(): Promise<number | null> {
   return wallet?.credits_balance ?? null;
 }
 
-export async function estimateCost(wordCount: number): Promise<{
+export async function estimateCost(
+  wordCount: number,
+  planOptions?: ReviewPlanOptions
+): Promise<{
   cost: number | null;
+  breakdown?: CostBreakdownSnapshot;
   error?: string;
 }> {
   const maxWords = await getMaxAllowedWords();
   if (wordCount <= 0 || wordCount > maxWords) {
     return { cost: null, error: "字数超出范围" };
   }
-  const cost = await estimateCostByWordsFromConfig(wordCount);
-  return { cost: cost ?? null, error: cost === null ? "无法估算" : undefined };
+  const plan = planOptions ?? DEFAULT_REVIEW_PLAN_OPTIONS;
+  const result = await calculateReviewCost(wordCount, plan);
+  if (result === null) return { cost: null, error: "无法估算" };
+  return { cost: result.totalCost, breakdown: result.breakdown };
 }

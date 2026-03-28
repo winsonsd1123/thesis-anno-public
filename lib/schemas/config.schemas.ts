@@ -29,17 +29,25 @@ export const billingPackageSchema = z.object({
   tag: z.string().nullable(),
 });
 
+/** 模块消耗明细：各维度独立积分单价（百倍精度） */
+export const moduleCostsSchema = z.object({
+  logic: z.number().int().nonnegative(),
+  format: z.number().int().nonnegative(),
+  aitrace: z.number().int().nonnegative(),
+  reference: z.number().int().nonnegative(),
+}).strict();
+
 /** 字数阶梯：按 max_words 升序排列，取第一个满足 wordCount <= max_words 的规则 */
-export const wordConsumptionRuleSchema = z.object({
-  max_words: z.number(),
-  cost: z.number(),
+export const moduleConsumptionRuleSchema = z.object({
+  max_words: z.number().int().positive(),
+  costs: moduleCostsSchema,
 });
 
 export const billingSchema = z.object({
   version: z.string().optional(),
   currency: z.string().optional(),
   packages: z.array(billingPackageSchema),
-  word_consumption_rules: z.array(wordConsumptionRuleSchema),
+  module_consumption_rules: z.array(moduleConsumptionRuleSchema),
   max_allowed_words: z.number(),
 });
 
@@ -48,4 +56,6 @@ export const systemSchema = z.record(z.string(), z.boolean());
 export type PromptItem = z.infer<typeof promptItemSchema>;
 export type PromptsConfig = z.infer<typeof promptsSchema>;
 export type BillingConfig = z.infer<typeof billingSchema>;
+export type ModuleCosts = z.infer<typeof moduleCostsSchema>;
+export type ModuleConsumptionRule = z.infer<typeof moduleConsumptionRuleSchema>;
 export type SystemConfig = z.infer<typeof systemSchema>;

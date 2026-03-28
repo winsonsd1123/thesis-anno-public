@@ -13,6 +13,7 @@ import { useRouter } from "@/i18n/navigation";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { startReviewEngine } from "@/lib/actions/trigger.action";
 import { estimateCost } from "@/lib/actions/billing.actions";
+import type { CostBreakdownSnapshot } from "@/lib/config/billing";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { AssistantMessageRow, UserMessageRow } from "./ChatMessageRows";
 import { UploadForm } from "./UploadForm";
@@ -28,7 +29,12 @@ function planItemLabel(id: StaticPlanStepId, tr: (k: string) => string): string 
   return tr("planItemRefs");
 }
 
-export function ReviewChatBoard() {
+type ReviewChatBoardProps = {
+  /** 当前用户积分余额，由 ReviewWorkbench 从服务端传入 */
+  balance?: number | null;
+};
+
+export function ReviewChatBoard({ balance }: ReviewChatBoardProps) {
   const t = useTranslations("dashboard.review");
   const router = useRouter();
   const activeReview = useDashboardStore((s) => s.activeReview);
@@ -42,6 +48,7 @@ export function ReviewChatBoard() {
   const [uploadError, setUploadError] = useState("");
   const [planError, setPlanError] = useState("");
   const [planEstimatedCredits, setPlanEstimatedCredits] = useState<number | null>(null);
+  const [planEstimatedBreakdown, setPlanEstimatedBreakdown] = useState<CostBreakdownSnapshot | null>(null);
   const [planCreditsLoading, setPlanCreditsLoading] = useState(false);
   const [formatDraft, setFormatDraft] = useState("");
   const [importFormatBusy, setImportFormatBusy] = useState(false);
@@ -87,25 +94,37 @@ export function ReviewChatBoard() {
     [t]
   );
 
+  const planOptionsKey = activeReview?.plan_options
+    ? JSON.stringify(activeReview.plan_options)
+    : null;
+
+  const insufficientCredits =
+    planEstimatedCredits != null &&
+    balance != null &&
+    planEstimatedCredits > balance;
+
   useEffect(() => {
     let cancelled = false;
     const wc = activeReview?.word_count;
     if (activeReview?.status === "pending" && wc != null && wc > 0) {
       setPlanCreditsLoading(true);
       setPlanEstimatedCredits(null);
-      estimateCost(wc).then((r) => {
+      const plan = activeReview.plan_options ?? undefined;
+      estimateCost(wc, plan).then((r) => {
         if (cancelled) return;
         setPlanCreditsLoading(false);
         setPlanEstimatedCredits(r.cost ?? null);
+        setPlanEstimatedBreakdown(r.breakdown ?? null);
       });
     } else {
       setPlanCreditsLoading(false);
       setPlanEstimatedCredits(null);
+      setPlanEstimatedBreakdown(null);
     }
     return () => {
       cancelled = true;
     };
-  }, [activeReview?.id, activeReview?.status, activeReview?.word_count]);
+  }, [activeReview?.id, activeReview?.status, activeReview?.word_count, planOptionsKey]);
 
   const paperMetaLabel = useCallback(
     (wordCount: number | null) => {
@@ -352,6 +371,11 @@ export function ReviewChatBoard() {
                 embeddedObjectTip={
                   activeReview.status === "pending" ? t("docxEmbeddedObjectTip") : undefined
                 }
+                formatHeavyWarning={t("planFormatHeavyWarning")}
+                stepCosts={planEstimatedBreakdown ?? undefined}
+                insufficientCredits={insufficientCredits}
+                insufficientCreditsHint={insufficientCredits ? t("planInsufficientCredits") : undefined}
+                rechargeHref="/dashboard/billing"
                 disabled={activeReview.status !== "pending"}
                 onStart={async () => {
                   setPlanError("");

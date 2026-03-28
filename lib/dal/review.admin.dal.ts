@@ -154,4 +154,41 @@ export const reviewAdminDAL = {
     if (error) throw new Error(`REVIEW_FAIL: ${error.message}`);
     if (!data) throw new Error("REVIEW_NOT_FOUND");
   },
+
+  /**
+   * 退还单个 agent 的费用快照（幂等）。
+   * 退款额从 reviews.cost_breakdown 读取，禁止调用方传入金额。
+   */
+  async partialRefundReviewStage(
+    reviewId: number,
+    agent: "format" | "logic" | "aitrace" | "reference",
+    reason?: string
+  ): Promise<void> {
+    const supabase = createAdminClient();
+    const { error } = await supabase.rpc("admin_partial_refund_review_stage", {
+      p_review_id: reviewId,
+      p_agent:     agent,
+      p_reason:    reason ?? null,
+    });
+    if (error) {
+      console.error(`PARTIAL_REFUND_STAGE[${agent}] review=${reviewId}:`, error.message);
+      throw new Error(`PARTIAL_REFUND_STAGE: ${error.message}`);
+    }
+  },
+
+  /**
+   * 所有已启用 agent 全部失败时，全额退款并将任务重置为 pending 供用户重试。
+   * 仅在 status = 'processing' 时可用。
+   */
+  async fullRefundProcessingReview(reviewId: number, reason?: string): Promise<void> {
+    const supabase = createAdminClient();
+    const { error } = await supabase.rpc("admin_full_refund_processing_review", {
+      p_review_id: reviewId,
+      p_reason:    reason ?? null,
+    });
+    if (error) {
+      console.error(`FULL_REFUND review=${reviewId}:`, error.message);
+      throw new Error(`FULL_REFUND: ${error.message}`);
+    }
+  },
 };

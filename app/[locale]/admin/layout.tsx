@@ -70,6 +70,12 @@ export default async function AdminLayout({
             >
               {t("config.system")}
             </Link>
+            <Link
+              href="/admin/tickets"
+              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              {t("tickets.navLabel")}
+            </Link>
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

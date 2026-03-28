@@ -3,7 +3,7 @@ import { parseStages } from "@/lib/types/review";
 import { STATIC_PLAN_STEP_IDS } from "@/lib/review/buildStaticPlan";
 
 export const DEFAULT_REVIEW_PLAN_OPTIONS: ReviewPlanOptions = {
-  format: true,
+  format: false,
   logic: true,
   aitrace: true,
   reference: true,

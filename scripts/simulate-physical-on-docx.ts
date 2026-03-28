@@ -55,6 +55,7 @@ async function main() {
   const buf = readFileSync(path);
   const r = await parseHybridDocx(buf);
   const ast = r.styleAst;
+  const { documentSetup, headerFooterAst } = r;
 
   const hist: Record<string, number> = {};
   for (const n of ast) {
@@ -67,8 +68,24 @@ async function main() {
   const mainBody = ast.filter((n) => n.partition === "main_body" && n.text.trim().length > 0);
   console.log("\n=== main_body 非空段落数 ===", mainBody.length);
 
+  if (documentSetup?.margins) {
+    const m = documentSetup.margins;
+    console.log(
+      `\n=== 页面边距（cm）=== 上:${m.top_cm?.toFixed(2)} 下:${m.bottom_cm?.toFixed(2)} 左:${m.left_cm?.toFixed(2)} 右:${m.right_cm?.toFixed(2)}`
+    );
+  }
+
+  if (headerFooterAst.length > 0) {
+    console.log(`\n=== 页眉页脚节点数 === ${headerFooterAst.length}`);
+    for (const n of headerFooterAst.slice(0, 5)) {
+      console.log(
+        `  ctx=${n.context} hasPage=${n.has_page_number ?? false} 「${n.text.slice(0, 40)}」`
+      );
+    }
+  }
+
   const program = compilePhysicalRules(baseline, cucExtract);
-  const issues = runPhysicalRuleEngine(ast, program, baseline);
+  const issues = runPhysicalRuleEngine(ast, program, baseline, documentSetup, headerFooterAst);
   console.log("\n=== 物理轨问题数（手动尺子）===", issues.length);
   for (const it of issues.slice(0, 25)) {
     console.log(

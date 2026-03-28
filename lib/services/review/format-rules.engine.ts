@@ -1,6 +1,6 @@
-import type { DocxStyleAstNode, RunSpan } from "@/lib/types/docx-hybrid";
+import type { DocxStyleAstNode, DocumentSetup, RunSpan } from "@/lib/types/docx-hybrid";
 import type { FormatEngineBaseline } from "@/lib/schemas/format-engine-baseline.schema";
-import type { CompiledParagraphRule, PhysicalRuleProgram } from "@/lib/review/compile-physical-rules";
+import type { CompiledParagraphRule, CompiledStyleRule, PhysicalRuleProgram } from "@/lib/review/compile-physical-rules";
 
 export type PhysicalLayoutIssue = {
   chapter: string;
@@ -469,17 +469,159 @@ function checkBodyRunLevel(
   }
 }
 
+const MARGIN_TOLERANCE_CM = 0.15;
+
+function checkPageMargins(
+  documentSetup: DocumentSetup | undefined,
+  program: PhysicalRuleProgram,
+  issues: PhysicalLayoutIssue[],
+): void {
+  const rule = program.global_rules?.page_setup;
+  if (!rule) return;
+  const margins = documentSetup?.margins;
+
+  const checks: Array<{ label: string; actual: number | undefined; expected: number | undefined }> = [
+    { label: "上边距", actual: margins?.top_cm, expected: rule.marginTopCm },
+    { label: "下边距", actual: margins?.bottom_cm, expected: rule.marginBottomCm },
+    { label: "左边距", actual: margins?.left_cm, expected: rule.marginLeftCm },
+    { label: "右边距", actual: margins?.right_cm, expected: rule.marginRightCm },
+  ];
+
+  for (const { label, actual, expected } of checks) {
+    if (expected === undefined) continue;
+    if (actual === undefined) {
+      issues.push({
+        issue_type: "physical_layout_violation",
+        chapter: "页面设置",
+        quote_text: `${label}`,
+        severity: "Medium",
+        analysis: `未能读取文档${label}数据，无法验证是否符合约 ${expected.toFixed(2)} cm 的要求`,
+        suggestion: `请手动检查${label}是否为约 ${expected.toFixed(2)} cm。`,
+      });
+      continue;
+    }
+    if (Math.abs(actual - expected) > MARGIN_TOLERANCE_CM) {
+      issues.push({
+        issue_type: "physical_layout_violation",
+        chapter: "页面设置",
+        quote_text: `${label}`,
+        severity: "Medium",
+        analysis: `期望${label}约 ${expected.toFixed(2)} cm，实际 ${actual.toFixed(2)} cm`,
+        suggestion: `将${label}调整为约 ${expected.toFixed(2)} cm。`,
+      });
+    }
+  }
+}
+
+function checkStyleRule(
+  node: DocxStyleAstNode,
+  rule: CompiledStyleRule,
+  chapter: string,
+  quote: string,
+  tol: number,
+  issues: PhysicalLayoutIssue[],
+): void {
+  checkFontField(node, -1, node.font_zh, rule.fontAllowlistZh, "中文字体", rule.id, chapter, quote, issues);
+  checkFontField(node, -1, node.font_en, rule.fontAllowlistEn, "西文字体", rule.id, chapter, quote, issues);
+
+  if (rule.sizePt !== undefined && node.size_pt !== undefined) {
+    if (Math.abs(node.size_pt - rule.sizePt) > tol) {
+      issues.push({
+        issue_type: "physical_layout_violation",
+        chapter,
+        quote_text: quote,
+        severity: "Medium",
+        analysis: `规则 ${rule.id}：期望约 ${rule.sizePt}pt，实际 ${node.size_pt}pt`,
+        suggestion: `将字号调整为 ${rule.sizePt} 磅左右。`,
+      });
+    }
+  }
+
+  if (rule.alignmentVal !== undefined && node.paragraph_jc !== undefined) {
+    if (node.paragraph_jc !== rule.alignmentVal) {
+      issues.push({
+        issue_type: "physical_layout_violation",
+        chapter,
+        quote_text: quote,
+        severity: "Medium",
+        analysis: `规则 ${rule.id}：期望对齐方式为 ${rule.alignmentVal}，实际为 ${node.paragraph_jc}`,
+        suggestion: `将对齐方式调整为 ${rule.alignmentVal}。`,
+      });
+    }
+  }
+}
+
+function checkHeaderFooter(
+  headerFooterNodes: DocxStyleAstNode[],
+  program: PhysicalRuleProgram,
+  tol: number,
+  issues: PhysicalLayoutIssue[],
+): void {
+  const headerRule = program.global_rules?.header;
+  const footerRule = program.global_rules?.footer;
+
+  if (headerRule) {
+    const headerNodes = headerFooterNodes.filter((n) => n.context === "header" && n.text.trim().length > 0);
+    for (const node of headerNodes) {
+      checkStyleRule(node, headerRule, "页眉", clipPhysicalText(node.text, 80), tol, issues);
+    }
+  }
+
+  if (footerRule) {
+    const footerNodes = headerFooterNodes.filter((n) => n.context === "footer" && n.text.trim().length > 0);
+    for (const node of footerNodes) {
+      checkStyleRule(node, footerRule, "页脚", clipPhysicalText(node.text, 80), tol, issues);
+    }
+  }
+}
+
+function checkPageNumber(
+  headerFooterNodes: DocxStyleAstNode[],
+  program: PhysicalRuleProgram,
+  tol: number,
+  issues: PhysicalLayoutIssue[],
+): void {
+  const rule = program.global_rules?.page_number;
+  if (!rule) return;
+
+  const pageNumNodes = headerFooterNodes.filter((n) => n.has_page_number);
+  if (pageNumNodes.length === 0) {
+    issues.push({
+      issue_type: "physical_layout_violation",
+      chapter: "页眉/页脚",
+      quote_text: "页码",
+      severity: "Low",
+      analysis: "规则要求页码，但未在页眉页脚中检测到自动生成的页码域（PAGE 域）",
+      suggestion: "请确认页码使用了 Word 自动页码域（插入→页码），而非手动输入数字。",
+    });
+    return;
+  }
+
+  for (const node of pageNumNodes) {
+    checkStyleRule(node, rule, "页码", clipPhysicalText(node.text || "页码", 80), tol, issues);
+  }
+}
+
 /** 参考文献列表的字体/字号由专门参考文献流程处理，不纳入物理格式引擎 */
 const CONTEXT_RULE_KINDS = ["caption", "footnotes"] as const;
 
 export function runPhysicalRuleEngine(
   styleAst: DocxStyleAstNode[],
   program: PhysicalRuleProgram,
-  baseline: FormatEngineBaseline
+  baseline: FormatEngineBaseline,
+  documentSetup?: DocumentSetup,
+  headerFooterNodes?: DocxStyleAstNode[],
 ): PhysicalLayoutIssue[] {
   const inferTol = baseline.size_tolerance_pt ?? 0.5;
   const headingCheckTol = baseline.heading_size_tolerance_pt ?? inferTol;
   const issues: PhysicalLayoutIssue[] = [];
+
+  // 全局校验：页面边距、页眉页脚、页码
+  checkPageMargins(documentSetup, program, issues);
+  const hfNodes = headerFooterNodes ?? [];
+  checkHeaderFooter(hfNodes, program, inferTol, issues);
+  checkPageNumber(hfNodes, program, inferTol, issues);
+
   const headingRules = program.rules.filter((r) => r.match.kind === "heading_level");
 
   const contextRuleMap = new Map(

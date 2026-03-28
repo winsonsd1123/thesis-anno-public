@@ -24,10 +24,34 @@ export type CompiledParagraphRule = {
   indentFirstLinePt?: number;
 };
 
+/** 全局样式规则，用于页眉/页脚/页码校验（无需 match 字段，作用域已知） */
+export type CompiledStyleRule = {
+  id: string;
+  fontAllowlistZh?: string[];
+  fontAllowlistEn?: string[];
+  sizePt?: number;
+  bold?: boolean;
+  lineSpacingPt?: number;
+  lineSpacingMultiple?: number;
+  /** 底层对齐值："center" | "right" | "left" | "both" */
+  alignmentVal?: string;
+};
+
 export type PhysicalRuleProgram = {
   baseline_version: string;
   rules: CompiledParagraphRule[];
   dropped_unsupported: string[];
+  global_rules: {
+    page_setup?: {
+      marginTopCm?: number;
+      marginBottomCm?: number;
+      marginLeftCm?: number;
+      marginRightCm?: number;
+    };
+    header?: CompiledStyleRule;
+    footer?: CompiledStyleRule;
+    page_number?: CompiledStyleRule;
+  };
 };
 
 function buildFontAllowlists(fontZh?: string, fontEn?: string) {
@@ -140,9 +164,44 @@ export function compilePhysicalRules(
     });
   }
 
+  const buildStyleRule = (
+    id: string,
+    s: PhysicalStyleSlice & { alignment?: string },
+  ): CompiledStyleRule => ({
+    id,
+    ...buildFontAllowlists(s.font_zh, s.font_en),
+    sizePt: s.size_pt,
+    lineSpacingPt: s.line_spacing_pt,
+    lineSpacingMultiple: s.line_spacing_multiple,
+    ...(s.alignment ? { alignmentVal: s.alignment } : {}),
+  });
+
+  const global_rules: PhysicalRuleProgram["global_rules"] = {};
+
+  const ps = extract.page_setup;
+  if (ps) {
+    global_rules.page_setup = {
+      marginTopCm: ps.margin_top_cm,
+      marginBottomCm: ps.margin_bottom_cm,
+      marginLeftCm: ps.margin_left_cm,
+      marginRightCm: ps.margin_right_cm,
+    };
+  }
+
+  if (extract.header && hasAnyPhysicalFields(extract.header)) {
+    global_rules.header = buildStyleRule("header-global", extract.header);
+  }
+  if (extract.footer && hasAnyPhysicalFields(extract.footer)) {
+    global_rules.footer = buildStyleRule("footer-global", extract.footer);
+  }
+  if (extract.page_number && hasAnyPhysicalFields(extract.page_number)) {
+    global_rules.page_number = buildStyleRule("page-number-global", extract.page_number);
+  }
+
   return {
     baseline_version: baseline.version,
     rules,
     dropped_unsupported: dropped,
+    global_rules,
   };
 }

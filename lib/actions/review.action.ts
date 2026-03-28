@@ -8,7 +8,8 @@ import { reviewService } from "@/lib/services/review.service";
 import type { ReviewRow } from "@/lib/types/review";
 import { countWordsFromDocxBuffer } from "@/lib/services/docx-word-count.service";
 import { analyzeStagedDocxFromStorage } from "@/lib/services/staged-docx-cost.service";
-import { estimateCostByWords, getMaxAllowedWords } from "@/lib/config/billing";
+import { calculateReviewCost, getMaxAllowedWords } from "@/lib/config/billing";
+import { DEFAULT_REVIEW_PLAN_OPTIONS, normalizePlanOptions } from "@/lib/review/planOptions";
 import { loadDefaultFormatGuidelinesZhFromDisk } from "@/lib/services/review/format-review-config";
 
 const MAX_THESIS_BYTES = 50 * 1024 * 1024;
@@ -59,10 +60,11 @@ export async function createReviewFromDocxUpload(formData: FormData): Promise<Cr
     return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
   }
 
-  const cost = await estimateCostByWords(wordCount);
-  if (cost === null) {
+  const costResult = await calculateReviewCost(wordCount, DEFAULT_REVIEW_PLAN_OPTIONS);
+  if (costResult === null) {
     return { ok: false, error: "COST_UNAVAILABLE" };
   }
+  const cost = costResult.totalCost;
 
   let finalPath: string;
   try {
@@ -140,14 +142,14 @@ export async function stageDocxUploadAndAnalyzeCost(formData: FormData): Promise
     return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
   }
 
-  const cost = await estimateCostByWords(wordCount);
-  if (cost === null) {
+  const stageCostResult = await calculateReviewCost(wordCount, DEFAULT_REVIEW_PLAN_OPTIONS);
+  if (stageCostResult === null) {
     return { ok: false, error: "COST_UNAVAILABLE" };
   }
 
   try {
     const stagingPath = await storageDAL.uploadStagingDocx(auth.user.id, buf);
-    return { ok: true, stagingPath, wordCount, cost, fileName: file.name };
+    return { ok: true, stagingPath, wordCount, cost: stageCostResult.totalCost, fileName: file.name };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[stageDocxUploadAndAnalyzeCost] storage", msg);
@@ -329,7 +331,8 @@ export async function replaceReviewPdf(reviewId: number, formData: FormData): Pr
     return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
   }
 
-  const costCheck = await estimateCostByWords(wordCount);
+  const replacePlan = normalizePlanOptions(existing.plan_options);
+  const costCheck = await calculateReviewCost(wordCount, replacePlan);
   if (costCheck === null) {
     return { ok: false, error: "COST_UNAVAILABLE" };
   }

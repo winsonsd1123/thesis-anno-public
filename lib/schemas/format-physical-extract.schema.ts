@@ -56,6 +56,15 @@ export const formatPhysicalExtractSchema = z.object({
   /** 脚注规则 */
   footnotes: PhysicalStyleSchema.optional().describe("脚注格式"),
 
+  /** 页眉格式（字体、字号、对齐等） */
+  header: PhysicalStyleSchema.optional().describe("页眉格式"),
+
+  /** 页脚格式（字体、字号、对齐等） */
+  footer: PhysicalStyleSchema.optional().describe("页脚格式"),
+
+  /** 页码格式（对齐、字体、字号）；复用 PhysicalStyleSchema 保持 font_zh/font_en 分离与 alignment 枚举一致 */
+  page_number: PhysicalStyleSchema.optional().describe("页码格式（对齐、字体、字号）"),
+
   /** 无法结构化为上述物理规则的要求（由大模型填入，供人工排查或直接忽略） */
   notes_unenforceable: z.array(z.string()).optional().describe("属于格式要求，但无法用上述字段表达的物理规则"),
 });

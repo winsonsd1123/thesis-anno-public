@@ -7,8 +7,15 @@ import { promptsSchema } from "@/lib/schemas/config.schemas";
 import type { PromptsConfig } from "@/lib/schemas/config.schemas";
 import { getPromptsDirect } from "@/lib/services/config.service";
 import { parseHybridDocx } from "@/lib/review/hybrid-docx-parser";
-import { analyzeFormat } from "@/lib/services/review/format.service";
-import type { ReviewAnalyzeContext } from "@/lib/services/review/format.service";
+import {
+  analyzeFormat,
+  analyzeFormatLocalChunk,
+} from "@/lib/services/review/format.service";
+import type {
+  ReviewAnalyzeContext,
+  RunFormatLocalChunksFn,
+  FormatLocalSemanticResult,
+} from "@/lib/services/review/format.service";
 import { analyzeLogic } from "@/lib/services/review/logic.service";
 import { analyzeAiTraceChunk, mergeAiTraceChunkOutputs } from "@/lib/services/review/aitrace.service";
 import {
@@ -59,7 +66,7 @@ export const genericLlmBatchTask = task({
   id: "generic-llm-batch-task",
   queue: {
     name: "llm-batch-queue",
-    concurrencyLimit: 5,
+    concurrencyLimit: 3,
   },
   run: async (payload: GenericLlmBatchPayload) => {
     if (payload.action === "verify_references") {
@@ -75,6 +82,17 @@ export const genericLlmBatchTask = task({
         throw new Error("aitrace_chunk: context.aiTrace is required");
       }
       return await analyzeAiTraceChunk(chunk, at);
+    }
+    if (payload.action === "format_local_chunk") {
+      const chunk = payload.dataBatch[0];
+      if (typeof chunk !== "string") {
+        throw new Error("format_local_chunk: dataBatch[0] must be a string (chunk text)");
+      }
+      const fr = payload.context.formatReview;
+      if (!fr) {
+        throw new Error("format_local_chunk: context.formatReview is required");
+      }
+      return await analyzeFormatLocalChunk(chunk, fr);
     }
     throw new Error(`Unknown batch action: ${payload.action}`);
   },
@@ -165,6 +183,7 @@ export const orchestrateReview = task({
         };
       }
 
+      let runLocalChunksFn: RunFormatLocalChunksFn | undefined;
       let referenceVerifyBatchSize = 10;
       if (plan.reference) {
         const refExtractCfg = promptsConfig.reference_extract;
@@ -245,6 +264,32 @@ export const orchestrateReview = task({
           },
           engineBaseline: loadEngineBaselineFromDisk(),
         };
+
+        /** 与 llm-batch-queue concurrencyLimit: 3 一致 */
+        const FORMAT_LOCAL_WAVE_SIZE = 3;
+        runLocalChunksFn = async (chunks) => {
+          const results: FormatLocalSemanticResult[] = [];
+          for (let i = 0; i < chunks.length; i += FORMAT_LOCAL_WAVE_SIZE) {
+            const wave = chunks.slice(i, i + FORMAT_LOCAL_WAVE_SIZE);
+            const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
+              wave.map((chunk) => ({
+                payload: {
+                  action: "format_local_chunk",
+                  dataBatch: [chunk],
+                  context: ctx,
+                } satisfies GenericLlmBatchPayload,
+              }))
+            );
+            for (const run of batchResult.runs) {
+              results.push(
+                run.ok && run.output != null
+                  ? (run.output as FormatLocalSemanticResult)
+                  : { issues: [] }
+              );
+            }
+          }
+          return results;
+        };
       }
 
       const [formatRes, logicRes] = await Promise.all([
@@ -252,7 +297,7 @@ export const orchestrateReview = task({
           ? runAgent(
               reviewId,
               "format",
-              () => analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx),
+              () => analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx, hybrid.documentSetup, hybrid.headerFooterAst, runLocalChunksFn),
               { runningLog: "正在对照格式说明进行语义与版式分析…" }
             )
           : skippedAgent("format"),
@@ -266,8 +311,8 @@ export const orchestrateReview = task({
           : skippedAgent("logic"),
       ]);
 
-      /** 与 genericLlmBatchTask.queue.concurrencyLimit 对齐，分批并行以便进度仅展示百分比、不暴露块数 */
-      const AITRACE_WAVE_SIZE = 5;
+      /** 与 llm-batch-queue concurrencyLimit: 3 一致，分批并行以便进度仅展示百分比、不暴露块数 */
+      const AITRACE_WAVE_SIZE = 3;
 
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
@@ -406,6 +451,46 @@ export const orchestrateReview = task({
         aitrace_result: aitraceRes.ok ? aitraceRes.value : { error: aitraceRes.error },
         reference_result: refRes.ok ? refRes.value : { error: refRes.error },
       };
+
+      // ── 退款逻辑：在 completeReview 之前按失败维度处理退款 ──────────────────────
+      type AgentKey = "format" | "logic" | "aitrace" | "reference";
+      const agentResults: Array<{ agent: AgentKey; ok: boolean }> = [
+        { agent: "format",    ok: !plan.format    || formatRes.ok },
+        { agent: "logic",     ok: !plan.logic     || logicRes.ok },
+        { agent: "aitrace",   ok: !plan.aitrace   || aitraceRes.ok },
+        { agent: "reference", ok: !plan.reference || refRes.ok },
+      ];
+
+      // 已启用且失败的 agent 列表
+      const enabledFailedAgents = agentResults.filter(
+        ({ agent, ok }) => plan[agent] && !ok
+      );
+
+      // 所有已启用的 agent 全部失败 → 全额退款，重置为 pending，不 complete
+      const allEnabledAgents = (["format", "logic", "aitrace", "reference"] as AgentKey[]).filter(
+        (a) => plan[a]
+      );
+      const allFailed =
+        allEnabledAgents.length > 0 &&
+        enabledFailedAgents.length === allEnabledAgents.length;
+
+      if (allFailed) {
+        console.warn("[orchestrate-review] all enabled agents failed, issuing full refund", reviewId);
+        await reviewAdminDAL.fullRefundProcessingReview(reviewId, "all_enabled_agents_failed");
+        // 任务已重置为 pending，不再调用 completeReview
+        return;
+      }
+
+      // 部分失败 → 逐模块退款，然后照常 complete
+      for (const { agent } of enabledFailedAgents) {
+        try {
+          await reviewAdminDAL.partialRefundReviewStage(reviewId, agent, "agent_failed");
+        } catch (refundErr) {
+          // 退款失败不应阻断 complete（已打日志于 DAL 层）
+          console.error(`[orchestrate-review] partial refund failed for ${agent}`, reviewId, refundErr);
+        }
+      }
+      // ── 退款逻辑结束 ──────────────────────────────────────────────────────────────
 
       await reviewAdminDAL.completeReview(reviewId, finalResult);
     } catch (error: unknown) {

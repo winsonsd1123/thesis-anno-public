@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { reviewService } from "@/lib/services/review.service";
-import { estimateCostByWords, getMaxAllowedWords } from "@/lib/config/billing";
+import { calculateReviewCost, getMaxAllowedWords } from "@/lib/config/billing";
 import type { ReviewPlanOptions } from "@/lib/types/review";
 import { normalizePlanOptions, planHasAtLeastOneEnabled } from "@/lib/review/planOptions";
 
@@ -19,6 +19,7 @@ function mapStartReviewRpcError(message: string): string {
   if (m.includes("NOT_AUTHENTICATED")) return "NOT_AUTHENTICATED";
   if (m.includes("WALLET_NOT_FOUND")) return "WALLET_NOT_FOUND";
   if (m.includes("INVALID_CREDITS")) return "INVALID_CREDITS";
+  if (m.includes("BREAKDOWN_MISMATCH")) return "START_FAILED";
   return "START_FAILED";
 }
 
@@ -73,15 +74,16 @@ export async function startReviewEngine(
     return { ok: false, error: "WORD_COUNT_OUT_OF_RANGE" };
   }
 
-  const cost = await estimateCostByWords(wc);
-  if (cost === null) {
+  const costResult = await calculateReviewCost(wc, plan);
+  if (costResult === null) {
     return { ok: false, error: "COST_UNAVAILABLE" };
   }
 
   const { error: rpcError } = await supabase.rpc("start_review_and_deduct", {
-    p_review_id: reviewId,
-    p_required_credits: cost,
-    p_plan: plan,
+    p_review_id:      reviewId,
+    p_total_cost:     costResult.totalCost,
+    p_cost_breakdown: costResult.breakdown,
+    p_plan_options:   plan,
   });
 
   if (rpcError) {

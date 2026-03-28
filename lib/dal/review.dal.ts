@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_REVIEW_PLAN_OPTIONS } from "@/lib/review/planOptions";
 import type { ReviewRow, ReviewStageEntry } from "@/lib/types/review";
 
 function mapRow(r: Record<string, unknown>): ReviewRow {
@@ -48,6 +49,8 @@ export const reviewDAL = {
         status: "pending",
         cost: 0,
         stages: [],
+        /** 勿依赖 DB 列默认：库内曾默认为 format:true，与应用层 DEFAULT 对齐 */
+        plan_options: DEFAULT_REVIEW_PLAN_OPTIONS,
       })
       .select("id")
       .single();

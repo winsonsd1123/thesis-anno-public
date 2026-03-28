@@ -3,9 +3,9 @@
 import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
-const FEATURE_KEYS = ["multiAgent", "chat", "visual", "format", "logic", "english"] as const;
+const FEATURE_KEYS = ["multiAgent", "chat", "visual", "format", "logic", "aitrace"] as const;
 const COLORS = [C.brand, C.teal, C.accent, "#8B5CF6", "#0EA5E9", C.success];
-const ICONS = ["🕵️", "💬", "📊", "📋", "🧠", "✍️"];
+const ICONS = ["🕵️", "💬", "📊", "📋", "🧠", "🔎"];
 
 export function Features() {
   const t = useTranslations("landing.features");

@@ -1,39 +1,48 @@
 {
-  "version": "2.1.0",
+  "version": "3.0.0",
   "currency": "CNY",
   "packages": [
     {
       "id": "pkg_single",
       "name": "Single Pass",
       "nameZh": "单次体验",
-      "credits": 1,
-      "price": 1,
-      "original_price": 990,
+      "credits": 300,
+      "price": 2990,
+      "original_price": 3990,
       "tag": "Hot"
     },
     {
       "id": "pkg_standard",
       "name": "Standard Bundle",
       "nameZh": "标准套餐",
-      "credits": 10,
-      "price": 1,
-      "original_price": 9900,
+      "credits": 2200,
+      "price": 19900,
+      "original_price": 29900,
       "tag": "Best Value"
     },
     {
       "id": "pkg_pro",
       "name": "Pro Bundle",
       "nameZh": "专业套餐",
-      "credits": 50,
-      "price": 39900,
-      "original_price": 49900,
+      "credits": 6000,
+      "price": 49900,
+      "original_price": 59900,
       "tag": null
     }
   ],
-  "word_consumption_rules": [
-    { "max_words": 30000, "cost": 1 },
-    { "max_words": 50000, "cost": 2 },
-    { "max_words": 120000, "cost": 3 }
+  "module_consumption_rules": [
+    {
+      "max_words": 30000,
+      "costs": { "logic": 120, "format": 120, "aitrace": 30, "reference": 30 }
+    },
+    {
+      "max_words": 50000,
+      "costs": { "logic": 240, "format": 240, "aitrace": 60, "reference": 60 }
+    },
+    {
+      "max_words": 120000,
+      "costs": { "logic": 360, "format": 360, "aitrace": 90, "reference": 90 }
+    }
   ],
   "max_allowed_words": 120000
 }

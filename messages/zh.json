@@ -70,55 +70,72 @@
       "title1": "导师级 AI",
       "title2": "为你的论文",
       "title3": "保驾护航",
-      "subtitle": "多智能体协作批阅，格式规范、内容逻辑、参考文献三维并行审查，5 分钟内出具「导师级」预审报告。",
+      "subtitle": "上传 Word（.docx），用对话确认学位类型与审阅范围。格式、逻辑、AI 痕迹、参考文献由多智能体分工协作、可按需勾选并行运行；积分按所选智能体与字数阶梯合计扣除，通常数分钟内生成结构化预审报告。",
       "stat1": "< 5min",
-      "stat1Label": "完整批阅",
-      "stat2": "5 维度",
-      "stat2Label": "全方位检查",
-      "stat3": "GB/T",
-      "stat3Label": "国家标准",
+      "stat1Label": "常见耗时",
+      "stat2": "4",
+      "stat2Label": "协作智能体",
+      "stat3": "12万",
+      "stat3Label": "汉字上限",
       "ctaPrimary": "立即免费体验",
       "ctaSecondary": "查看演示",
       "trust1": "✓ 无需绑卡",
       "trust2": "✓ 首次免费",
       "trust3": "✓ 点数永久有效",
-      "typedText": "基于深度学习的图像识别研究"
+      "typedText": "基于深度学习的图像识别研究",
+      "preview": {
+        "windowTitle": "ThesisAI · 审阅进行中",
+        "liveBadge": "Live",
+        "fileMeta": "硕士论文 · 计算机视觉 · Word",
+        "statusRunning": "审阅中",
+        "chatSender": "ThesisAI",
+        "chatPrompt": "已识别【计算机视觉】领域硕士论文。更关注逻辑、格式，还是希望我四项都跑一遍？",
+        "chips": ["先查逻辑", "格式也要", "四项全开"],
+        "userReply": "先重点看逻辑论证",
+        "agentsPanelTitle": "智能体进度",
+        "agents": [
+          { "name": "格式检查", "icon": "📋", "progress": 100, "status": "done" },
+          { "name": "逻辑检查", "icon": "🧠", "progress": 68, "status": "running" },
+          { "name": "AI 痕迹", "icon": "🔎", "progress": 42, "status": "running" },
+          { "name": "参考文献", "icon": "📚", "progress": 31, "status": "running" }
+        ]
+      }
     },
     "features": {
       "badge": "核心功能",
       "title": "不只是检查，更是",
       "titleHighlight": "深度理解",
-      "subtitle": "六大维度全面审阅，覆盖中文毕业论文从格式到内容的每一个细节",
+      "subtitle": "围绕中文毕业论文的真实工作流：对话里勾选要跑哪些模块，报告按 Tab 分项呈现，避免「万能黑盒」式承诺。",
       "items": {
         "multiAgent": {
           "title": "多智能体协作",
-          "desc": "格式、逻辑、引用三个专用 AI 智能体并行运行，互不干扰，精准高效。每个 Agent 专注单一领域，结果更深入。",
-          "tags": ["Format Agent", "Logic Agent", "Reference Agent"]
+          "desc": "格式、逻辑、AI 痕迹、参考文献由四类专用智能体分工负责，并行协作、互不拖慢。格式智能体为可选项（默认关闭以节省积分），需要时一键启用。",
+          "tags": ["格式", "逻辑", "AI 痕迹", "参考文献"]
         },
         "chat": {
-          "title": "对话式智能引导",
-          "desc": "类 Gemini Deep Research 的对话体验。AI 主动提问、理解意图，自动配置最适合你论文类型的批阅策略。",
-          "tags": ["ChatGPT 风格", "智能参数提取", "Suggested Chips"]
+          "title": "对话式配置",
+          "desc": "上传后通过对话补充学位类型、关注重点与格式说明；勾选审阅组合后，控制台会给出本次积分预估再开跑。",
+          "tags": ["学位类型", "格式说明", "积分预估"]
         },
         "visual": {
           "title": "可视化批阅过程",
-          "desc": "实时展示 AI「阅读」和「思考」的过程。打字机效果流式输出，进度卡片状态更新，让等待变成享受。",
-          "tags": ["流式输出", "进度可视化", "Optimistic UI"]
+          "desc": "进度面板展示各智能体排队、执行与完成状态；生成过程支持流式反馈，减少干等焦虑。",
+          "tags": ["智能体进度", "流式输出", "状态可追踪"]
         },
         "format": {
-          "title": "深度格式检查",
-          "desc": "严格比对 GB/T 7714-2015 国家标准。检查章节序号连续性、图表索引一致性、页码对应关系。",
-          "tags": ["GB/T 标准", "章节序号", "图表索引"]
+          "title": "格式与版式",
+          "desc": "结合你提供的格式说明与 Word 版式语义（含页眉页脚、页码等）做对照；参考文献体例可对照 GB/T 7714-2015 常见疑点。",
+          "tags": ["格式说明", "版式语义", "GB/T 7714"]
         },
         "logic": {
-          "title": "逻辑链分析",
-          "desc": "段落级批注与逻辑漏洞分析。检查摘要四要素、结论与绪论的前后呼应，识别论证逻辑断层。",
-          "tags": ["段落批注", "逻辑漏洞", "前后呼应"]
+          "title": "逻辑与论证",
+          "desc": "段落级线索与论证链梳理，提示摘要/结论与正文是否呼应、推理是否跳跃等常见答辩风险点。",
+          "tags": ["段落线索", "论证链", "答辩风险"]
         },
-        "english": {
-          "title": "英文摘要润色",
-          "desc": "专项去除 Chinglish，学术词汇智能替换。修改前后对比展示，提升英文摘要学术表达水准。",
-          "tags": ["去 Chinglish", "学术词汇", "对比展示"]
+        "aitrace": {
+          "title": "AI 痕迹检查",
+          "desc": "对正文做 AI 生成痕迹与表达规范性提示，便于你在提交前自查与改写（结果供参考，不构成学术判定）。",
+          "tags": ["痕迹提示", "表达规范", "段落级"]
         }
       }
     },
@@ -130,62 +147,75 @@
       "steps": {
         "upload": {
           "title": "上传论文",
-          "desc": "拖拽 PDF 上传，AI 立即扫描首页，自动识别论文领域与学位类型。",
-          "tag": "PDF · 最大 200MB"
+          "desc": "拖入 Word（.docx），系统解析结构与字数；可填写研究领域（选填）。不支持 PDF 或旧版 .doc。",
+          "tag": "Word · 最大 50MB"
         },
         "chat": {
           "title": "对话式配置",
-          "desc": "AI 主动发问，了解你的学位类型和关注重点，像和导师聊天一样自然。",
+          "desc": "确认学位类型、关注重点、是否启用格式检查及格式说明；开跑前可看到本次积分预估。",
           "tag": "本科 / 硕士 / 博士"
         },
         "parallel": {
-          "title": "多智能体并行",
-          "desc": "三个专用 AI 智能体同时工作，可视化展示每个 Agent 的实时进度。",
-          "tag": "< 5 分钟出结果"
+          "title": "多智能体协作",
+          "desc": "已勾选的四类智能体并行工作，进度区实时展示各智能体状态。",
+          "tag": "通常数分钟内完成"
         },
         "report": {
-          "title": "获取详细报告",
-          "desc": "分 Tab 展示五维度批阅结果，支持一键下载 PDF 或 Markdown 报告。",
-          "tag": "PDF + Markdown 下载"
+          "title": "查看与导出报告",
+          "desc": "报告按「格式 / 逻辑 / AI 痕迹 / 参考文献」分 Tab 展示；可在报告页一键导出 Markdown 汇总，也可用浏览器打印另存为 PDF。",
+          "tag": "Markdown 导出"
         }
       },
       "preview": {
         "title": "批阅报告 · 《基于深度学习的图像识别研究》",
-        "downloadPdf": "下载 PDF",
-        "downloadMd": "下载 Markdown",
-        "tabs": ["总览", "内容逻辑", "格式规范", "参考文献", "语法润色"],
-        "overallScore": "综合评分",
+        "downloadMd": "导出 Markdown",
+        "printHint": "打印为 PDF",
+        "tabs": ["格式检查", "逻辑检查", "AI 痕迹检查", "参考文献检查"],
+        "summaryCaption": "预审线索合计（示例，非打分）",
+        "findingsUnit": "条",
         "coreIssues": "核心问题 · 修改优先级建议",
-        "levels": { "high": "高", "medium": "中", "low": "低" }
+        "levels": { "high": "高", "medium": "中", "low": "低" },
+        "demoFindings": [
+          { "label": "格式规范", "count": 3, "colorKey": "brand" },
+          { "label": "逻辑论证", "count": 4, "colorKey": "teal" },
+          { "label": "参考文献", "count": 2, "colorKey": "accent" },
+          { "label": "AI 痕迹", "count": 3, "colorKey": "success" }
+        ],
+        "demoIssues": [
+          { "levelKey": "high", "text": "第三章 3.3 节数据分析链条存在循环论证，建议重写推理顺序并补充对照说明。", "anchor": "3.3 节" },
+          { "levelKey": "medium", "text": "正文若干段落句式高度模板化，建议人工改写并加入具体数据与限定语，降低机检误判风险。", "anchor": "正文" },
+          { "levelKey": "medium", "text": "参考文献 [12] 疑似缺少年份或卷期信息，请对照 GB/T 7714-2015 核对条目要素。", "anchor": "参考文献" },
+          { "levelKey": "low", "text": "图 2-3 与正文「如图 2-4 所示」引用编号不一致，请统一图表序号与首次引用表述。", "anchor": "2.2 节" }
+        ]
       }
     },
     "pricing": {
       "badge": "点数套餐",
       "title": "透明定价，",
       "titleHighlight": "按需购买",
-      "subtitle": "预付费点数制，无月费，无订阅束缚。购买即用，点数永久有效。",
+      "subtitle": "预付费积分（点数），无月费、无订阅。购买即用，余额永久有效；单次审阅消耗随所选模块与字数区间变化，开跑前可在控制台查看预估。",
       "plans": {
         "single": {
           "name": "单次体验",
           "nameEn": "Single Pass",
-          "unit": "1 次",
-          "desc": "适合初次体验，感受 AI 批阅的效果",
-          "features": ["1 次完整论文批阅", "五维度审阅报告", "PDF 报告下载", "< 60 页论文", "基础客服支持"]
+          "unit": "入门包",
+          "desc": "适合初次体验模块化审阅与积分体系",
+          "features": ["一笔到账积分，按次扣减", "四模块可选组合", "Markdown 报告导出", "Word（.docx）最大 50MB", "支持工单/客服通道（视运营配置）"]
         },
         "standard": {
           "name": "标准套餐",
           "nameEn": "Standard Bundle",
-          "unit": "10 次",
-          "desc": "最受欢迎，适合毕业季多次修改迭代",
+          "unit": "热销包",
+          "desc": "适合毕业季多轮改稿、反复开跑",
           "popular": "最受欢迎",
-          "features": ["10 次完整论文批阅", "五维度审阅报告", "PDF + Markdown 下载", "支持 100 页以内论文", "优先处理队列", "完整历史记录"]
+          "features": ["更高积分存量，单次仍按模块计费", "四模块报告 Tab + 历史记录", "Markdown 一键导出", "单篇最高约 12 万汉字（以系统配置为准）", "优先队列（视后台策略）"]
         },
         "pro": {
           "name": "专业套餐",
           "nameEn": "Pro Bundle",
-          "unit": "50 次",
-          "desc": "适合导师、研究团队或机构批量使用",
-          "features": ["50 次完整论文批阅", "五维度审阅报告", "PDF + Markdown 下载", "支持 150 页以内论文", "最高优先级队列", "完整历史记录与导出", "专属客服工单"]
+          "unit": "团队包",
+          "desc": "适合课题组、助教批量协助同学",
+          "features": ["大包装积分，适合高频使用", "模块化计费 + 失败模块自动退积分", "导出与历史记录完整保留", "单篇字数上限同上", "管理端工单/退款协同（视运营配置）"]
         }
       },
       "buyNow": "立即购买 →",
@@ -193,32 +223,32 @@
       "goToRecharge": "去充值",
       "save": "节省 20%",
       "savePro": "节省 40%",
-      "rules": "消耗规则：",
-      "rule1": "3 万字以下",
-      "rule1Cost": "消耗 1 点",
-      "rule2": "3 万 ~ 5 万字",
-      "rule2Cost": "消耗 2 点",
-      "rule3": "5 万 ~ 12 万字",
-      "rule3Cost": "消耗 3 点",
-      "ruleMaxNote": "超过 12 万字不予接受"
+      "rules": "计费说明：",
+      "rule1": "扣费对象",
+      "rule1Cost": "仅对你勾选的模块计费",
+      "rule2": "字数阶梯",
+      "rule2Cost": "影响各模块单价，详见充值页",
+      "rule3": "失败与退款",
+      "rule3Cost": "模块失败可自动退还该模块积分",
+      "ruleMaxNote": "单篇超过系统字数上限将无法开跑；具体额度以控制台为准"
     },
     "faq": {
       "badge": "常见问题",
       "title": "你可能想问的",
       "subtitle": "遇到疑问？这里也许有你需要的答案",
       "items": [
-        { "q": "支持哪些类型的论文？", "a": "MVP 阶段专注于中文高校毕业论文（本科/硕士/博士），支持 PDF 格式上传，最大 150 页。后续版本将支持英文学位论文、期刊/会议论文。" },
+        { "q": "支持哪些类型的论文？", "a": "当前 MVP 面向中文高校毕业论文（本科/硕士/博士）。请上传 Word（.docx），单文件不超过 50MB，篇幅需落在系统允许的字数上限内（目前最高约 12 万汉字，以控制台提示为准）。暂不支持 PDF 直接上传。" },
         { "q": "点数会过期吗？", "a": "购买的点数永久有效，不设使用期限。你可以随时购买，随时使用，不会因长时间未使用而失效。" },
         { "q": "我的论文内容会被泄露吗？", "a": "所有上传文件均通过加密存储，传输过程使用 HTTPS 加密。LLM 日志系统会自动对个人敏感信息（PII）进行脱敏处理，绝不将论文内容用于训练或分享。" },
-        { "q": "AI 批阅失败了怎么办？", "a": "系统配备自动重试机制（3 次指数退避）。若仍失败，任务自动转入人工复核通道并通知你预计处理时间。在此过程中，你的点数不会被扣除，直到成功出具报告为止。" },
-        { "q": "批阅报告可以导出吗？", "a": "可以。批阅完成后支持下载 PDF 版（格式化报告）和 Markdown 版（结构化原文）两种格式，方便在 Word 或 Notion 中继续编辑。" },
+        { "q": "AI 批阅失败了怎么办？", "a": "任务链路具备自动重试；若某一模块多次失败，系统可按该模块的积分快照自动退回相应积分，其余已成功模块仍保留在报告中。若整单在编排中全部失败，会触发全额退回并重置为待提交。极端异常会进入人工复核，客服会与你同步处理。" },
+        { "q": "批阅报告可以导出吗？", "a": "可以。报告页支持一键导出 Markdown 汇总，便于粘贴到 Word、Notion 等工具继续改稿；若需要 PDF，可使用浏览器的「打印 → 另存为 PDF」。" },
         { "q": "支持哪些支付方式？", "a": "目前支持微信支付和支付宝（通过 Zpay 接入）。后续版本规划接入 Stripe / PayPal 国际支付。" }
       ]
     },
     "ctaBanner": {
       "title1": "论文提交前，",
       "title2": "让 AI 先帮你把把关",
-      "subtitle": "首次注册即可免费体验 1 次完整批阅。无需绑定信用卡，60 秒内开始使用。",
+      "subtitle": "首次注册即获赠体验积分，可在上传 Word 后查看本次审阅预估消耗，再决定是否开跑。无需绑定信用卡。",
       "ctaPrimary": "免费开始批阅",
       "ctaSecondary": "查看示例报告",
       "trust1": "✓ 无月费订阅",
@@ -226,7 +256,7 @@
       "trust3": "✓ 微信/支付宝支持"
     },
     "footer": {
-      "slogan": "AI 驱动的论文智能批阅平台。多智能体协作，导师级预审，帮你在答辩前发现并修正问题。",
+      "slogan": "AI 驱动的论文预审工作台：Word 直传、对话配置、多智能体协作批阅，积分按所选智能体与字数透明结算。",
       "product": "产品",
       "productLinks": ["功能介绍", "工作流程", "价格套餐", "示例报告"],
       "resources": "资源",
@@ -238,18 +268,18 @@
     },
     "socialProof": {
       "stats": [
-        { "num": "5,000+", "label": "已处理论文" },
-        { "num": "98%", "label": "用户满意度" },
-        { "num": "< 5min", "label": "平均批阅" },
-        { "num": "GB/T", "label": "国家标准" }
+        { "num": "4", "label": "协作智能体" },
+        { "num": "50MB", "label": "单文件上限" },
+        { "num": "< 5min", "label": "常见耗时" },
+        { "num": "GB/T", "label": "参考文献参照" }
       ],
       "title": "同学们都在用",
       "titleHighlight": "ThesisAI",
-      "subtitle": "来自真实用户的反馈",
+      "subtitle": "来自早期用户与内测反馈（表述已做脱敏）",
       "testimonials": [
-        { "name": "王同学", "school": "华中科技大学 · 硕士", "text": "用 ThesisAI 检查了我的毕业论文，帮我找出了英文摘要里几处 Chinglish 和参考文献格式问题，比自己逐字检查省了好多时间！" },
-        { "name": "陈同学", "school": "北京大学 · 博士", "text": "逻辑分析功能特别强，能帮我梳理出第三章论证链中一个我自己都没发现的逻辑漏洞。答辩前用这个真的很有安全感。" },
-        { "name": "李同学", "school": "浙江大学 · 本科", "text": "对话式的交互体验太好了，上传完 PDF 后 AI 会主动问你关注哪方面，完全不像填表格那么枯燥。报告也非常详细！" }
+        { "name": "王同学", "school": "华中科技大学 · 硕士", "text": "参考文献 Tab 直接标出缺字段的条目，比我对着 PDF 肉眼找快很多；AI 痕迹提示也让我提前改了几段偏模板化的表述。" },
+        { "name": "陈同学", "school": "北京大学 · 博士", "text": "逻辑检查帮我揪出一处论证跳跃，答辩前改完心里踏实多了；模块化扣费也能让我先跑逻辑，省一点是一点。" },
+        { "name": "李同学", "school": "浙江大学 · 本科", "text": "上传 docx 后对话里勾模块很方便，进度条能看清哪一步在跑；导出 Markdown 贴回 Word 改格式也快。" }
       ]
     }
   },
@@ -327,10 +357,11 @@
       "planBadge": "基于能力与领域",
       "planBadgeGeneral": "通用",
       "planItemFormat": "格式与结构完整性检查",
+      "planFormatHeavyWarning": "此项耗时很长，请谨慎勾选",
       "planItemLogic": "论证逻辑与章节连贯性",
       "planItemAitrace": "AI 痕迹与套话检测",
       "planItemRefs": "参考文献核查与引用规范(GB/T 7714-2015)",
-      "planStepHint": "勾选本次要执行的审阅项（默认全选）。仅测某一维时，可只保留对应勾选。",
+      "planStepHint": "勾选本次要执行的审阅项（格式检查默认关闭、较耗时）。其余项默认开启；仅测某一维时可只保留对应勾选。",
       "planStatsWordLabel": "字数",
       "planStatsWordScope": "全文估算",
       "planDomainPrefix": "论文领域：",
@@ -338,6 +369,8 @@
       "planStatsCreditsLabel": "预计扣点",
       "planStatsCreditsLoading": "计算中…",
       "planStatsCreditsValue": "{credits} 点",
+      "planStepCost": "+{credits} 点",
+      "planInsufficientCredits": "积分不足，请先充值",
       "planStart": "开始审阅",
       "planStarting": "启动中…",
       "formatRequirementsLabel": "格式要求（自然语言）",
@@ -421,6 +454,10 @@
       "reportIssueType_over_symmetrical": "过度对称 / 刻板",
       "reportAnalysis": "分析：",
       "reportSuggestion": "建议：",
+      "reportModuleRefundNotice": "该模块因系统异常生成失败，已为您自动退还 {credits} 积分。",
+      "manualReviewReassuranceTitle": "您的任务正在人工处理中",
+      "manualReviewReassuranceBody": "系统在执行过程中遇到异常，已自动为您挂起任务并通知客服处理。我们会在确认问题后退还本次积分，并为您重置审阅任务以便重新提交。如有疑问，欢迎联系客服微信：{wechat}",
+      "manualReviewWechatFallback": "请见站内说明",
       "reportErrorTitle": "该维度执行失败",
       "reportSkipped": "根据您的审阅计划，本项未启用，故无报告。",
       "reportLegacyShape": "结果结构与当前可视化不完全匹配，以下为原始数据。",
@@ -566,6 +603,24 @@
       "saveError": "保存失败",
       "enabled": "开启",
       "disabled": "关闭"
+    },
+    "tickets": {
+      "title": "工单管理",
+      "subtitle": "处理系统自动挂起的审阅任务",
+      "navLabel": "工单",
+      "empty": "暂无待处理工单",
+      "colSubject": "工单主题",
+      "colPriority": "优先级",
+      "colCreatedAt": "创建时间",
+      "colReview": "关联审阅",
+      "colStatus": "状态",
+      "btnRefundResolve": "退款并结案",
+      "btnResolveOnly": "仅结案",
+      "confirmRefundResolve": "确认退还该审阅的全部积分，并将工单标记为已解决？此操作不可撤销。",
+      "confirmResolveOnly": "确认将工单标记为已解决？此操作不修改审阅状态。",
+      "actionSuccess": "操作成功",
+      "actionError": "操作失败：{message}",
+      "processing": "处理中…"
     }
   }
 }

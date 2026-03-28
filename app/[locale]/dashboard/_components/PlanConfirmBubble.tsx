@@ -56,6 +56,16 @@ type PlanConfirmBubbleProps = {
   planScopeSummary?: string;
   /** Visio 等内置对象提示：另存为图片再插入 */
   embeddedObjectTip?: string;
+  /** 勾选「格式」时在条目旁展示的耗时警示（红字） */
+  formatHeavyWarning?: string;
+  /** 每个已选模块的积分消耗，来自 cost_breakdown，勾选项右侧展示 "+N 积分" */
+  stepCosts?: Partial<Record<StaticPlanStepId, number>>;
+  /** 余额不足标志：true 时在统计区展示警示并禁用开始按钮 */
+  insufficientCredits?: boolean;
+  /** 积分不足提示文案 */
+  insufficientCreditsHint?: string;
+  /** 充值页路径，供积分不足提示中的链接使用 */
+  rechargeHref?: string;
 };
 
 export function PlanConfirmBubble({
@@ -93,6 +103,11 @@ export function PlanConfirmBubble({
   importDefaultFormatBusyLabel,
   planScopeSummary,
   embeddedObjectTip,
+  formatHeavyWarning,
+  stepCosts,
+  insufficientCredits = false,
+  insufficientCreditsHint,
+  rechargeHref,
 }: PlanConfirmBubbleProps) {
   const [busy, setBusy] = useState(false);
 
@@ -233,24 +248,56 @@ export function PlanConfirmBubble({
               <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>{wordCountScopeHint}</p>
             ) : null}
             {showCreditsEstimate ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  gap: 12,
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>{labelEstimatedCredits}</span>
-                <span style={{ fontWeight: 600, color: "var(--text-primary)", textAlign: "right" }}>
-                  {creditsLoading
-                    ? (creditsLoadingText ?? "…")
-                    : estimatedCredits != null
-                      ? (creditsValueText ?? String(estimatedCredits))
-                      : "—"}
-                </span>
-              </div>
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 12,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>{labelEstimatedCredits}</span>
+                  <span style={{ fontWeight: 600, color: insufficientCredits ? "var(--danger)" : "var(--text-primary)", textAlign: "right" }}>
+                    {creditsLoading
+                      ? (creditsLoadingText ?? "…")
+                      : estimatedCredits != null
+                        ? (creditsValueText ?? String(estimatedCredits))
+                        : "—"}
+                  </span>
+                </div>
+                {insufficientCredits && insufficientCreditsHint ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--danger)",
+                    }}
+                  >
+                    <span>{insufficientCreditsHint}</span>
+                    {rechargeHref ? (
+                      <a
+                        href={rechargeHref}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "var(--brand)",
+                          textDecoration: "underline",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        →
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : null}
@@ -342,8 +389,9 @@ export function PlanConfirmBubble({
               key={step.id}
               style={{
                 display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: 0,
                 fontSize: 14,
                 color: "var(--text-primary)",
                 lineHeight: 1.55,
@@ -393,8 +441,40 @@ export function PlanConfirmBubble({
                 >
                   {i + 1}
                 </span>
-                <span>{step.label}</span>
+                <span style={{ flex: 1 }}>{step.label}</span>
+                {planOptions[step.id] && stepCosts?.[step.id] != null ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--brand)",
+                      background: "var(--brand-bg)",
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      alignSelf: "center",
+                    }}
+                  >
+                    +{stepCosts[step.id]}
+                  </span>
+                ) : null}
               </label>
+              {step.id === "format" && planOptions.format && formatHeavyWarning ? (
+                <p
+                  role="note"
+                  style={{
+                    margin: "6px 0 0 38px",
+                    padding: 0,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--danger)",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {formatHeavyWarning}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -413,7 +493,7 @@ export function PlanConfirmBubble({
           >
             <button
               type="button"
-              disabled={disabled || busy}
+              disabled={disabled || busy || insufficientCredits}
               onClick={handleClick}
               style={{
                 display: "inline-flex",
@@ -424,11 +504,11 @@ export function PlanConfirmBubble({
                 padding: "8px 18px",
                 borderRadius: 999,
                 border: "none",
-                cursor: disabled || busy ? "not-allowed" : "pointer",
-                opacity: disabled || busy ? 0.45 : 1,
-                background: disabled || busy ? "var(--bg-muted)" : "var(--brand)",
-                color: disabled || busy ? "var(--text-secondary)" : "#fff",
-                boxShadow: disabled || busy ? "none" : "0 4px 14px rgba(0,87,255,0.30)",
+                cursor: disabled || busy || insufficientCredits ? "not-allowed" : "pointer",
+                opacity: disabled || busy || insufficientCredits ? 0.45 : 1,
+                background: disabled || busy || insufficientCredits ? "var(--bg-muted)" : "var(--brand)",
+                color: disabled || busy || insufficientCredits ? "var(--text-secondary)" : "#fff",
+                boxShadow: disabled || busy || insufficientCredits ? "none" : "0 4px 14px rgba(0,87,255,0.30)",
                 transition: "background 0.2s, box-shadow 0.2s, opacity 0.2s",
                 whiteSpace: "nowrap",
               }}

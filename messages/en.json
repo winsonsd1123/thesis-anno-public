@@ -70,79 +70,72 @@
       "title1": "Mentor-Level AI",
       "title2": "Guards Your",
       "title3": "Thesis",
-      "subtitle": "Multi-agent collaborative review: format, logic, and references in parallel. Mentor-level pre-review report in under 5 minutes.",
+      "subtitle": "Upload a Word (.docx) file, confirm scope in chat, then let specialized agents collaborate in parallel—enable only the format, logic, AI-trace, and reference agents you need. Credits scale with selected agents and word-count tier; structured reports usually arrive within minutes.",
       "stat1": "< 5min",
-      "stat1Label": "Full Review",
-      "stat2": "5 Dims",
-      "stat2Label": "All-Around Check",
-      "stat3": "GB/T",
-      "stat3Label": "Nat. Standard",
+      "stat1Label": "Typical runtime",
+      "stat2": "4",
+      "stat2Label": "Co-op agents",
+      "stat3": "120k",
+      "stat3Label": "Chinese chars max",
       "ctaPrimary": "Try Free Now",
       "ctaSecondary": "View Demo",
       "trust1": "✓ No card required",
       "trust2": "✓ First free",
       "trust3": "✓ Credits never expire",
-      "typedText": "Research on Image Recognition Based on Deep Learning"
+      "typedText": "Research on Image Recognition Based on Deep Learning",
+      "preview": {
+        "windowTitle": "ThesisAI · Review in progress",
+        "liveBadge": "Live",
+        "fileMeta": "Master thesis · Computer vision · Word",
+        "statusRunning": "Running",
+        "chatSender": "ThesisAI",
+        "chatPrompt": "Detected a computer-vision master thesis. Focus on logic, format, or run all four agents?",
+        "chips": ["Logic first", "Include format", "All four agents"],
+        "userReply": "Prioritize the logic pass",
+        "agentsPanelTitle": "Agent progress",
+        "agents": [
+          { "name": "Format", "icon": "📋", "progress": 100, "status": "done" },
+          { "name": "Logic", "icon": "🧠", "progress": 68, "status": "running" },
+          { "name": "AI trace", "icon": "🔎", "progress": 42, "status": "running" },
+          { "name": "References", "icon": "📚", "progress": 31, "status": "running" }
+        ]
+      }
     },
     "features": {
       "badge": "Core Features",
       "title": "Not just checking,",
       "titleHighlight": "deep understanding",
-      "subtitle": "Six dimensions of review, covering every detail from format to content for Chinese theses",
+      "subtitle": "Built for Chinese thesis workflows: pick modules in chat, read results in tabs—no vague “does everything” claims.",
       "items": {
         "multiAgent": {
-          "title": "Multi-Agent Collaboration",
-          "desc": "Format, logic, and reference agents run in parallel. Each agent focuses on one domain for deeper results.",
-          "tags": [
-            "Format Agent",
-            "Logic Agent",
-            "Reference Agent"
-          ]
+          "title": "Multi-agent collaboration",
+          "desc": "Dedicated agents for format, logic, AI trace, and references work in parallel without blocking each other. The format agent is optional (off by default to save credits) and can be enabled anytime.",
+          "tags": ["Format", "Logic", "AI trace", "References"]
         },
         "chat": {
-          "title": "Conversational AI Guide",
-          "desc": "Gemini Deep Research-style chat. AI asks questions, understands intent, and configures the best review strategy for your thesis type.",
-          "tags": [
-            "ChatGPT-style",
-            "Smart params",
-            "Suggested Chips"
-          ]
+          "title": "Conversational setup",
+          "desc": "After upload, confirm degree type, priorities, and format notes; the dashboard shows an estimated credit cost before you start.",
+          "tags": ["Degree type", "Format notes", "Cost estimate"]
         },
         "visual": {
-          "title": "Visual Review Process",
-          "desc": "Real-time display of AI reading and thinking. Typewriter streaming, progress cards—waiting becomes enjoyable.",
-          "tags": [
-            "Streaming",
-            "Progress viz",
-            "Optimistic UI"
-          ]
+          "title": "Visible progress",
+          "desc": "A live agent timeline shows queueing, running, and completion; streaming updates reduce the “black box” wait.",
+          "tags": ["Agent status", "Streaming", "Traceable"]
         },
         "format": {
-          "title": "Deep Format Check",
-          "desc": "Strict GB/T 7714-2015 compliance. Chapter numbering, figure/table index consistency, page alignment.",
-          "tags": [
-            "GB/T Standard",
-            "Chapter numbers",
-            "Figure index"
-          ]
+          "title": "Format & layout",
+          "desc": "Uses your format brief plus Word layout semantics (headers/footers, page numbers, etc.). Reference styling is checked against common GB/T 7714-2015 issues.",
+          "tags": ["Format brief", "Layout semantics", "GB/T 7714"]
         },
         "logic": {
-          "title": "Logic Chain Analysis",
-          "desc": "Paragraph-level annotations and logic gap detection. Abstract four elements, conclusion-intro coherence, argument flaws.",
-          "tags": [
-            "Paragraph notes",
-            "Logic gaps",
-            "Coherence"
-          ]
+          "title": "Logic & argument",
+          "desc": "Paragraph-level clues and argument-chain checks—abstract/conclusion alignment, leaps in reasoning, common defense risks.",
+          "tags": ["Paragraph clues", "Argument chain", "Defense risks"]
         },
-        "english": {
-          "title": "English Abstract Polish",
-          "desc": "Remove Chinglish, replace with academic vocabulary. Before/after comparison for better expression.",
-          "tags": [
-            "De-Chinglish",
-            "Academic vocab",
-            "Comparison"
-          ]
+        "aitrace": {
+          "title": "AI trace hints",
+          "desc": "Highlights AI-like phrasing and expression risks across the body text so you can rewrite before submission (advisory only, not an academic verdict).",
+          "tags": ["Trace hints", "Style risks", "Paragraph-level"]
         }
       }
     },
@@ -153,93 +146,97 @@
       "subtitle": "From upload to report, fully automated—no tedious forms",
       "steps": {
         "upload": {
-          "title": "Upload Thesis",
-          "desc": "Drag & drop PDF. AI scans the first page and identifies field and degree type.",
-          "tag": "PDF · Max 200MB"
+          "title": "Upload thesis",
+          "desc": "Drop a Word (.docx) file; we parse structure and word count. Optional research field. PDF and legacy .doc are not supported.",
+          "tag": "Word · Max 50MB"
         },
         "chat": {
-          "title": "Conversational Config",
-          "desc": "AI asks about your degree type and focus areas—like chatting with your advisor.",
+          "title": "Conversational config",
+          "desc": "Confirm degree level, focus, whether to enable format review, and your format notes. You’ll see the credit estimate before the run starts.",
           "tag": "Bachelor / Master / PhD"
         },
         "parallel": {
-          "title": "Multi-Agent Parallel",
-          "desc": "Three AI agents work simultaneously. Real-time progress for each agent.",
-          "tag": "< 5 min results"
+          "title": "Multi-agent collaboration",
+          "desc": "Selected agents run in parallel with live status for each one.",
+          "tag": "Usually minutes"
         },
         "report": {
-          "title": "Get Detailed Report",
-          "desc": "Five-dimension results in tabs. One-click PDF or Markdown download.",
-          "tag": "PDF + Markdown"
+          "title": "Review & export",
+          "desc": "Results are split across Format, Logic, AI trace, and References tabs. Export a Markdown bundle from the report view, or print to PDF from the browser.",
+          "tag": "Markdown export"
         }
       },
       "preview": {
-        "title": "Review Report · Deep Learning Image Recognition",
-        "downloadPdf": "Download PDF",
-        "downloadMd": "Download Markdown",
-        "tabs": [
-          "Overview",
-          "Logic",
-          "Format",
-          "References",
-          "Grammar"
-        ],
-        "overallScore": "Overall Score",
-        "coreIssues": "Core Issues · Priority Suggestions",
+        "title": "Review report · Deep learning image recognition",
+        "downloadMd": "Export Markdown",
+        "printHint": "Print to PDF",
+        "tabs": ["Format", "Logic", "AI trace", "References"],
+        "summaryCaption": "Sample finding count (not a score)",
+        "findingsUnit": "items",
+        "coreIssues": "Core issues · Priority suggestions",
         "levels": {
           "high": "High",
           "medium": "Medium",
           "low": "Low"
-        }
+        },
+        "demoFindings": [
+          { "label": "Format", "count": 3, "colorKey": "brand" },
+          { "label": "Logic", "count": 4, "colorKey": "teal" },
+          { "label": "References", "count": 2, "colorKey": "accent" },
+          { "label": "AI trace", "count": 3, "colorKey": "success" }
+        ],
+        "demoIssues": [
+          { "levelKey": "high", "text": "Section 3.3 reads circular—reorder the analysis chain and add an explicit contrast or control.", "anchor": "Sec. 3.3" },
+          { "levelKey": "medium", "text": "Several paragraphs share highly templated phrasing; rewrite with concrete numbers and qualifiers to reduce false AI positives.", "anchor": "Body" },
+          { "levelKey": "medium", "text": "Reference [12] may be missing year/volume fields—double-check against GB/T 7714-2015.", "anchor": "Refs" },
+          { "levelKey": "low", "text": "Figure 2-3 is cited as “Fig. 2-4” in the text—align numbering with the first in-text mention.", "anchor": "Sec. 2.2" }
+        ]
       }
     },
     "pricing": {
       "badge": "Credit Plans",
       "title": "Transparent pricing,",
       "titleHighlight": "pay as you go",
-      "subtitle": "Prepaid credits, no monthly fee, no subscription. Buy and use, credits never expire.",
+      "subtitle": "Prepaid credits, no subscription. Balance never expires; each run bills only the modules you select, with word-count tiers—see the estimate in-app before you start.",
       "plans": {
         "single": {
           "name": "Single Pass",
           "nameEn": "Single Pass",
-          "unit": "1 pass",
-          "desc": "Try AI review once",
+          "unit": "Starter",
+          "desc": "Try modular review and the credit model",
           "features": [
-            "1 full thesis review",
-            "Five-dimension report",
-            "PDF download",
-            "< 60 pages",
-            "Basic support"
+            "Credits added to your wallet, deducted per run",
+            "Pick any combination of four modules",
+            "Markdown export from the report view",
+            "Word (.docx) up to 50MB per file",
+            "Support tickets when enabled by ops"
           ]
         },
         "standard": {
           "name": "Standard Bundle",
           "nameEn": "Standard Bundle",
-          "unit": "10 passes",
-          "desc": "Most popular for graduation season iterations",
+          "unit": "Popular",
+          "desc": "Best for multiple revision cycles",
           "popular": "Most Popular",
           "features": [
-            "10 full thesis reviews",
-            "Five-dimension report",
-            "PDF + Markdown",
-            "Up to 100 pages",
-            "Priority queue",
-            "Full history"
+            "Larger credit pool, still modular per run",
+            "Four report tabs plus full history",
+            "One-click Markdown export",
+            "Up to ~120k Chinese characters per thesis (see in-app limit)",
+            "Priority queue when configured server-side"
           ]
         },
         "pro": {
           "name": "Pro Bundle",
           "nameEn": "Pro Bundle",
-          "unit": "50 passes",
-          "desc": "For advisors, teams, or institutions",
+          "unit": "Team",
+          "desc": "For labs and teaching assistants helping many students",
           "features": [
-            "50 full thesis reviews",
-            "Five-dimension report",
-            "PDF + Markdown",
-            "Up to 150 pages",
-            "Highest priority",
-            "Full history & export",
-            "Dedicated support"
+            "High-volume credit pack",
+            "Automatic partial refunds for failed modules",
+            "Exports and history retained",
+            "Same per-thesis word cap as other tiers",
+            "Admin/ticket workflows when enabled"
           ]
         }
       },
@@ -248,14 +245,14 @@
       "goToRecharge": "Go to top-up",
       "save": "Save 20%",
       "savePro": "Save 40%",
-      "rules": "Usage rules:",
-      "rule1": "Under 30k words",
-      "rule1Cost": "1 credit",
-      "rule2": "30k ~ 50k words",
-      "rule2Cost": "2 credits",
-      "rule3": "50k ~ 120k words",
-      "rule3Cost": "3 credits",
-      "ruleMaxNote": "Over 120k words not accepted"
+      "rules": "Billing notes:",
+      "rule1": "What you pay for",
+      "rule1Cost": "Only enabled modules",
+      "rule2": "Word tiers",
+      "rule2Cost": "Adjust per-module prices (see top-up page)",
+      "rule3": "Failures",
+      "rule3Cost": "Failed modules refund automatically",
+      "ruleMaxNote": "Theses over the configured word cap cannot start; check the dashboard for the live limit"
     },
     "faq": {
       "badge": "FAQ",
@@ -264,7 +261,7 @@
       "items": [
         {
           "q": "What thesis types are supported?",
-          "a": "MVP focuses on Chinese university theses (bachelor/master/PhD), PDF upload up to 150 pages. English theses and journal papers coming later."
+          "a": "MVP targets Chinese university theses (bachelor/master/PhD). Upload Word (.docx) only—up to 50MB per file and within the configured Chinese-character cap (currently about 120k, shown in-app). PDF upload is not supported yet."
         },
         {
           "q": "Do credits expire?",
@@ -276,11 +273,11 @@
         },
         {
           "q": "What if AI review fails?",
-          "a": "Auto-retry (3x exponential backoff). If still failing, task goes to manual review with ETA. Credits are not deducted until a report is delivered."
+          "a": "Runs auto-retry. If a specific module still fails, its credits are refunded from the stored cost snapshot while successful modules stay in the report. If every enabled module fails mid-orchestration, we fully refund and reset the job to pending. Rare hard failures may route to manual support."
         },
         {
           "q": "Can I export the report?",
-          "a": "Yes. PDF (formatted) and Markdown (structured) for editing in Word or Notion."
+          "a": "Yes. Export a Markdown bundle from the report screen for Word/Notion workflows. For PDF, use your browser’s print-to-PDF."
         },
         {
           "q": "What payment methods?",
@@ -291,7 +288,7 @@
     "ctaBanner": {
       "title1": "Before submission,",
       "title2": "let AI check your thesis first",
-      "subtitle": "Free first review on signup. No credit card. Start in 60 seconds.",
+      "subtitle": "Signup includes starter credits—upload your .docx, review the cost estimate, then start when you’re ready. No card required.",
       "ctaPrimary": "Start Free Review",
       "ctaSecondary": "View Sample Report",
       "trust1": "✓ No monthly fee",
@@ -299,7 +296,7 @@
       "trust3": "✓ WeChat/Alipay"
     },
     "footer": {
-      "slogan": "AI-powered thesis review. Multi-agent collaboration, mentor-level pre-review. Find and fix issues before defense.",
+      "slogan": "AI thesis pre-review: Word-native upload, chat-based configuration, multi-agent collaboration, and transparent credits per agent.",
       "product": "Product",
       "productLinks": [
         "Features",
@@ -330,41 +327,29 @@
     },
     "socialProof": {
       "stats": [
-        {
-          "num": "5,000+",
-          "label": "Papers Reviewed"
-        },
-        {
-          "num": "98%",
-          "label": "Satisfaction"
-        },
-        {
-          "num": "< 5min",
-          "label": "Avg. Review"
-        },
-        {
-          "num": "GB/T",
-          "label": "Nat. Standard"
-        }
+        { "num": "4", "label": "Co-op agents" },
+        { "num": "50MB", "label": "Max file size" },
+        { "num": "< 5min", "label": "Typical runtime" },
+        { "num": "GB/T", "label": "Ref. style cues" }
       ],
       "title": "Students love",
       "titleHighlight": "ThesisAI",
-      "subtitle": "Real user feedback",
+      "subtitle": "Early users & beta notes (lightly anonymized)",
       "testimonials": [
         {
           "name": "Wang",
           "school": "Huazhong Univ. · Master",
-          "text": "ThesisAI found Chinglish and reference format issues in my abstract. Saved me a lot of time!"
+          "text": "The references tab flagged missing fields faster than eyeballing a PDF export. AI-trace hints also pushed me to rewrite a few templated paragraphs."
         },
         {
           "name": "Chen",
           "school": "Peking Univ. · PhD",
-          "text": "Logic analysis is strong—found a gap in my argument chain I missed. Very reassuring before defense."
+          "text": "Logic review caught a reasoning leap I’d glossed over. Modular billing let me run logic first and skip format when I was low on credits."
         },
         {
           "name": "Li",
           "school": "Zhejiang Univ. · Bachelor",
-          "text": "Love the conversational UX. AI asks what you care about after upload. Report is very detailed!"
+          "text": "Uploading docx and toggling modules in chat feels natural. Exporting Markdown back into Word for formatting tweaks is quick."
         }
       ]
     }
@@ -440,10 +425,11 @@
       "planBadge": "Capability + domain",
       "planBadgeGeneral": "General",
       "planItemFormat": "Format & structural integrity",
+      "planFormatHeavyWarning": "This step is very slow — use with care",
       "planItemLogic": "Argument flow & chapter coherence",
       "planItemAitrace": "AI traces & cliché detection",
       "planItemRefs": "Reference verification & citation style (GB/T 7714-2015)",
-      "planStepHint": "Choose which checks to run (all on by default). Uncheck the rest to test a single dimension.",
+      "planStepHint": "Choose which checks to run — format check is off by default (slow). Other items default on. Uncheck to narrow scope.",
       "planStatsWordLabel": "Words",
       "planStatsWordScope": "Full-document estimate",
       "planDomainPrefix": "Paper field: ",
@@ -451,6 +437,8 @@
       "planStatsCreditsLabel": "Est. credits",
       "planStatsCreditsLoading": "Calculating…",
       "planStatsCreditsValue": "{credits} credit(s)",
+      "planStepCost": "+{credits} cr.",
+      "planInsufficientCredits": "Insufficient credits, please top up",
       "planStart": "Start review",
       "planStarting": "Starting…",
       "formatRequirementsLabel": "Format requirements (natural language)",
@@ -534,6 +522,10 @@
       "reportIssueType_over_symmetrical": "Over-symmetrical phrasing",
       "reportAnalysis": "Analysis: ",
       "reportSuggestion": "Suggestion: ",
+      "reportModuleRefundNotice": "This module failed due to a system error. {credits} credit(s) have been automatically refunded.",
+      "manualReviewReassuranceTitle": "Your task is being handled manually",
+      "manualReviewReassuranceBody": "The system encountered an error during processing and has automatically suspended your task for manual review. Once the issue is confirmed, your credits will be refunded and the review will be reset for re-submission. For assistance, contact support via WeChat: {wechat}",
+      "manualReviewWechatFallback": "See in-app instructions",
       "reportErrorTitle": "This dimension failed",
       "reportSkipped": "This item was not enabled in your review plan, so there is no report for it.",
       "reportLegacyShape": "The payload does not match the current visual schema; showing raw data.",
@@ -682,6 +674,24 @@
       "saveError": "Save failed",
       "enabled": "Enabled",
       "disabled": "Disabled"
+    },
+    "tickets": {
+      "title": "Support Tickets",
+      "subtitle": "Handle auto-suspended review tasks",
+      "navLabel": "Tickets",
+      "empty": "No open tickets",
+      "colSubject": "Subject",
+      "colPriority": "Priority",
+      "colCreatedAt": "Created",
+      "colReview": "Review",
+      "colStatus": "Status",
+      "btnRefundResolve": "Refund & Resolve",
+      "btnResolveOnly": "Resolve Only",
+      "confirmRefundResolve": "Refund all credits for this review and mark the ticket as resolved? This cannot be undone.",
+      "confirmResolveOnly": "Mark this ticket as resolved? The linked review will not be modified.",
+      "actionSuccess": "Done",
+      "actionError": "Failed: {message}",
+      "processing": "Processing…"
     }
   }
 }

@@ -40,11 +40,16 @@ export async function parseHybridDocx(buffer: Buffer): Promise<HybridDocxParseRe
   const markdown = stripMammothMarkdownEscapes(mdRes.value.value);
   const messages = mdRes.value.messages;
 
-  const { documentXml, stylesXml } = xmlRes.value;
+  const { documentXml, stylesXml, headerXmls, footerXmls } = xmlRes.value;
 
   let styleAst;
+  let headerFooterAst;
+  let documentSetup;
   try {
-    styleAst = buildDocxStyleAst(documentXml, stylesXml);
+    const result = buildDocxStyleAst(documentXml, stylesXml, headerXmls, footerXmls);
+    styleAst = result.nodes;
+    headerFooterAst = result.headerFooterNodes;
+    documentSetup = result.setup;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`HYBRID_DOCX_STYLE_AST: ${msg}`);
@@ -56,5 +61,7 @@ export async function parseHybridDocx(buffer: Buffer): Promise<HybridDocxParseRe
     mammothMessages: (messages ?? []) as MammothMessage[],
     images: imageState.images,
     imagesSkipped: imageState.imagesSkipped,
+    headerFooterAst,
+    documentSetup,
   };
 }

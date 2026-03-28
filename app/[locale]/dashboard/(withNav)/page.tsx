@@ -26,7 +26,14 @@ export default async function DashboardPage() {
     }
   }
 
+  const supportWechat = process.env.NEXT_PUBLIC_SUPPORT_WECHAT ?? "";
+
   return (
-    <ReviewWorkbench balance={balance} initialReviews={initialReviews} isAdmin={isAdmin} />
+    <ReviewWorkbench
+      balance={balance}
+      initialReviews={initialReviews}
+      isAdmin={isAdmin}
+      supportWechat={supportWechat}
+    />
   );
 }

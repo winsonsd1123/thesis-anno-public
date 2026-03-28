@@ -39,7 +39,7 @@
     },
     "model_config": {
       "temperature": 0.1,
-      "model": "google/gemini-3.1-flash-lite-preview"
+      "model": "google/gemini-3-flash-preview"
     }
   },
   "reference_extract": {
@@ -54,7 +54,7 @@
     },
     "model_config": {
       "temperature": 0.15,
-      "model": "google/gemini-3.1-flash-lite-preview"
+      "model": "google/gemini-3-flash-preview"
     }
   },
   "reference_verification": {
@@ -70,7 +70,7 @@
     "model_config": {
       "temperature": 0.1,
       "model": "openai/gpt-4o-mini",
-      "model_zh": "google/gemini-3.1-flash-lite-preview:online"
+      "model_zh": "google/gemini-3-flash-preview:online"
     },
     "verify_batch_size": 20
   },
@@ -86,7 +86,7 @@
     },
     "model_config": {
       "temperature": 0.2,
-      "model": "google/gemini-3.1-flash-lite-preview"
+      "model": "google/gemini-3-flash-preview"
     }
   },
   "logic_review_pass1": {

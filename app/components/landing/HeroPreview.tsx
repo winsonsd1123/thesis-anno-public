@@ -1,23 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { C } from "./constants";
 
-const FULL_TEXT = "基于深度学习的图像识别研究";
+type AgentRow = { name: string; icon: string; progress: number; status: "done" | "running" | "pending" };
 
 export function HeroPreview({ typedText }: { typedText: string }) {
+  const t = useTranslations("landing.hero");
   const [tick, setTick] = useState(0);
+  const fullText = t("typedText");
+  const chips = useMemo(() => t.raw("preview.chips") as string[], [t]);
+  const agents = useMemo(() => t.raw("preview.agents") as AgentRow[], [t]);
 
   useEffect(() => {
-    const t = setInterval(() => setTick((p) => p + 1), 2200);
-    return () => clearInterval(t);
+    const id = setInterval(() => setTick((p) => p + 1), 2200);
+    return () => clearInterval(id);
   }, []);
 
-  const agents = [
-    { name: "格式审查 Agent", icon: "📋", color: C.brand, progress: 100, status: "done" as const },
-    { name: "逻辑分析 Agent", icon: "🧠", color: C.teal, progress: 68, status: "running" as const },
-    { name: "引用核查 Agent", icon: "📚", color: C.accent, progress: 31, status: "running" as const },
-  ];
+  const n = agents.length || 1;
+  const isTyping = typedText.length < fullText.length;
 
   return (
     <div
@@ -44,10 +46,10 @@ export function HeroPreview({ typedText }: { typedText: string }) {
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#FEBC2E", display: "inline-block" }} />
         <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840", display: "inline-block" }} />
         <span style={{ marginLeft: 10, fontSize: 12, color: C.textMuted, fontFamily: "inherit" }}>
-          ThesisAI · 审阅进行中
+          {t("preview.windowTitle")}
         </span>
         <span className="badge badge-teal" style={{ marginLeft: "auto", fontSize: 11, padding: "2px 10px" }}>
-          Live
+          {t("preview.liveBadge")}
         </span>
       </div>
 
@@ -67,7 +69,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
           <span style={{ fontSize: 22 }}>📄</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600 }}>
-              《{typedText || "基于深度学习..."}》
+              《{typedText || `${fullText.slice(0, 8)}…`}》
               <span
                 style={{
                   display: "inline-block",
@@ -76,29 +78,25 @@ export function HeroPreview({ typedText }: { typedText: string }) {
                   background: C.brand,
                   marginLeft: 2,
                   verticalAlign: "middle",
-                  animation: typedText.length < FULL_TEXT.length ? "blink 1s infinite" : "none",
+                  animation: isTyping ? "blink 1s infinite" : "none",
                 }}
               />
             </div>
-            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>
-              硕士论文 · 计算机视觉 · 86 页
-            </div>
+            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{t("preview.fileMeta")}</div>
           </div>
           <span className="badge badge-brand" style={{ fontSize: 11, padding: "3px 10px" }}>
-            审阅中
+            {t("preview.statusRunning")}
           </span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
           <div className="chat-ai" style={{ padding: "10px 14px" }}>
             <div style={{ fontSize: 11, color: C.brand, marginBottom: 4, fontWeight: 700 }}>
-              🤖 ThesisAI
+              🤖 {t("preview.chatSender")}
             </div>
-            <div style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.5 }}>
-              已识别【计算机视觉】领域硕士论文。重点查逻辑还是格式？
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-              {["重点查逻辑", "重点查格式", "全部详查"].map((chip, i) => (
+            <div style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.5 }}>{t("preview.chatPrompt")}</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              {chips.map((chip, i) => (
                 <span
                   key={chip}
                   style={{
@@ -120,7 +118,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <div className="chat-user" style={{ padding: "8px 14px", maxWidth: "70%" }}>
-              <div style={{ fontSize: 13, color: C.textPrimary }}>重点查逻辑分析 🎯</div>
+              <div style={{ fontSize: 13, color: C.textPrimary }}>{t("preview.userReply")}</div>
             </div>
           </div>
         </div>
@@ -143,7 +141,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
               marginBottom: 12,
             }}
           >
-            智能体协作中
+            {t("preview.agentsPanelTitle")}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {agents.map((agent, i) => (
@@ -153,7 +151,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  opacity: tick % 3 === i ? 1 : 0.55,
+                  opacity: tick % n === i ? 1 : 0.55,
                   transition: "opacity 0.4s ease",
                 }}
               >
@@ -162,8 +160,8 @@ export function HeroPreview({ typedText }: { typedText: string }) {
                     width: 28,
                     height: 28,
                     borderRadius: 6,
-                    background: `${agent.color}12`,
-                    border: `1px solid ${agent.color}22`,
+                    background: `${C.brand}12`,
+                    border: `1px solid ${C.brand}22`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -193,7 +191,7 @@ export function HeroPreview({ typedText }: { typedText: string }) {
                         background:
                           agent.status === "done"
                             ? `linear-gradient(90deg, ${C.success}, #34d399)`
-                            : `linear-gradient(90deg, ${agent.color}, ${agent.color}99)`,
+                            : `linear-gradient(90deg, ${C.brand}, ${C.brand}99)`,
                         borderRadius: 2,
                         transition: "width 1.2s ease",
                       }}

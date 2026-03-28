@@ -11,6 +11,7 @@ import { useReviewRealtime } from "@/lib/hooks/useReviewRealtime";
 import { renameReview, deleteReview } from "@/lib/actions/review.action";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { stagesToLogLines, stagesToProgressModels, type ProgressStageModel } from "@/lib/review/stagesUi";
+import type { ReviewStageEntry } from "@/lib/types/review";
 import type { ProgressConsoleAgent } from "./ProgressConsole";
 import type { ReviewResult } from "@/lib/types/review";
 import { HistorySidebar, type SidebarReviewItem } from "./HistorySidebar";
@@ -45,6 +46,8 @@ type ReviewWorkbenchProps = {
   initialReviews: ReviewRow[];
   /** 仅管理员可在报告中切换「原始 JSON」 */
   isAdmin?: boolean;
+  /** 客服微信号，来自服务端环境变量，可选 */
+  supportWechat?: string;
 };
 
 function progressStageToConsoleRow(
@@ -96,7 +99,7 @@ function progressStageToConsoleRow(
   };
 }
 
-export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: ReviewWorkbenchProps) {
+export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supportWechat }: ReviewWorkbenchProps) {
   const t = useTranslations("dashboard.review");
   const tBill = useTranslations("billing");
   const router = useRouter();
@@ -186,6 +189,17 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: Re
     [activeReview?.stages, t]
   );
 
+  /** 有退款记录的 agent → 退款积分映射，用于报告 Tab 退款通知 */
+  const agentRefunds = useMemo((): Partial<Record<string, number>> | undefined => {
+    const stages = activeReview?.stages as ReviewStageEntry[] | undefined;
+    if (!stages?.length) return undefined;
+    const map: Partial<Record<string, number>> = {};
+    for (const s of stages) {
+      if (s.refunded_at && s.refunded_amount) map[s.agent] = s.refunded_amount;
+    }
+    return Object.keys(map).length ? map : undefined;
+  }, [activeReview?.stages]);
+
   async function copyError() {
     const text = activeReview?.error_message ?? "";
     if (!text) return;
@@ -204,9 +218,10 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: Re
     { id: "report", label: t("panelReport") },
   ];
 
+  const showManualReviewBanner = activeReview?.status === "needs_manual_review";
   const showErrorBanner =
     activeReview &&
-    (activeReview.status === "failed" || activeReview.status === "needs_manual_review") &&
+    activeReview.status === "failed" &&
     activeReview.error_message;
 
   return (
@@ -361,6 +376,69 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: Re
                 pointerEvents: loadingReviewId !== null ? "none" : "auto",
               }}
             >
+            {showManualReviewBanner ? (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: "20px 22px",
+                  borderRadius: 16,
+                  border: "1px solid #f59e0b",
+                  background: "rgba(245, 158, 11, 0.08)",
+                  maxWidth: 720,
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#b45309", marginBottom: 8 }}>
+                  {t("manualReviewReassuranceTitle")}
+                </div>
+                <p style={{ fontSize: 14, color: "var(--text-primary)", lineHeight: 1.7, margin: 0 }}>
+                  {t("manualReviewReassuranceBody", {
+                    wechat: supportWechat || t("manualReviewWechatFallback"),
+                  })}
+                </p>
+                {activeReview!.error_message && (
+                  <details style={{ marginTop: 12 }}>
+                    <summary
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        userSelect: "none",
+                      }}
+                    >
+                      {t("errorBannerTitle")}
+                    </summary>
+                    <pre
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text-secondary)",
+                        whiteSpace: "pre-wrap",
+                        marginTop: 8,
+                        marginBottom: 8,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {activeReview!.error_message}
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={copyError}
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border: "1px solid var(--border)",
+                        background: "var(--surface)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {copyHint || t("copyError")}
+                    </button>
+                  </details>
+                )}
+              </div>
+            ) : null}
             {showErrorBanner ? (
               <div
                 style={{
@@ -406,7 +484,7 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: Re
               </div>
             ) : null}
 
-            {panel === "chat" && <ReviewChatBoard />}
+            {panel === "chat" && <ReviewChatBoard balance={balance} />}
             {panel === "progress" && (
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
                 <ProgressConsole
@@ -442,6 +520,7 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false }: Re
                   exportFileStem={activeReview?.file_name ?? null}
                   allowRawJson={isAdmin}
                   result={(activeReview?.result as ReviewResult | null) ?? null}
+                  agentRefunds={agentRefunds}
                 />
               </div>
             )}

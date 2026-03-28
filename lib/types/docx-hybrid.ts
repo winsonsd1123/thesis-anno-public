@@ -14,7 +14,7 @@ export type RunSpan = {
 };
 
 /** 段落所在的文档上下文（局部特征） */
-export type ParagraphContext = "body" | "table_cell" | "caption" | "references" | "footnotes";
+export type ParagraphContext = "body" | "table_cell" | "caption" | "references" | "footnotes" | "header" | "footer";
 
 /** 全局结构区段（划分文档大块区域） */
 export type DocumentPartition =
@@ -69,6 +69,8 @@ export type DocxStyleAstNode = {
   context?: ParagraphContext;
   /** 段落所在的全局区段（用于硬隔离封面、目录） */
   partition?: DocumentPartition;
+  /** 是否包含动态页码域（如 fldSimple[@instr=" PAGE "] 或 instrText 含 PAGE） */
+  has_page_number?: boolean;
 };
 
 export type MammothMessage = {
@@ -84,6 +86,16 @@ export type DocxCompressedImagePart = {
   dataBase64: string;
 };
 
+/** 文档全局设置（页边距等），来自 word/document.xml 中 body 级 sectPr */
+export type DocumentSetup = {
+  margins?: {
+    top_cm?: number;
+    bottom_cm?: number;
+    left_cm?: number;
+    right_cm?: number;
+  };
+};
+
 /**
  * 统一解析层输出：Markdown 主干 + 样式侧枝。
  */
@@ -95,4 +107,11 @@ export type HybridDocxParseResult = {
   images: DocxCompressedImagePart[];
   /** 超过数量上限被丢弃的图片数 */
   imagesSkipped: number;
+  /**
+   * 页眉页脚段落节点，独立存放（不混入 styleAst），
+   * 避免 partitionDocumentAst 对其产生错误的分区标注。
+   */
+  headerFooterAst: DocxStyleAstNode[];
+  /** 文档全局设置（页边距），来自 body 级 sectPr/pgMar */
+  documentSetup: DocumentSetup;
 };

@@ -20,6 +20,8 @@ type ReportViewerProps = {
   exportFileStem?: string | null;
   /** 为 true 时显示「原始 JSON」切换（仅管理员） */
   allowRawJson?: boolean;
+  /** 已退款 agent → 退款积分映射；有值时在对应失败 Tab 顶部展示退款通知 */
+  agentRefunds?: Partial<Record<string, number>>;
 };
 
 function buildMarkdownFilename(stem: string | null | undefined): string {
@@ -32,6 +34,13 @@ function buildMarkdownFilename(stem: string | null | undefined): string {
   return `${base}-review-report.md`;
 }
 
+const TAB_TO_AGENT: Record<string, string> = {
+  structure: "format",
+  logic: "logic",
+  aitrace: "aitrace",
+  refs: "reference",
+};
+
 export function ReportViewer({
   tabStructure,
   tabLogic,
@@ -43,6 +52,7 @@ export function ReportViewer({
   result,
   exportFileStem = null,
   allowRawJson = false,
+  agentRefunds,
 }: ReportViewerProps) {
   const t = useTranslations("dashboard.review");
   const [tab, setTab] = useState<"structure" | "logic" | "aitrace" | "refs">("structure");
@@ -270,7 +280,33 @@ export function ReportViewer({
             {rawBody}
           </pre>
         ) : (
-          <ReportStructuredBody tab={tab} value={activePayload} emptyLabel={emptySection} />
+          <>
+            {(() => {
+              const agent = TAB_TO_AGENT[tab];
+              const refundAmount = agent ? agentRefunds?.[agent] : undefined;
+              const hasError = activePayload != null && typeof activePayload === "object" && "error" in activePayload;
+              if (!hasError || !refundAmount) return null;
+              return (
+                <div
+                  role="status"
+                  style={{
+                    marginBottom: 18,
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1px solid var(--warning, #f59e0b)",
+                    background: "rgba(245, 158, 11, 0.08)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--warning-text, #92400e)",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {t("reportModuleRefundNotice", { credits: refundAmount })}
+                </div>
+              );
+            })()}
+            <ReportStructuredBody tab={tab} value={activePayload} emptyLabel={emptySection} />
+          </>
         )}
       </div>
     </div>
