@@ -84,6 +84,142 @@ h1, h2, h3, h4, h5, h6 {
   50% { opacity: 1; transform: scale(1.08); }
 }
 
+/* Dashboard nav: 教育网积分申领 — 末端胶囊入口，强调态带 live 点 */
+@keyframes edu-grant-nav-soft {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      0 0 0 0 rgba(0, 87, 255, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      0 0 0 3px rgba(0, 87, 255, 0.14);
+  }
+}
+
+@keyframes edu-grant-nav-strong {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 1px 2px rgba(255, 107, 53, 0.12),
+      0 0 0 0 rgba(255, 107, 53, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 4px 14px rgba(255, 107, 53, 0.2),
+      0 0 0 2px rgba(255, 107, 53, 0.22);
+  }
+}
+
+@keyframes edu-grant-nav-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+.edu-grant-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 5px 12px 5px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  border: 1px solid rgba(0, 87, 255, 0.22);
+  background: linear-gradient(
+    145deg,
+    rgba(0, 87, 255, 0.1) 0%,
+    rgba(0, 180, 166, 0.07) 55%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  color: var(--brand-dark);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.edu-grant-nav-link:hover {
+  border-color: rgba(0, 87, 255, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    var(--shadow-sm);
+  transform: translateY(-1px);
+  color: var(--brand);
+}
+
+.edu-grant-nav-link:active {
+  transform: translateY(0);
+}
+
+.edu-grant-nav-link__label {
+  letter-spacing: 0.02em;
+}
+
+.edu-grant-nav-link--soft {
+  animation: edu-grant-nav-soft 3s ease-in-out infinite;
+}
+
+.edu-grant-nav-link--strong {
+  border-color: rgba(255, 107, 53, 0.42);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 107, 53, 0.14) 0%,
+    rgba(0, 87, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.35) 100%
+  );
+  color: #b45309;
+  animation: edu-grant-nav-strong 2s ease-in-out infinite;
+}
+
+.edu-grant-nav-link--strong:hover {
+  border-color: rgba(255, 107, 53, 0.55);
+  color: var(--accent);
+}
+
+.edu-grant-nav-link--strong::before {
+  content: "";
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.28);
+  animation: edu-grant-nav-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-grant-nav-link--soft,
+  .edu-grant-nav-link--strong {
+    animation: none;
+  }
+
+  .edu-grant-nav-link--strong::before {
+    animation: none;
+  }
+
+  .edu-grant-nav-link--strong {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .edu-grant-nav-link--soft {
+    outline: 1px solid rgba(0, 87, 255, 0.35);
+    outline-offset: 2px;
+  }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }

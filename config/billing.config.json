@@ -7,16 +7,16 @@
       "name": "Single Pass",
       "nameZh": "单次体验",
       "credits": 300,
-      "price": 2990,
-      "original_price": 3990,
+      "price": 1990,
+      "original_price": 2990,
       "tag": "Hot"
     },
     {
       "id": "pkg_standard",
       "name": "Standard Bundle",
       "nameZh": "标准套餐",
-      "credits": 2200,
-      "price": 19900,
+      "credits": 3000,
+      "price": 18000,
       "original_price": 29900,
       "tag": "Best Value"
     },
@@ -24,9 +24,9 @@
       "id": "pkg_pro",
       "name": "Pro Bundle",
       "nameZh": "专业套餐",
-      "credits": 6000,
-      "price": 49900,
-      "original_price": 59900,
+      "credits": 15000,
+      "price": 80000,
+      "original_price": 149500,
       "tag": null
     }
   ],

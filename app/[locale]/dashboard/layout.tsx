@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { profileDAL } from "@/lib/dal/profile.dal";
+import { getWalletBalance } from "@/lib/actions/billing.actions";
+import { eduCreditGrantService } from "@/lib/services/edu-credit-grant.service";
 import { SignOutButton } from "./SignOutButton";
 import { LocaleSwitcher } from "@/app/components/LocaleSwitcher";
+import { DashboardEduGrantNavLink } from "./DashboardEduGrantNavLink";
 
 export default async function DashboardLayout({
   children,
@@ -17,6 +20,19 @@ export default async function DashboardLayout({
 
   const profile = await profileDAL.getById(data.user.id);
   const isAdmin = profile?.role === "admin";
+
+  const [balance, grantWindowOpen] = await Promise.all([
+    getWalletBalance(),
+    eduCreditGrantService.isGrantWindowOpen(),
+  ]);
+  const grantNavEmphasized = grantWindowOpen
+    ? eduCreditGrantService.getBillingUiEligibility({
+        hasOpenWindow: true,
+        balance: balance ?? 0,
+        email: data.user.email ?? null,
+        emailConfirmed: Boolean(data.user.email_confirmed_at),
+      }).showApply
+    : false;
 
   const t = await getTranslations("dashboard");
 
@@ -78,6 +94,9 @@ export default async function DashboardLayout({
             >
               {t("settings")}
             </Link>
+            {grantWindowOpen && (
+              <DashboardEduGrantNavLink emphasized={grantNavEmphasized} />
+            )}
             {isAdmin && (
               <Link
                 href="/admin/config"

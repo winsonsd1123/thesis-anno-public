@@ -180,11 +180,13 @@ export function compilePhysicalRules(
 
   const ps = extract.page_setup;
   if (ps) {
+    const mmToCm = (mm: number | undefined) =>
+      mm !== undefined ? mm / 10 : undefined;
     global_rules.page_setup = {
-      marginTopCm: ps.margin_top_cm,
-      marginBottomCm: ps.margin_bottom_cm,
-      marginLeftCm: ps.margin_left_cm,
-      marginRightCm: ps.margin_right_cm,
+      marginTopCm: mmToCm(ps.margin_top_mm),
+      marginBottomCm: mmToCm(ps.margin_bottom_mm),
+      marginLeftCm: mmToCm(ps.margin_left_mm),
+      marginRightCm: mmToCm(ps.margin_right_mm),
     };
   }
 

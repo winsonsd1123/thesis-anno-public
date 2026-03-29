@@ -68,6 +68,20 @@ export default async function AdminConfigPage() {
             Feature Flags 开关
           </div>
         </Link>
+        <Link
+          href="/admin/config/edu-grant"
+          style={{
+            padding: 24,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+            textDecoration: "none",
+            color: "var(--text-primary)",
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("eduGrant")}</div>
+          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("eduGrantDesc")}</div>
+        </Link>
       </div>
     </div>
   );

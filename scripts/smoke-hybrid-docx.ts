@@ -73,6 +73,7 @@ void (async () => {
   console.log("mammothMessages", r.mammothMessages.length);
   console.log("images.length", r.images.length);
   console.log("imagesSkipped", r.imagesSkipped);
+  console.log("mathCount", r.mathCount);
   if (r.images.length > 0) {
     const maxB64 = Math.max(...r.images.map((i) => i.dataBase64.length));
     console.log("max image base64 length (chars)", maxB64);

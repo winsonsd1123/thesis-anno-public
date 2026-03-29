@@ -71,6 +71,8 @@ export type DocxStyleAstNode = {
   partition?: DocumentPartition;
   /** 是否包含动态页码域（如 fldSimple[@instr=" PAGE "] 或 instrText 含 PAGE） */
   has_page_number?: boolean;
+  /** 该段落中数学公式的 LaTeX 表示（由 docx-math-extractor 按文本匹配挂载） */
+  math_latex?: string[];
 };
 
 export type MammothMessage = {
@@ -114,4 +116,6 @@ export type HybridDocxParseResult = {
   headerFooterAst: DocxStyleAstNode[];
   /** 文档全局设置（页边距），来自 body 级 sectPr/pgMar */
   documentSetup: DocumentSetup;
+  /** 文档中提取到的数学公式总数 */
+  mathCount: number;
 };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateObject, zodSchema } from "ai";
+import { generateObject, zodSchema, type LanguageModelUsage } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
 import type { DocxStyleAstNode, DocumentSetup } from "@/lib/types/docx-hybrid";
 import {
@@ -171,6 +171,68 @@ function failFormat(phase: string, e: unknown): never {
   throw new ReviewEngineError(`format review ${phase} failed: ${msg}`, e);
 }
 
+/** 与 OPENROUTER_LOG_PROMPTS=1 配套：单行性能/token 摘要（便于对照 logs/openrouter 下完整往返） */
+function formatReviewPerfLogEnabled(): boolean {
+  return process.env.OPENROUTER_LOG_PROMPTS?.trim() === "1";
+}
+
+function usageSnapshot(u: LanguageModelUsage | undefined): Record<string, unknown> | null {
+  if (!u) return null;
+  return {
+    inputTokens: u.inputTokens,
+    outputTokens: u.outputTokens,
+    totalTokens: u.totalTokens,
+    textTokens: u.outputTokenDetails?.textTokens,
+    reasoningTokens: u.outputTokenDetails?.reasoningTokens ?? u.reasoningTokens,
+    raw: u.raw,
+  };
+}
+
+function mergeUsages(us: LanguageModelUsage[]): LanguageModelUsage | undefined {
+  if (us.length === 0) return undefined;
+  let input = 0;
+  let output = 0;
+  let total = 0;
+  let reasoning = 0;
+  let text = 0;
+  for (const u of us) {
+    if (u.inputTokens != null) input += u.inputTokens;
+    if (u.outputTokens != null) output += u.outputTokens;
+    if (u.totalTokens != null) total += u.totalTokens;
+    const r = u.outputTokenDetails?.reasoningTokens ?? u.reasoningTokens;
+    if (r != null) reasoning += r;
+    const t = u.outputTokenDetails?.textTokens;
+    if (t != null) text += t;
+  }
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    totalTokens: total,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
+    },
+    outputTokenDetails: {
+      textTokens: text || undefined,
+      reasoningTokens: reasoning || undefined,
+    },
+  };
+}
+
+async function writeFormatDebugFile(filename: string, content: string): Promise<void> {
+  try {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const dir = path.join(process.cwd(), "logs", "format");
+    await fs.mkdir(dir, { recursive: true });
+    const file = path.join(dir, `${Date.now()}-${filename}`);
+    await fs.writeFile(file, content, "utf8");
+  } catch (e) {
+    console.warn("[analyzeFormat] failed to write format debug file:", e);
+  }
+}
+
 /** 抽取模型连续失败时的安全降级（仅语义轨 + 无物理规则） */
 const EMPTY_PHYSICAL_EXTRACT: FormatPhysicalExtract = formatPhysicalExtractSchema.parse({
   schema_version: "2",
@@ -211,15 +273,16 @@ export async function analyzeFormatLocalChunk(
     fr.formatGuidelines,
   );
   const schema = zodSchema(LocalSemanticResultSchema);
-  return withRetries(() =>
+  const gen = await withRetries(() =>
     generateObject({
       model,
       temperature: fr.semantic.localModelConfig.temperature,
       system,
       messages: buildReviewMessages(chunk, contentType),
       schema,
-    }).then((r) => r.object),
+    })
   );
+  return gen.object;
 }
 
 /**
@@ -274,7 +337,7 @@ export async function analyzeFormat(
       system: globalSystem,
       messages: [{ role: "user", content: globalSkeleton }],
       schema: globalSchema,
-    }).then((r) => r.object)
+    })
   );
 
   // --- 构建 Local Tasks ---
@@ -282,11 +345,17 @@ export async function analyzeFormat(
   // 进程内回退并发数（runLocalChunksFn 未注入时使用）；正常由 Trigger batchTriggerAndWait 控制并发
   const LOCAL_BATCH_SIZE = 2;
 
-  async function runLocalBatches(): Promise<FormatLocalSemanticResult[]> {
+  type LocalSemanticRun = {
+    results: FormatLocalSemanticResult[];
+    usages: LanguageModelUsage[];
+  };
+
+  async function runLocalBatches(): Promise<LocalSemanticRun> {
     const results: FormatLocalSemanticResult[] = [];
+    const usages: LanguageModelUsage[] = [];
     for (let i = 0; i < localChunks.length; i += LOCAL_BATCH_SIZE) {
       const batch = localChunks.slice(i, i + LOCAL_BATCH_SIZE);
-      const batchResults = await Promise.all(
+      const batchGen = await Promise.all(
         batch.map((chunk) =>
           withRetries(() =>
             generateObject({
@@ -295,16 +364,29 @@ export async function analyzeFormat(
               system: localSystem,
               messages: buildReviewMessages(chunk, contentType),
               schema: localSchema,
-            }).then((r) => r.object)
+            })
           )
         )
       );
-      results.push(...batchResults);
+      for (const g of batchGen) {
+        results.push(g.object);
+        usages.push(g.usage);
+      }
     }
-    return results;
+    return { results, usages };
+  }
+
+  async function runLocalSemanticParallel(): Promise<
+    [Awaited<typeof globalTask>, LocalSemanticRun]
+  > {
+    const localPart: Promise<LocalSemanticRun> = runLocalChunksFn
+      ? runLocalChunksFn(localChunks).then((results) => ({ results, usages: [] }))
+      : runLocalBatches();
+    return Promise.all([globalTask, localPart]);
   }
 
   // --- Extract Task（物理规格，并行跑）---
+  // reasoning：不在此关闭，由 OpenRouter/模型默认（便于复杂规范推理；页边距已用整数 mm 约束输出形态）
   const extractTask = withRetries(() =>
     generateObject({
       model: extractModel,
@@ -312,13 +394,13 @@ export async function analyzeFormat(
       system: fr.extract.promptTemplate,
       messages: [{ role: "user", content: extractUserText }],
       schema: extractSchema,
-    }).then((r) => r.object)
+    })
   );
 
   // Global + Local 并发启动，Extract 同时跑；Local 优先走注入的 runLocalChunksFn（Trigger 子任务），
   // 未注入时回退为进程内进程 runLocalBatches（LOCAL_BATCH_SIZE = 2）
   const [semSettled, extSettled] = await Promise.allSettled([
-    Promise.all([globalTask, runLocalChunksFn ? runLocalChunksFn(localChunks) : runLocalBatches()]),
+    runLocalSemanticParallel(),
     extractTask,
   ]);
 
@@ -326,7 +408,10 @@ export async function analyzeFormat(
     failFormat("semantic_llm", semSettled.reason);
   }
 
-  const [globalResult, localResults] = semSettled.value;
+  const [globalGen, localRun] = semSettled.value;
+  const globalResult = globalGen.object;
+  const localResults = localRun.results;
+  const localUsageMerged = mergeUsages(localRun.usages);
 
   // Reduce：合并 global + all local issues
   const semanticIssues: FormatSemanticIssue[] = [
@@ -338,8 +423,10 @@ export async function analyzeFormat(
 
   let extractResult: z.infer<typeof formatPhysicalExtractSchema>;
   let extractLlmOk = true;
+  let extractGen: Awaited<typeof extractTask> | null = null;
   if (extSettled.status === "fulfilled") {
-    extractResult = extSettled.value;
+    extractGen = extSettled.value;
+    extractResult = extractGen.object;
   } else {
     extractLlmOk = false;
     extractResult = EMPTY_PHYSICAL_EXTRACT;
@@ -359,10 +446,8 @@ export async function analyzeFormat(
   const program = compilePhysicalRules(fr.engineBaseline, extractResult);
 
   if (process.env.FORMAT_PHYSICAL_EXTRACT_LOG === "1") {
-    console.info(
-      "[analyzeFormat] physical_extract JSON:\n%s",
-      JSON.stringify(extractResult, null, 2)
-    );
+    const body = JSON.stringify(extractResult, null, 2);
+    await writeFormatDebugFile("physical-extract.json", body);
   }
 
   const hasGlobalRules = !!(
@@ -406,6 +491,30 @@ export async function analyzeFormat(
     compile_dropped_count,
     physical_extract: extractResult,
   };
+
+  if (formatReviewPerfLogEnabled()) {
+    const note = runLocalChunksFn
+      ? "local_semantic usage 在子任务进程；查各 worker 的 logs/openrouter"
+      : undefined;
+    console.info(
+      "[analyzeFormat] perf %s",
+      JSON.stringify({
+        ms: { semantic_llm_ms, spec_extract_ms, rules_ms },
+        chunks: localChunks.length,
+        local_inline: !runLocalChunksFn,
+        usage: {
+          global: usageSnapshot(globalGen.usage),
+          extract: extractGen ? usageSnapshot(extractGen.usage) : null,
+          local_merged: localUsageMerged ? usageSnapshot(localUsageMerged) : null,
+        },
+        reasoning_chars: {
+          global: globalGen.reasoning?.length ?? 0,
+          extract: extractGen?.reasoning?.length ?? 0,
+        },
+        note,
+      })
+    );
+  }
 
   return { issues, observability };
 }

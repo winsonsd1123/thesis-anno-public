@@ -6,6 +6,11 @@ import {
 } from "./docx-image-pipeline";
 import { readDocxXmlParts } from "./docx-ooxml-zip";
 import { buildDocxStyleAst } from "./docx-style-ast";
+import {
+  extractMathFragments,
+  attachMathToStyleAst,
+  appendMathToMarkdown,
+} from "./docx-math-extractor";
 
 /**
  * Mammoth 会对部分标点加反斜杠，避免被当成 Markdown 列表/强调/链接语法。
@@ -55,13 +60,29 @@ export async function parseHybridDocx(buffer: Buffer): Promise<HybridDocxParseRe
     throw new Error(`HYBRID_DOCX_STYLE_AST: ${msg}`);
   }
 
+  let finalMarkdown = markdown;
+  let mathCount = 0;
+
+  try {
+    const mathFragments = extractMathFragments(documentXml);
+    mathCount = mathFragments.reduce((n, f) => n + f.latex.length, 0);
+
+    if (mathFragments.length > 0) {
+      attachMathToStyleAst(styleAst, mathFragments);
+      finalMarkdown = appendMathToMarkdown(markdown, mathFragments);
+    }
+  } catch (e) {
+    console.warn("[parseHybridDocx] math extraction failed, continuing without formulas:", e);
+  }
+
   return {
-    markdown: markdown,
+    markdown: finalMarkdown,
     styleAst,
     mammothMessages: (messages ?? []) as MammothMessage[],
     images: imageState.images,
     imagesSkipped: imageState.imagesSkipped,
     headerFooterAst,
     documentSetup,
+    mathCount,
   };
 }

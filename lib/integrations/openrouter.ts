@@ -5,101 +5,85 @@
  * 不在此层处理 OpenRouter 429 / 配额与任务级重试——由 Trigger 编排与外层策略负责。
  * 若将来需要客户端侧「仅网络/5xx」重试，可通过 createOpenRouter({ fetch }) 注入，且勿对 429 自动重试以免与外层冲突。
  *
- * 调试：设置环境变量 OPENROUTER_LOG_PROMPTS=1 时，每次发往 OpenRouter 的 POST 会在控制台打印
- * ISO 时间、model、以及 chat messages 中首条有效文本的「第一句话」（截断），便于对照任务执行顺序。
+ * 调试：设置环境变量 OPENROUTER_LOG_PROMPTS=1 时，每次发往 OpenRouter 的 POST 会将**完整**请求体与响应体写入
+ * `logs/openrouter/`（可用 OPENROUTER_LOG_DIR 覆盖目录）。控制台不再打印大段 body；格式审查阶段耗时与 token 摘要见
+ * `analyzeFormat` 在相同开关下的单行输出。若仅需文件日志、不要格式摘要，可只开本开关而不改业务代码。
  */
 
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import type { OpenRouterProvider } from "@openrouter/ai-sdk-provider";
 
-const OPENROUTER_LOG_MAX_FIRST = 160;
-
-function extractFirstSentence(text: string): string {
-  const t = text.trim();
-  if (!t) return "";
-  const [first] = t.split(/[。！？.!?\r\n]/);
-  const chunk = (first ?? t).trim();
-  return chunk.slice(0, OPENROUTER_LOG_MAX_FIRST);
-}
-
-function messageContentToPlainText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .map((part) => {
-      if (typeof part === "string") return part;
-      if (
-        part &&
-        typeof part === "object" &&
-        "text" in part &&
-        typeof (part as { text: unknown }).text === "string"
-      ) {
-        return (part as { text: string }).text;
-      }
-      return "";
-    })
-    .join("");
-}
-
-function firstPromptSentenceFromBody(body: unknown): string {
-  if (!body || typeof body !== "object") return "";
-  const messages = (body as { messages?: unknown }).messages;
-  if (!Array.isArray(messages)) return "";
-  for (const msg of messages) {
-    if (!msg || typeof msg !== "object") continue;
-    const text = messageContentToPlainText(
-      (msg as { content?: unknown }).content
-    );
-    const first = extractFirstSentence(text);
-    if (first) return first;
-  }
-  return "";
+function openRouterFileLogEnabled(): boolean {
+  return process.env.OPENROUTER_LOG_PROMPTS?.trim() === "1";
 }
 
 /**
- * 包装 fetch：在 OPENROUTER_LOG_PROMPTS=1 且请求目标为 openrouter.ai 时记录时间与提示首句。
+ * 将单次 OpenRouter 往返写入磁盘（请求 / 响应原文 + 耗时元数据）。失败时仅打一条 warn，不抛错。
+ */
+async function writeOpenRouterExchangeToFiles(
+  requestRaw: string,
+  responseRaw: string,
+  meta: { durationMs: number; url: string }
+): Promise<void> {
+  try {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const dir =
+      process.env.OPENROUTER_LOG_DIR?.trim() ||
+      path.join(process.cwd(), "logs", "openrouter");
+    await fs.mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const id = `${stamp}-${Math.random().toString(36).slice(2, 10)}`;
+    const base = path.join(dir, id);
+    await fs.writeFile(`${base}-request.json`, requestRaw, "utf8");
+    await fs.writeFile(`${base}-response.json`, responseRaw, "utf8");
+    await fs.writeFile(`${base}-meta.json`, JSON.stringify(meta, null, 2), "utf8");
+  } catch (e) {
+    console.warn("[openrouter] failed to write log files:", e);
+  }
+}
+
+/**
+ * 包装 fetch：在 OPENROUTER_LOG_PROMPTS=1 且请求目标为 openrouter.ai 时，把完整请求/响应写入 logs/openrouter。
  */
 function createOpenRouterLoggingFetch(
   baseFetch: typeof fetch
 ): typeof fetch {
   return async (input, init) => {
-    if (process.env.OPENROUTER_LOG_PROMPTS?.trim() !== "1") {
+    const request = new Request(input as RequestInfo, init);
+    const url = request.url;
+
+    if (!openRouterFileLogEnabled()) {
       return baseFetch(input, init);
     }
 
-    const request = new Request(input as RequestInfo, init);
-    const url = request.url;
     if (!url.includes("openrouter.ai") || request.method !== "POST") {
       return baseFetch(input, init);
     }
 
+    let requestRaw = "";
     try {
-      const clone = request.clone();
-      const raw = await clone.text();
-      let body: unknown;
-      try {
-        body = JSON.parse(raw) as unknown;
-      } catch {
-        body = null;
-      }
-      const model =
-        body && typeof body === "object" && "model" in body
-          ? String((body as { model: unknown }).model)
-          : "?";
-      const firstSentence = firstPromptSentenceFromBody(body);
-      const ts = new Date().toISOString();
-      const preview = raw.slice(0, 2000);
-      console.info(
-        `[openrouter-request] ${ts} model=${model}\n${preview}`
-      );
+      requestRaw = await request.clone().text();
     } catch {
-      console.info(
-        `[openrouter-request] ${new Date().toISOString()} (log parse skipped)`
-      );
+      requestRaw = "";
     }
 
-    return baseFetch(request);
+    const t0 = performance.now();
+    const response = await baseFetch(request);
+    const durationMs = Math.round(performance.now() - t0);
+
+    try {
+      const responseRaw = await response.clone().text();
+      await writeOpenRouterExchangeToFiles(requestRaw, responseRaw, {
+        durationMs,
+        url,
+      });
+    } catch (e) {
+      console.warn("[openrouter] failed to capture/log response:", e);
+    }
+
+    return response;
   };
 }
 

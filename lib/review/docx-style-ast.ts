@@ -479,8 +479,8 @@ function inferCaptionContext(
     }
   }
   const t = text.trim();
-  // 真正的题注通常很短（图/表名），正文引图句即使以「图5-2」开头也远超此阈值
-  const CAPTION_TEXT_MAX_CHARS = 30;
+  // 真正的题注通常较短（图/表名），正文引图句即使以「图5-2」开头也远超此阈值
+  const CAPTION_TEXT_MAX_CHARS = 40;
   if (CAPTION_TEXT_RE.test(t) && t.length <= CAPTION_TEXT_MAX_CHARS) return true;
   if (CAPTION_PREFIX_RE.test(t)) return true;
 

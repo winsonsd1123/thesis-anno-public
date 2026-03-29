@@ -3,17 +3,12 @@
 import { useActionState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { signIn, signInWithOAuth } from "@/lib/actions/auth.actions";
+import { signIn } from "@/lib/actions/auth.actions";
 
 export default function LoginPage() {
   const t = useTranslations("auth.login");
   const tCommon = useTranslations("common");
   const [state, formAction, isPending] = useActionState(signIn, null);
-
-  async function handleOAuth(provider: "google" | "github") {
-    const { redirectUrl } = await signInWithOAuth(provider);
-    if (redirectUrl) window.location.href = redirectUrl;
-  }
 
   return (
     <>
@@ -109,47 +104,6 @@ export default function LoginPage() {
           {isPending ? t("submitting") : t("submit")}
         </button>
       </form>
-
-      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
-        <button
-          type="button"
-          onClick={() => handleOAuth("google")}
-          style={{
-            flex: 1,
-            padding: "12px 16px",
-            borderRadius: 10,
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            cursor: "pointer",
-            fontSize: 14,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          Google
-        </button>
-        <button
-          type="button"
-          onClick={() => handleOAuth("github")}
-          style={{
-            flex: 1,
-            padding: "12px 16px",
-            borderRadius: 10,
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            cursor: "pointer",
-            fontSize: 14,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          GitHub
-        </button>
-      </div>
 
       <p style={{ textAlign: "center", marginTop: 24, fontSize: 14, color: "var(--text-secondary)" }}>
         {t("noAccount")}{" "}

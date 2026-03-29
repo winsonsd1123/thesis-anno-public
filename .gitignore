@@ -45,3 +45,6 @@ next-env.d.ts
 
 # trigger.dev local dev
 .trigger/
+
+# local OpenRouter / format debug logs (OPENROUTER_LOG_PROMPTS=1 等)
+/logs/

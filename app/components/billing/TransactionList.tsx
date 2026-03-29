@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { TransactionFilterParam, TransactionListItem } from "@/lib/actions/transaction.actions";
 import type { CreditTransactionType } from "@/lib/dal/transaction.dal";
@@ -58,6 +58,7 @@ function typeLabel(type: CreditTransactionType, t: (key: string) => string): str
 export function TransactionList({ items, total, page, limit, filter }: Props) {
   const t = useTranslations("billing.transactions");
   const trReview = useTranslations("dashboard.review");
+  const format = useFormatter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -151,7 +152,10 @@ export function TransactionList({ items, total, page, limit, filter }: Props) {
                 >
                   <div>
                     <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>
-                      {new Date(tx.created_at).toLocaleString()}
+                      {format.dateTime(new Date(tx.created_at), {
+                        dateStyle: "short",
+                        timeStyle: "medium",
+                      })}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                       {typeLabel(tx.type, t)}

@@ -10,7 +10,7 @@
     },
     "model_config": {
       "temperature": 0.25,
-      "model": "google/gemini-3.1-pro-preview"
+      "model": "google/gemini-3-flash-preview"
     }
   },
   "format_semantic_local_system": {
@@ -24,7 +24,7 @@
     },
     "model_config": {
       "temperature": 0.25,
-      "model": "google/gemini-3.1-pro-preview"
+      "model": "google/gemini-3-flash-preview"
     }
   },
   "format_physical_spec_extract": {
@@ -34,12 +34,12 @@
       "format_guidelines"
     ],
     "templates": {
-      "zh": "你是学位论文格式约束抽取器。用户消息为「格式要求」自然语言全文（可能是任意学校）。\n\n你的任务：只抽取文中**明确写出**的可结构化约束，输出符合约定 schema 的 JSON（通过 API 结构化输出）。\n\n**字段说明（schema_version 必须为 \"2\"）**\n\n**字体字段拆分**：所有上下文（headings / body / caption / references / footnotes）均使用 `font_zh`（中文字体，如「宋体」「黑体」「仿宋」）和 `font_en`（西文字体，如 Times New Roman、Arial）两个独立字段。若原文只写了中文字体未提西文字体，则 `font_en` 省略（留空），反之亦然。**绝对禁止**用常识推断未提及的字体。\n\n- `headings`: 数组，每项对应「第 N 级标题」的 font_zh/font_en/size_pt/bold/alignment/line_spacing 等（level 1-6）。仅当原文明确写出该级标题要求时添加条目。\n- `body`: 可选，**仅**对应规范中**主体章节内的连续正文段落**（如「正文段落」「主体正文」条款的 font_zh/font_en/size_pt/行距/段前段后/首行缩进）。**不要**把封面中文/英文题目、论文信息栏、摘要标题与摘要正文、关键词行、「目录」标题与目录条目等前置部分的要求合并进 `body`；这些若无法单独映射到 `headings`，写入 `notes_unenforceable` 或省略，勿并入 `body`。\n- `caption`: 可选，对应**图注/表注/图题/表题**的 font_zh/font_en/size_pt（如「图注五号宋体」「表注五号宋体居中」）。多数学校图注与表注格式相同，统一填到此字段。若原文未明确写出则省略。\n- `references`: 可选，对应**参考文献列表正文**的 font_zh/font_en/size_pt（如「参考文献条目五号宋体」）。仅当原文明确写出参考文献列表条目的字体字号时填入，否则省略。\n- `footnotes`: 可选，对应**脚注文字**的 font_zh/font_en/size_pt（如「脚注小五号宋体」）。仅当原文明确写出脚注格式要求时填入，否则省略。\n- `page_setup`: 可选，页面边距设置（margin_top_cm / margin_bottom_cm / margin_left_cm / margin_right_cm），仅当原文明确写出页边距数值时填入。\n- `notes_unenforceable`: 可选字符串数组，记录原文提到但无法映射到上述字段的约束摘要（如奇偶页眉、封面各栏字号、强制分页等），勿编造。**若原文出现**生成式人工智能/大模型辅助撰写的**披露要求**、诚信与学术规范**声明**、须单独提交的**使用情况说明表**等无法用字号字体表达的条款，务必各写一条简短摘要列入本数组，便于与语义轨对照；不要编造细节。\n\n**禁止**：臆造原文未出现的数字或字体名；不确定则省略该字段。\n\n单位：中文字号「三号」「小四」等请换算为近似 `size_pt`（如三号≈16，小三≈15，四号≈14，小四≈12，五号≈10.5，小五≈9）；若原文已给 pt 则直接用。",
-      "en": "Extract only explicit typography constraints from the user's natural-language thesis format requirements into the structured schema (schema_version \"2\"). Font fields are split: `font_zh` (Chinese font like SimSun) and `font_en` (Western font like Times New Roman) — omit whichever is not explicitly mentioned. Contexts: headings[] (level 1-6), optional body, caption, references, footnotes, page_setup, notes_unenforceable. In `notes_unenforceable`, always add one short bullet per explicit requirement that cannot be encoded as font/size (e.g. generative-AI disclosure/footnote format, integrity declarations, mandatory usage forms). No fabrication. Map Chinese type sizes to approximate size_pt when needed."
+      "zh": "你是学位论文格式约束抽取器。用户消息为某校「格式要求」自然语言全文。\n\n## 首要目标：尽量完整抽取\n请逐段阅读格式要求，把**所有明确写出**的可结构化约束都填入对应字段。**宁多勿漏**——凡原文有明确数值或字体名称的，都应抽取；只有原文完全未提的字段才可省略。\n\n## 字段对应关系（schema_version 固定为 \"2\"）\n\n**字体**：font_zh = 中文字体（如宋体、黑体、仿宋），font_en = 西文字体（如 Times New Roman）。只写原文提到的那种，另一种省略，禁止凭常识推断。\n\n**中文字号 → size_pt 速查**：初号≈42，一号≈26，二号≈22，小二≈18，三号≈16，小三≈15，四号≈14，小四≈12，五号≈10.5，小五≈9（若原文已给 pt 直接用）。\n\n**各字段说明**：\n- `headings[]`：原文中每一级标题（一级/二级/三级…）各对应一个条目（level 1-6），填 font_zh/font_en/size_pt/bold/alignment/line_spacing_multiple/line_spacing_pt/space_before_lines/space_after_lines 等所有明确写出的属性。\n- `body`：正文主体段落（「正文段落」「主体正文」条款）的字体/字号/对齐/行距/段前段后/首行缩进。**不要**把摘要正文、封面各栏、目录条目等前置部分并入。\n- `caption`：图注/表注/图题/表题的字体字号对齐。\n- `references`：参考文献列表条目（非标题）的字体字号——仅当原文明确写出时填入。\n- `footnotes`：脚注文字的字体字号——仅当原文明确写出时填入。\n- `header`：页眉文字的字体字号对齐。\n- `footer`：页脚文字的字体字号对齐（若与 page_number 分离时）。\n- `page_number`：页码的字体字号对齐。\n- `page_setup`：页面四边距，四个子字段 margin_top_mm / margin_bottom_mm / margin_left_mm / margin_right_mm 均为**整数毫米**（厘米×10 取整，例：3.5cm→35，2.5cm→25）。四个方向都有时要全部填入。\n- `notes_unenforceable`：无法映射到以上字段的约束摘要（如奇偶页眉内容、封面各栏格式、强制分页、AI使用披露要求、诚信声明等），每条写一句简短摘要。\n\n## 数值格式（务必遵守，否则可能产生超长输出）\n- page_setup 的 margin_*_mm：**必须是整数**，绝对不写小数（例：填 35 而不是 3.5）\n- 其余数值：简短十进制，最多两三位小数（如 12、1.5、22）\n- 禁止科学计数法，禁止超长小数",
+      "en": "You are a thesis format constraint extractor. The user message contains a university's format requirements in natural language.\n\n## Primary goal: extract comprehensively\nRead every paragraph and fill in ALL explicitly stated constraints. **Prefer extracting more over less** — only omit a field when the source text never mentions it.\n\n## Field mapping (schema_version must be \"2\")\n- `headings[]`: one entry per heading level (1–6) mentioned in the text. Capture font_zh, font_en, size_pt, bold, alignment, line_spacing_multiple/pt, space_before/after_lines for every level that has explicit rules.\n- `body`: main body paragraph style (font, size, alignment, line spacing, indent, paragraph spacing). Do NOT merge abstract, cover, or TOC styles into body.\n- `caption`: figure/table caption font, size, alignment.\n- `references`: reference list entry font/size — only if explicitly stated.\n- `footnotes`: footnote font/size — only if explicitly stated.\n- `header`: header font/size/alignment.\n- `footer`: footer font/size/alignment.\n- `page_number`: page number font/size/alignment.\n- `page_setup`: four margin keys margin_top_mm / margin_bottom_mm / margin_left_mm / margin_right_mm — **integer millimetres** (cm × 10, e.g. 3.5 cm → 35). Fill all four directions when stated.\n- `notes_unenforceable`: one short bullet per constraint that cannot be expressed as font/size (odd/even header text, cover layout, page breaks, AI-use disclosure requirements, integrity declarations, etc.).\n\n## Number format rules (critical)\n- margin_*_mm: integers only, never decimals (35 not 3.5).\n- Other numbers: short decimals, max 2–3 fractional digits (e.g. 12, 1.5, 22).\n- No scientific notation; no long decimal runs.\n- Chinese size names → size_pt: 三号≈16, 小三≈15, 四号≈14, 小四≈12, 五号≈10.5, 小五≈9."
     },
     "model_config": {
       "temperature": 0.1,
-      "model": "google/gemini-3-flash-preview"
+      "model": "moonshotai/kimi-k2.5"
     }
   },
   "reference_extract": {

@@ -47,6 +47,17 @@ test("compilePhysicalRules splits font_zh and font_en into separate allowlists",
   assert.deepEqual(h.fontAllowlistEn, ["Arial"]);
 });
 
+test("compilePhysicalRules maps page_setup mm to cm for engine", () => {
+  const extract = formatPhysicalExtractSchema.parse({
+    schema_version: "2",
+    headings: [],
+    page_setup: { margin_top_mm: 35, margin_left_mm: 20 },
+  });
+  const p = compilePhysicalRules(baseline, extract);
+  assert.equal(p.global_rules.page_setup?.marginTopCm, 3.5);
+  assert.equal(p.global_rules.page_setup?.marginLeftCm, 2);
+});
+
 test("compilePhysicalRules compiles footnotes rules (参考文献不生成物理规则)", () => {
   const extract = formatPhysicalExtractSchema.parse({
     schema_version: "2",

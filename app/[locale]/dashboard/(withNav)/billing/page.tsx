@@ -3,6 +3,12 @@ import { Link } from "@/i18n/navigation";
 import { getPackages } from "@/lib/config/billing";
 import { getWalletBalance } from "@/lib/actions/billing.actions";
 import { BillingPlanSelector } from "@/app/components/billing/BillingPlanSelector";
+import { EduGrantBillingSection } from "@/app/components/billing/EduGrantBillingSection";
+import { createClient } from "@/lib/supabase/server";
+import {
+  eduCreditGrantService,
+  EDU_GRANT_CREDIT_AMOUNT,
+} from "@/lib/services/edu-credit-grant.service";
 
 export default async function BillingPage({
   searchParams,
@@ -13,6 +19,16 @@ export default async function BillingPage({
   const tTx = await getTranslations("billing.transactions");
   const packages = await getPackages();
   const balance = await getWalletBalance();
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user;
+  const hasOpenWindow = await eduCreditGrantService.isGrantWindowOpen();
+  const grantUi = eduCreditGrantService.getBillingUiEligibility({
+    hasOpenWindow,
+    balance: balance ?? 0,
+    email: user?.email ?? null,
+    emailConfirmed: Boolean(user?.email_confirmed_at),
+  });
   const params = await searchParams;
   const paidSuccess = params.paid === "1" || params.trade_status === "TRADE_SUCCESS";
 
@@ -66,6 +82,14 @@ export default async function BillingPage({
         >
           {t("paidSuccess")}
         </div>
+      )}
+
+      {user && (
+        <EduGrantBillingSection
+          showApply={grantUi.showApply}
+          blockReason={grantUi.reason}
+          creditsAmount={EDU_GRANT_CREDIT_AMOUNT}
+        />
       )}
 
       <BillingPlanSelector packages={packages} />
