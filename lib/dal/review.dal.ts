@@ -30,6 +30,26 @@ export const reviewDAL = {
     return data ? mapRow(data as Record<string, unknown>) : null;
   },
 
+  /** 批量拉取当前用户的审阅（RLS + user_id），供流水页补全标题与 cost_breakdown */
+  async getByIdsForUser(reviewIds: number[], userId: string): Promise<Map<number, ReviewRow>> {
+    const map = new Map<number, ReviewRow>();
+    const ids = [...new Set(reviewIds)].filter((id) => Number.isFinite(id) && id > 0);
+    if (ids.length === 0) return map;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("user_id", userId)
+      .in("id", ids);
+    if (error) throw new Error(`REVIEW_BATCH_GET: ${error.message}`);
+    for (const row of data ?? []) {
+      const r = mapRow(row as Record<string, unknown>);
+      map.set(r.id, r);
+    }
+    return map;
+  },
+
   async insertReview(input: {
     userId: string;
     fileUrl: string;

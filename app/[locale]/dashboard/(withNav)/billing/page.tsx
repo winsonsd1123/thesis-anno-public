@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getPackages } from "@/lib/config/billing";
 import { getWalletBalance } from "@/lib/actions/billing.actions";
 import { BillingPlanSelector } from "@/app/components/billing/BillingPlanSelector";
@@ -9,6 +10,7 @@ export default async function BillingPage({
   searchParams: Promise<{ paid?: string; trade_status?: string }>;
 }) {
   const t = await getTranslations("billing");
+  const tTx = await getTranslations("billing.transactions");
   const packages = await getPackages();
   const balance = await getWalletBalance();
   const params = await searchParams;
@@ -30,15 +32,25 @@ export default async function BillingPage({
           borderRadius: 12,
           border: "1px solid var(--border)",
           marginBottom: 32,
-          display: "inline-flex",
+          display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
-          gap: 8,
+          justifyContent: "space-between",
+          gap: 16,
         }}
       >
-        <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("balance")}</span>
-        <span style={{ fontSize: 24, fontWeight: 700, color: "var(--brand)" }}>
-          {balance ?? 0} {t("credits")}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("balance")}</span>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "var(--brand)" }}>
+            {balance ?? 0} {t("credits")}
+          </span>
+        </div>
+        <Link
+          href="/dashboard/transactions"
+          style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none", fontWeight: 600 }}
+        >
+          {tTx("title")}
+        </Link>
       </div>
 
       {paidSuccess && (

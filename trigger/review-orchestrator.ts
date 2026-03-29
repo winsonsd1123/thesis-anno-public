@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { task } from "@trigger.dev/sdk/v3";
+import { QUEUE_LIMITS } from "@/lib/config/queue-limits";
 import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
 import { promptsSchema } from "@/lib/schemas/config.schemas";
@@ -66,7 +67,7 @@ export const genericLlmBatchTask = task({
   id: "generic-llm-batch-task",
   queue: {
     name: "llm-batch-queue",
-    concurrencyLimit: 3,
+    concurrencyLimit: QUEUE_LIMITS.LLM_BATCH_CONCURRENCY,
   },
   run: async (payload: GenericLlmBatchPayload) => {
     if (payload.action === "verify_references") {
@@ -124,7 +125,7 @@ export const orchestrateReview = task({
   id: "orchestrate-review",
   queue: {
     name: "main-review-queue",
-    concurrencyLimit: 5,
+    concurrencyLimit: QUEUE_LIMITS.MAIN_REVIEW_CONCURRENCY,
   },
   run: async (payload: { reviewId: number }) => {
     const { reviewId } = payload;
@@ -265,12 +266,10 @@ export const orchestrateReview = task({
           engineBaseline: loadEngineBaselineFromDisk(),
         };
 
-        /** 与 llm-batch-queue concurrencyLimit: 3 一致 */
-        const FORMAT_LOCAL_WAVE_SIZE = 3;
         runLocalChunksFn = async (chunks) => {
           const results: FormatLocalSemanticResult[] = [];
-          for (let i = 0; i < chunks.length; i += FORMAT_LOCAL_WAVE_SIZE) {
-            const wave = chunks.slice(i, i + FORMAT_LOCAL_WAVE_SIZE);
+          for (let i = 0; i < chunks.length; i += QUEUE_LIMITS.LLM_BATCH_CONCURRENCY) {
+            const wave = chunks.slice(i, i + QUEUE_LIMITS.LLM_BATCH_CONCURRENCY);
             const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
               wave.map((chunk) => ({
                 payload: {
@@ -311,9 +310,6 @@ export const orchestrateReview = task({
           : skippedAgent("logic"),
       ]);
 
-      /** 与 llm-batch-queue concurrencyLimit: 3 一致，分批并行以便进度仅展示百分比、不暴露块数 */
-      const AITRACE_WAVE_SIZE = 3;
-
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
             const tAi0 = performance.now();
@@ -335,8 +331,8 @@ export const orchestrateReview = task({
               "约 0% · 正并行检测 AI 痕迹…"
             );
 
-            for (let i = 0; i < chunks.length; i += AITRACE_WAVE_SIZE) {
-              const wave = chunks.slice(i, i + AITRACE_WAVE_SIZE);
+            for (let i = 0; i < chunks.length; i += QUEUE_LIMITS.LLM_BATCH_CONCURRENCY) {
+              const wave = chunks.slice(i, i + QUEUE_LIMITS.LLM_BATCH_CONCURRENCY);
               const batchResult = await genericLlmBatchTask.batchTriggerAndWait(
                 wave.map((chunk) => ({
                   payload: {
