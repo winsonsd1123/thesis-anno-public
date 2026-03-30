@@ -1,4 +1,9 @@
 import { DOMParser } from "@xmldom/xmldom";
+import type {
+  Document as XmldomDocument,
+  Element as XmldomElement,
+  Node as XmldomNode,
+} from "@xmldom/xmldom";
 import omml2mathml from "omml2mathml";
 import { MathMLToLaTeX } from "mathml-to-latex";
 import type { DocxStyleAstNode } from "@/lib/types/docx-hybrid";
@@ -14,14 +19,17 @@ export type MathFragment = {
 
 /**
  * 从 document.xml 字符串中提取所有数学公式，转为 LaTeX。
- * 使用 @xmldom/xmldom 解析 DOM（已在 node_modules），
+ * 使用 @xmldom/xmldom 解析 DOM；
+ * 0.9+ 需用 onError，对象式 errorHandler 会抛 TypeError。
  * 通过 omml2mathml + mathml-to-latex 完成 OMML→MathML→LaTeX 转换。
  */
 export function extractMathFragments(documentXml: string): MathFragment[] {
-  let doc: Document;
+  let doc: XmldomDocument;
   try {
     doc = new DOMParser({
-      errorHandler: { warning: () => {}, error: () => {}, fatalError: (e) => { throw e; } },
+      onError(level) {
+        if (level === "warning" || level === "error") return;
+      },
     }).parseFromString(documentXml, "text/xml");
   } catch {
     return [];
@@ -32,13 +40,13 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
 
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i];
-    const mathNodes: Element[] = [];
+    const mathNodes: XmldomElement[] = [];
     let isDisplay = false;
 
     for (let j = 0; j < p.childNodes.length; j++) {
       const child = p.childNodes[j];
       if (child.nodeType !== 1) continue;
-      const el = child as Element;
+      const el = child as XmldomElement;
       if (el.namespaceURI === M_NS && el.localName === "oMathPara") {
         isDisplay = true;
         const inner = el.getElementsByTagNameNS(M_NS, "oMath");
@@ -74,11 +82,11 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
 }
 
 /** w:t 文本收集，跳过 m:* 命名空间（公式）和 w:pPr/w:rPr（属性） */
-function collectNonMathText(node: Node, parts: string[]): void {
+function collectNonMathText(node: XmldomNode, parts: string[]): void {
   for (let i = 0; i < node.childNodes.length; i++) {
     const child = node.childNodes[i];
     if (child.nodeType !== 1) continue;
-    const el = child as Element;
+    const el = child as XmldomElement;
     if (el.namespaceURI === M_NS) continue;
     if (el.namespaceURI === W_NS && (el.localName === "pPr" || el.localName === "rPr")) continue;
     if (el.namespaceURI === W_NS && el.localName === "t") {

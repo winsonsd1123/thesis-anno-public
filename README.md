@@ -130,12 +130,12 @@
 ### 环境要求
 
 - Node.js 20+
-- npm / pnpm / bun
+- **包管理器：pnpm**（与 Vercel 一致）。启用 Corepack 后使用仓库锁定的版本：`corepack enable && corepack prepare pnpm@10.14.0 --activate`
 
 ### 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 环境变量配置
@@ -169,7 +169,7 @@ NEXTAUTH_SECRET=your_nextauth_secret
 ### 运行开发服务器
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 访问 [http://localhost:3000](http://localhost:3000) 查看应用。

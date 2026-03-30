@@ -26,6 +26,9 @@ importers:
       '@trigger.dev/sdk':
         specifier: ^4.4.3
         version: 4.4.3(ai@6.0.141(zod@4.3.6))(zod@4.3.6)
+      '@xmldom/xmldom':
+        specifier: ^0.9.9
+        version: 0.9.9
       ai:
         specifier: ^6.0.116
         version: 6.0.141(zod@4.3.6)
@@ -1359,6 +1362,11 @@ packages:
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
+
+  '@xmldom/xmldom@0.9.9':
+    resolution: {integrity: sha512-qycIHAucxy/LXAYIjmLmtQ8q9GPnMbnjG1KXhWm9o5sCr6pOYDATkMPiTNa6/v8eELyqOQ2FsEqeoFYmgv/gJg==}
+    engines: {node: '>=14.6'}
 
   abab@1.0.4:
     resolution: {integrity: sha512-I+Wi+qiE2kUXyrRhNsWv6XsjUTBJjSoVSctKNBfLG5zG/Xe7Rjbxf13+vqYHNTwHaFU+FtSlVxOCTiMEVtPv0A==}
@@ -4496,6 +4504,8 @@ snapshots:
   '@vercel/oidc@3.1.0': {}
 
   '@xmldom/xmldom@0.8.11': {}
+
+  '@xmldom/xmldom@0.9.9': {}
 
   abab@1.0.4: {}
 
