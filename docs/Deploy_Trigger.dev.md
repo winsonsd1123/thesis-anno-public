@@ -28,8 +28,9 @@
 
 1. [Trigger.dev](https://trigger.dev/) 账号，并已创建 **Project**。
 2. 本地 Node.js 与仓库依赖已安装（`pnpm install`，勿使用 `package-lock.json`；本仓库仅维护 `pnpm-lock.yaml`）。
-3. **Supabase** 生产库与 **Storage 桶 `app-config`** 已就绪（Worker 通过 `getPromptsDirect` 等读取配置；失败会回退 `config/prompts.default.json`，但线上应保证 Storage 可用）。
-4. **OpenRouter** 生产 API Key 可用。
+3. **格式默认文案**：运行时从 **`config/format-guidelines.default.zh.payload.json`** 读取（由 `config/format-guidelines.default.zh.md` 经 `pnpm run sync:format-guidelines-payload` 生成，与 `engine-baseline.json` 一并经静态 import 打进 Worker 包内）。若只改 `.md` 未同步 payload，Next/Trigger 仍会使用旧文案。
+4. **Supabase** 生产库与 **Storage 桶 `app-config`** 已就绪（Worker 通过 `getPromptsDirect` 等读取配置；失败会回退 `config/prompts.default.json`，但线上应保证 Storage 可用）。
+5. **OpenRouter** 生产 API Key 可用。
 
 ---
 

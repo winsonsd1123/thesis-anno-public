@@ -1,15 +1,22 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import engineBaselineJson from "@/config/format-rule-packs/engine-baseline.json";
+import formatGuidelinesZhPayload from "@/config/format-guidelines.default.zh.payload.json";
 import { formatEngineBaselineSchema, type FormatEngineBaseline } from "@/lib/schemas/format-engine-baseline.schema";
 
-const BASELINE_REL = join("config", "format-rule-packs", "engine-baseline.json");
-const DEFAULT_NL_REL = join("config", "format-guidelines.default.zh.md");
+/** 解析一次；通过静态 import 打进包内，Trigger / Vercel 无 repo 根目录 config/ 也能用 */
+const engineBaselineParsed = formatEngineBaselineSchema.parse(engineBaselineJson);
+
+function getDefaultFormatGuidelinesZhMarkdown(): string {
+  const m = formatGuidelinesZhPayload.markdown;
+  if (typeof m !== "string" || !m.trim()) {
+    throw new Error("format-guidelines.default.zh.payload.json: missing markdown");
+  }
+  return m;
+}
 
 export function loadEngineBaselineFromDisk(): FormatEngineBaseline {
-  const raw = readFileSync(join(process.cwd(), BASELINE_REL), "utf8");
-  return formatEngineBaselineSchema.parse(JSON.parse(raw));
+  return engineBaselineParsed;
 }
 
 export function loadDefaultFormatGuidelinesZhFromDisk(): string {
-  return readFileSync(join(process.cwd(), DEFAULT_NL_REL), "utf8");
+  return getDefaultFormatGuidelinesZhMarkdown();
 }

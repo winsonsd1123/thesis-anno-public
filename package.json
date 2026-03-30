@@ -12,6 +12,7 @@
     "verify:openrouter": "tsx scripts/verify-openrouter-client.ts",
     "smoke:hybrid-docx": "tsx scripts/smoke-hybrid-docx.ts",
     "smoke:format-docx": "tsx scripts/smoke-format-analyze-docx.ts",
+    "sync:format-guidelines-payload": "node scripts/sync-format-guidelines-payload.mjs",
     "test": "tsx --test lib/review/aitrace-markdown-chunks.test.ts lib/review/compile-physical-rules.test.ts lib/review/docx-math-extractor.test.ts lib/review/docx-style-ast.spacing.test.ts lib/review/hybrid-docx-parser.test.ts lib/review/review-result-markdown.test.ts lib/review/stagesUi.test.ts lib/review/strip-empty-html-anchors.test.ts lib/services/edu-credit-grant.service.test.ts lib/services/review/format-rules.engine.test.ts lib/services/review/reference-markdown-extract.test.ts"
   },
   "dependencies": {
