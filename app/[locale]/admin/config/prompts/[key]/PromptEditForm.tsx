@@ -162,7 +162,7 @@ export function PromptEditForm({ initialData }: { initialData: InitialData }) {
           </label>
           <input
             type="number"
-            step="0.1"
+            step="any"
             min="0"
             max="2"
             value={temperature}
