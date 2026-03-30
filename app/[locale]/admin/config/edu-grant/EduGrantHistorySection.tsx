@@ -161,34 +161,45 @@ export async function EduGrantHistorySection({
                 })
               : null;
             return (
-              <details
-                key={w.id}
-                style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                }}
-              >
-                <summary
-                  style={{
-                    padding: "14px 16px",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: "var(--text-primary)",
-                    listStyle: "none",
-                  }}
-                >
-                  {t("roundSummary", {
-                    opened,
-                    status: w.closed_at ? t("roundClosed") : t("roundOpen"),
-                    claimed: w.claims.length,
-                    max: w.max_claims,
-                  })}
-                  {closedLabel ? ` · ${t("closedAt", { at: closedLabel })}` : ""}
+              <details key={w.id} className="edu-grant-round">
+                <summary className="edu-grant-round-summary">
+                  <div className="edu-grant-round-summary-main">
+                    <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{opened}</span>
+                    <span
+                      className={
+                        w.closed_at
+                          ? "admin-pill-badge admin-pill-badge--amber"
+                          : "admin-pill-badge admin-pill-badge--emerald"
+                      }
+                    >
+                      {w.closed_at ? t("roundClosed") : t("roundOpen")}
+                    </span>
+                    <span className="admin-pill-badge admin-pill-badge--slate">
+                      {t("roundCountsBadge", { claimed: w.claims.length, max: w.max_claims })}
+                    </span>
+                    {closedLabel ? (
+                      <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>
+                        {t("closedAt", { at: closedLabel })}
+                      </span>
+                    ) : null}
+                  </div>
+                  <svg
+                    className="edu-grant-round-chevron"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden
+                  >
+                    <path
+                      d="M6 3l5 5-5 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </summary>
-                <div style={{ padding: "0 16px 16px" }}>
+                <div className="edu-grant-round-body">
                   {w.claims.length === 0 ? (
                     <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{t("noClaimsInRound")}</p>
                   ) : (

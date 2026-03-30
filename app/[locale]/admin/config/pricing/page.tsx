@@ -8,7 +8,7 @@ export default async function PricingConfigPage() {
   const config = await ConfigService.get("billing", billingSchema);
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <div style={{ maxWidth: 960, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
         {t("title")}
       </h1>

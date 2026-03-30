@@ -24,6 +24,13 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: "var(--text-secondary)",
 };
 
+const TICKET_STATUS_LABEL: Record<string, "ticketStatus_open" | "ticketStatus_in_progress" | "ticketStatus_resolved" | "ticketStatus_closed"> = {
+  open: "ticketStatus_open",
+  in_progress: "ticketStatus_in_progress",
+  resolved: "ticketStatus_resolved",
+  closed: "ticketStatus_closed",
+};
+
 function TicketRow({ ticket }: { ticket: SupportTicketRow }) {
   const t = useTranslations("admin.tickets");
   const router = useRouter();
@@ -54,6 +61,7 @@ function TicketRow({ ticket }: { ticket: SupportTicketRow }) {
   };
 
   const reviewInfo = ticket.reviews;
+  const actionable = ticket.status === "open";
 
   return (
     <tr
@@ -81,6 +89,17 @@ function TicketRow({ ticket }: { ticket: SupportTicketRow }) {
             {ticket.description}
           </div>
         )}
+      </td>
+      <td
+        style={{
+          padding: "14px 16px",
+          fontSize: 13,
+          color: "var(--text-secondary)",
+          maxWidth: 220,
+          wordBreak: "break-all",
+        }}
+      >
+        {ticket.reporter_email ?? "—"}
       </td>
       <td style={{ padding: "14px 16px", fontSize: 13 }}>
         <span
@@ -123,45 +142,52 @@ function TicketRow({ ticket }: { ticket: SupportTicketRow }) {
           "—"
         )}
       </td>
+      <td style={{ padding: "14px 16px", fontSize: 13, color: "var(--text-primary)" }}>
+        {TICKET_STATUS_LABEL[ticket.status] ? t(TICKET_STATUS_LABEL[ticket.status]) : ticket.status}
+      </td>
       <td style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {ticket.review_id && (
+        {actionable ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {ticket.review_id && (
+              <button
+                onClick={handleRefundResolve}
+                disabled={isPending}
+                style={{
+                  padding: "6px 12px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: "var(--error)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: isPending ? "not-allowed" : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isPending ? t("processing") : t("btnRefundResolve")}
+              </button>
+            )}
             <button
-              onClick={handleRefundResolve}
+              onClick={handleResolveOnly}
               disabled={isPending}
               style={{
                 padding: "6px 12px",
                 fontSize: 13,
                 fontWeight: 500,
-                background: "var(--error)",
-                color: "#fff",
-                border: "none",
+                background: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
                 borderRadius: 6,
                 cursor: isPending ? "not-allowed" : "pointer",
                 whiteSpace: "nowrap",
               }}
             >
-              {isPending ? t("processing") : t("btnRefundResolve")}
+              {isPending ? t("processing") : t("btnResolveOnly")}
             </button>
-          )}
-          <button
-            onClick={handleResolveOnly}
-            disabled={isPending}
-            style={{
-              padding: "6px 12px",
-              fontSize: 13,
-              fontWeight: 500,
-              background: "var(--surface)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border)",
-              borderRadius: 6,
-              cursor: isPending ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {isPending ? t("processing") : t("btnResolveOnly")}
-          </button>
-        </div>
+          </div>
+        ) : (
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{t("noActions")}</span>
+        )}
       </td>
     </tr>
   );
@@ -194,16 +220,18 @@ export default function TicketsTableClient({ tickets }: { tickets: SupportTicket
         borderRadius: 12,
       }}
     >
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table style={{ width: "100%", minWidth: 880, borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-subtle)" }}>
             {(
               [
                 "colSubject",
+                "colEmail",
                 "colPriority",
                 "colCreatedAt",
                 "colReview",
                 "colStatus",
+                "colActions",
               ] as const
             ).map((col) => (
               <th

@@ -220,6 +220,118 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Admin env-style pill badges (light fill + strong border + bold label) */
+.admin-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.admin-pill-badge--amber {
+  background: #fff4ed;
+  border-color: #d97706;
+  color: #b45309;
+}
+
+.admin-pill-badge--emerald {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #047857;
+}
+
+.admin-pill-badge--slate {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+/* 教育网申领 — 历史轮次折叠卡片：明确可展开 affordance */
+.edu-grant-round {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.edu-grant-round:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.edu-grant-round-summary {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--surface);
+  transition: background-color 0.2s ease;
+  list-style: none;
+}
+
+.edu-grant-round-summary::marker,
+.edu-grant-round-summary::-webkit-details-marker {
+  display: none;
+}
+
+.edu-grant-round-summary:hover {
+  background: var(--bg-subtle);
+}
+
+.edu-grant-round-summary:hover .edu-grant-round-chevron {
+  color: var(--brand-dark);
+}
+
+.edu-grant-round-summary-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.edu-grant-round-chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--brand);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+details[open] .edu-grant-round-chevron {
+  transform: rotate(90deg);
+}
+
+.edu-grant-round-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-grant-round,
+  .edu-grant-round-summary,
+  .edu-grant-round-chevron {
+    transition: none;
+  }
+
+  details[open] .edu-grant-round-chevron {
+    transform: rotate(90deg);
+  }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }

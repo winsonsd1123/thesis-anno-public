@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { MoreHorizontal, Pencil, Trash2, CircleDashed, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
+import {
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  CircleDashed,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  LifeBuoy,
+} from "lucide-react";
+import { createUserSupportTicketForReview } from "@/lib/actions/support-ticket.actions";
 
 export type SidebarReviewItem = {
   id: number;
@@ -48,23 +59,55 @@ export function HistorySidebar({
   onRename,
   onDelete,
 }: HistorySidebarProps) {
+  const tHelp = useTranslations("dashboard.review");
+  const [isTicketPending, startTicketTransition] = useTransition();
   const [collapsed, setCollapsed] = useState(false);
   const [hoverItemId, setHoverItemId] = useState<number | null>(null);
   const [openMenu, setOpenMenu] = useState<MenuState>(null);
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [helpReviewId, setHelpReviewId] = useState<number | null>(null);
+  const [helpSubject, setHelpSubject] = useState("");
+  const [helpTicketError, setHelpTicketError] = useState<string | null>(null);
+  const [helpTicketSuccess, setHelpTicketSuccess] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  // Close menu on Escape
+  // Close menu on Escape (help modal takes precedence)
   useEffect(() => {
+    if (helpReviewId !== null) return;
     if (!openMenu) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenMenu(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openMenu]);
+  }, [openMenu, helpReviewId]);
+
+  useEffect(() => {
+    if (helpReviewId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isTicketPending) {
+        setHelpReviewId(null);
+        setHelpSubject("");
+        setHelpTicketError(null);
+        setHelpTicketSuccess(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [helpReviewId, isTicketPending]);
+
+  useEffect(() => {
+    if (!helpTicketSuccess) return;
+    const id = window.setTimeout(() => {
+      setHelpReviewId(null);
+      setHelpSubject("");
+      setHelpTicketError(null);
+      setHelpTicketSuccess(false);
+    }, 1400);
+    return () => window.clearTimeout(id);
+  }, [helpTicketSuccess]);
 
   // Focus rename input when it mounts
   useEffect(() => {
@@ -105,6 +148,45 @@ export function HistorySidebar({
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function openHelpTicketModal(reviewId: number) {
+    setOpenMenu(null);
+    setHelpReviewId(reviewId);
+    setHelpSubject("");
+    setHelpTicketError(null);
+    setHelpTicketSuccess(false);
+  }
+
+  function closeHelpTicketModal() {
+    if (isTicketPending) return;
+    setHelpReviewId(null);
+    setHelpSubject("");
+    setHelpTicketError(null);
+    setHelpTicketSuccess(false);
+  }
+
+  function submitHelpTicket() {
+    if (helpReviewId === null) return;
+    setHelpTicketError(null);
+    startTicketTransition(async () => {
+      const res = await createUserSupportTicketForReview(helpReviewId, helpSubject);
+      if (res.ok) {
+        setHelpTicketSuccess(true);
+        return;
+      }
+      const errKey =
+        res.error === "NOT_AUTHENTICATED"
+          ? "helpTicketError_NOT_AUTHENTICATED"
+          : res.error === "REVIEW_NOT_FOUND"
+            ? "helpTicketError_REVIEW_NOT_FOUND"
+            : res.error === "SUBJECT_REQUIRED"
+              ? "helpTicketError_SUBJECT_REQUIRED"
+              : res.error === "SUBJECT_TOO_LONG"
+                ? "helpTicketError_SUBJECT_TOO_LONG"
+                : "helpTicketError_TICKET_INSERT_FAILED";
+      setHelpTicketError(tHelp(errKey));
+    });
   }
 
   /** 左侧状态色条 — 扫一眼即可区分阶段 */
@@ -184,7 +266,7 @@ export function HistorySidebar({
             border: "1px solid var(--border)",
             borderRadius: 12,
             boxShadow: "var(--shadow-lg)",
-            minWidth: 148,
+            minWidth: 180,
             padding: "4px",
             animation: "fade-in 0.1s ease",
           }}
@@ -193,6 +275,14 @@ export function HistorySidebar({
         >
           {[
             {
+              key: "help",
+              icon: <LifeBuoy size={14} strokeWidth={2} aria-hidden />,
+              label: tHelp("historySeekHelp"),
+              onClick: () => openHelpTicketModal(openMenu.id),
+              danger: false,
+            },
+            {
+              key: "rename",
               icon: <Pencil size={14} strokeWidth={2} aria-hidden />,
               label: renameLabel,
               onClick: () => {
@@ -202,6 +292,7 @@ export function HistorySidebar({
               danger: false,
             },
             {
+              key: "delete",
               icon: <Trash2 size={14} strokeWidth={2} aria-hidden />,
               label: deleteLabel,
               onClick: () => handleDelete(openMenu.id),
@@ -209,7 +300,7 @@ export function HistorySidebar({
             },
           ].map((opt) => (
             <button
-              key={opt.label}
+              key={opt.key}
               type="button"
               role="menuitem"
               onClick={opt.onClick}
@@ -244,6 +335,126 @@ export function HistorySidebar({
             </button>
           ))}
         </div>
+      ) : null}
+
+      {helpReviewId !== null ? (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15, 23, 42, 0.35)" }}
+            onClick={() => closeHelpTicketModal()}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal
+            aria-labelledby="help-ticket-dialog-title"
+            style={{
+              position: "fixed",
+              zIndex: 1001,
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "min(calc(100vw - 32px), 420px)",
+              maxWidth: "100%",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 16,
+              boxShadow: "var(--shadow-xl)",
+              padding: 20,
+              animation: "fade-in 0.15s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              id="help-ticket-dialog-title"
+              style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}
+            >
+              {helpTicketSuccess ? tHelp("helpTicketSuccessTitle") : tHelp("helpTicketTitle")}
+            </h2>
+            {helpTicketSuccess ? (
+              <p style={{ fontSize: 14, color: "var(--success)", marginBottom: 8, lineHeight: 1.55 }}>
+                {tHelp("helpTicketSuccess")}
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12, lineHeight: 1.5 }}>
+                  {tHelp("helpTicketHint")}
+                </p>
+                <label
+                  htmlFor="help-ticket-subject"
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    marginBottom: 6,
+                  }}
+                >
+                  {tHelp("helpTicketSubjectLabel")}
+                </label>
+                <input
+                  id="help-ticket-subject"
+                  type="text"
+                  value={helpSubject}
+                  onChange={(e) => setHelpSubject(e.target.value)}
+                  placeholder={tHelp("helpTicketSubjectPlaceholder")}
+                  maxLength={200}
+                  disabled={isTicketPending}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border)",
+                    fontSize: 14,
+                    marginBottom: 12,
+                    boxSizing: "border-box",
+                  }}
+                />
+                {helpTicketError ? (
+                  <p style={{ fontSize: 13, color: "var(--danger)", marginBottom: 12 }}>{helpTicketError}</p>
+                ) : null}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => closeHelpTicketModal()}
+                    disabled={isTicketPending}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 10,
+                      border: "1px solid var(--border)",
+                      background: "var(--bg-subtle)",
+                      color: "var(--text-primary)",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: isTicketPending ? "not-allowed" : "pointer",
+                      opacity: isTicketPending ? 0.7 : 1,
+                    }}
+                  >
+                    {tHelp("helpTicketCancel")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitHelpTicket()}
+                    disabled={isTicketPending}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "var(--brand)",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: isTicketPending ? "not-allowed" : "pointer",
+                      opacity: isTicketPending ? 0.85 : 1,
+                    }}
+                  >
+                    {isTicketPending ? tHelp("helpTicketSubmitting") : tHelp("helpTicketSubmit")}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </>
       ) : null}
 
       <aside

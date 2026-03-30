@@ -1,0 +1,291 @@
+/* Prompt Lab — editorial admin surface, no extra font deps */
+
+.page {
+  --prompt-lab-ink: var(--text-primary);
+  --prompt-lab-mist: var(--bg-subtle);
+  --prompt-lab-line: var(--border);
+  max-width: 56rem;
+  margin: 0 auto;
+  position: relative;
+  padding-bottom: 3rem;
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: -1.5rem -2rem auto -2rem;
+  height: 14rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 20%, rgba(0, 87, 255, 0.09), transparent 55%),
+    radial-gradient(ellipse 50% 45% at 88% 35%, rgba(255, 107, 53, 0.06), transparent 50%),
+    linear-gradient(165deg, var(--bg-muted) 0%, transparent 72%);
+  border-radius: 0 0 1.5rem 1.5rem;
+  z-index: 0;
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  padding: 0.25rem 0 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  background: var(--teal-bg);
+  border-radius: 999px;
+  border: 1px solid rgba(0, 180, 166, 0.2);
+}
+
+.title {
+  font-size: clamp(1.65rem, 4vw, 2.125rem);
+  font-weight: 800;
+  color: var(--prompt-lab-ink);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin-bottom: 0.875rem;
+  max-width: 22ch;
+}
+
+@media (min-width: 640px) {
+  .title {
+    max-width: none;
+  }
+}
+
+.lead {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 42rem;
+  margin-bottom: 1.25rem;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0.4rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--prompt-lab-line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+
+.countBadge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(0.92);
+  }
+}
+
+.catalog {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.5rem;
+}
+
+.catalogHeader {
+  margin-bottom: 1rem;
+  padding-left: 0.125rem;
+}
+
+.catalogTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.catalogLead {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 40rem;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--prompt-lab-line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.tableScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.theadRow {
+  background: linear-gradient(180deg, var(--bg-muted) 0%, var(--bg-subtle) 100%);
+  border-bottom: 1px solid var(--prompt-lab-line);
+}
+
+.th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.th:last-child {
+  text-align: right;
+}
+
+.tr {
+  border-bottom: 1px solid var(--prompt-lab-line);
+  transition: background 0.15s ease;
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.tr:hover {
+  background: rgba(0, 87, 255, 0.03);
+}
+
+.td,
+.tdKey,
+.tdDesc,
+.tdVersion,
+.tdAction {
+  padding: 1rem 1rem;
+  vertical-align: top;
+}
+
+.tdKey {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.tdDesc {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.tdVersion {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tdAction {
+  text-align: right;
+}
+
+.editLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.editLink:hover {
+  background: var(--brand-bg);
+  border-color: rgba(0, 87, 255, 0.18);
+  color: var(--brand-dark);
+}
+
+.editLink:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.editArrow {
+  font-size: 1em;
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+
+.editLink:hover .editArrow {
+  transform: translateX(3px);
+}
+
+.footnote {
+  margin-top: 1rem;
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 44rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary);
+}
+
+.emptyTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.emptyBody {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  max-width: 24rem;
+  margin: 0 auto;
+}

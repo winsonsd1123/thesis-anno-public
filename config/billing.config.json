@@ -33,14 +33,17 @@
   "module_consumption_rules": [
     {
       "max_words": 30000,
+      "max_ref_count": 40,
       "costs": { "logic": 120, "format": 120, "aitrace": 30, "reference": 30 }
     },
     {
       "max_words": 50000,
+      "max_ref_count": 80,
       "costs": { "logic": 240, "format": 240, "aitrace": 60, "reference": 60 }
     },
     {
       "max_words": 120000,
+      "max_ref_count": 130,
       "costs": { "logic": 360, "format": 360, "aitrace": 90, "reference": 90 }
     }
   ],

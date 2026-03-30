@@ -82,6 +82,12 @@ export default async function AdminLayout({
             >
               {t("tickets.navLabel")}
             </Link>
+            <Link
+              href="/admin/messages"
+              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              {t("inbox.navLabel")}
+            </Link>
           </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

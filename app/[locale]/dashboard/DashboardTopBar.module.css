@@ -1,0 +1,483 @@
+/* 工作台顶栏：左对齐工作带 — 阅读动线从左到右，非居中导航 */
+
+.shell {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  font-family: var(--font-dash-header), "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB",
+    "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 58px;
+  padding: 0 clamp(16px, 3vw, 32px);
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 48%, #f3f6fd 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(200, 212, 236, 0.55);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 10px 32px rgba(15, 23, 42, 0.045);
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 87, 255, 0.12) 20%,
+    rgba(0, 180, 166, 0.1) 50%,
+    rgba(0, 87, 255, 0.12) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.leftCluster {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.clusterRule {
+  display: none;
+  flex-shrink: 0;
+  width: 1px;
+  height: 28px;
+  margin: 0 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0) 0%,
+    rgba(15, 23, 42, 0.1) 35%,
+    rgba(15, 23, 42, 0.1) 65%,
+    rgba(15, 23, 42, 0) 100%
+  );
+}
+
+.clusterRuleMuted {
+  align-self: center;
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  margin: 0 14px 0 18px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(0, 87, 255, 0.12),
+    transparent
+  );
+}
+
+@media (min-width: 1024px) {
+  .clusterRule {
+    display: block;
+  }
+}
+
+.desktopWorkstrip {
+  display: none;
+  align-items: stretch;
+  min-width: 0;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .desktopWorkstrip {
+    display: flex;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--teal) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.brandText {
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #0c1222;
+}
+
+.primaryNav {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.primaryNav::-webkit-scrollbar {
+  display: none;
+}
+
+.navLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  min-height: 58px;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+}
+
+.navLinkActive {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.navLinkActive::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--teal) 100%);
+  box-shadow: 0 -1px 14px rgba(0, 87, 255, 0.25);
+}
+
+.badgeUnread {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.adminLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  color: var(--brand-dark);
+  border: 1px solid rgba(0, 87, 255, 0.2);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.adminLink:hover {
+  border-color: rgba(0, 87, 255, 0.35);
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0, 87, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.localeWrap {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(227, 232, 244, 0.8);
+}
+
+.userEmail {
+  display: none;
+  max-width: 200px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+@media (min-width: 768px) {
+  .userEmail {
+    display: inline-block;
+  }
+}
+
+.userEmail:hover {
+  color: var(--text-secondary);
+  background: rgba(0, 87, 255, 0.05);
+}
+
+.backHome {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+@media (min-width: 900px) {
+  .backHome {
+    display: inline-block;
+  }
+}
+
+.backHome:hover {
+  background: var(--brand-bg);
+}
+
+.signOut {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.signOut:hover {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.menuBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(0, 87, 255, 0.08);
+  color: var(--brand-dark);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.menuBtn:hover {
+  background: rgba(0, 87, 255, 0.14);
+}
+
+.menuBtn:active {
+  transform: scale(0.96);
+}
+
+@media (min-width: 1024px) {
+  .menuBtn {
+    display: none;
+  }
+}
+
+.menuIcon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 18px;
+}
+
+.menuIcon span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menuOpen .menuIcon span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menuOpen .menuIcon span:nth-child(2) {
+  opacity: 0;
+}
+
+.menuOpen .menuIcon span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.drawer {
+  display: block;
+  position: fixed;
+  inset: 0;
+  top: 58px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.drawerOpen {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.drawerBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.drawerPanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(100%, 360px);
+  height: 100%;
+  background: linear-gradient(165deg, #ffffff 0%, #f4f7ff 100%);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.08);
+  padding: 20px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawerOpen .drawerPanel {
+  transform: translateX(0);
+}
+
+.drawerSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 12px 0 4px;
+}
+
+.drawerLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(227, 232, 244, 0.9);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.drawerLink:hover {
+  border-color: rgba(0, 87, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 87, 255, 0.08);
+}
+
+.drawerLinkActive {
+  border-color: rgba(0, 87, 255, 0.35);
+  background: rgba(0, 87, 255, 0.06);
+  color: var(--brand-dark);
+}
+
+.drawerActions {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drawerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.drawerAdminLink {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  .drawer {
+    display: none;
+  }
+}

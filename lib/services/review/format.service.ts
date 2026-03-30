@@ -9,6 +9,11 @@ import {
 import type { FormatEngineBaseline } from "@/lib/schemas/format-engine-baseline.schema";
 import { compilePhysicalRules } from "@/lib/review/compile-physical-rules";
 import { runPhysicalRuleEngine } from "@/lib/services/review/format-rules.engine";
+import {
+  runStructuralChecks,
+  DEFAULT_DOCUMENT_TYPE,
+  type DocumentType,
+} from "@/lib/review/structural-rules";
 import { buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
 import {
@@ -74,6 +79,8 @@ export type FormatReviewContextPayload = {
 
 export type ReviewAnalyzeContext = {
   domain: string | null;
+  /** 文档类型，用于门控结构完整性规则；未传时默认 chinese_degree_thesis */
+  documentType?: DocumentType;
   logicReview?: LogicReviewContextPayload;
   aiTrace?: AiTraceContextPayload;
   referenceExtract?: ReferenceExtractContextPayload;
@@ -470,6 +477,13 @@ export async function analyzeFormat(
     spec_extract_ok = false;
     console.warn("[analyzeFormat] physical rules skipped:", e);
   }
+
+  // 结构完整性检查（确定性，不依赖 LLM，按文档类型门控）
+  const structuralIssues = runStructuralChecks(
+    { styleAst, markdown },
+    ctx.documentType ?? DEFAULT_DOCUMENT_TYPE,
+  );
+  physicalIssues = [...physicalIssues, ...structuralIssues as PhysicalMergedIssue[]];
 
   rules_ms = Math.round(performance.now() - tRules);
   const compile_dropped_count = program.dropped_unsupported.length;

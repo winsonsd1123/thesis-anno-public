@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { task } from "@trigger.dev/sdk/v3";
+import { getMaxReferenceCountForWords } from "@/lib/config/billing";
 import { QUEUE_LIMITS } from "@/lib/config/queue-limits";
 import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
@@ -378,12 +379,22 @@ export const orchestrateReview = task({
               );
               const refListRaw = await extractReferences(hybrid.markdown, ctx);
               const refList = Array.isArray(refListRaw) ? refListRaw : [];
+              const totalRefs = refList.length;
+
+              const wc = review.word_count ?? 0;
+              const maxRefCount = await getMaxReferenceCountForWords(wc);
+              if (maxRefCount !== null && totalRefs > maxRefCount) {
+                throw new Error(
+                  `参考文献条目数（${totalRefs} 条）超出当前字数（约 ${wc} 字）` +
+                    `所支持的核查上限（${maxRefCount} 条），参考文献核查已终止。` +
+                    `如需核查更多条目，请选择更高字数档位的论文。`
+                );
+              }
 
               const refChunks = chunkReferenceListByLanguageForVerify(
                 refList,
                 referenceVerifyBatchSize
               );
-              const totalRefs = refList.length;
 
               if (refChunks.length === 0) {
                 await reviewAdminDAL.updateStageStatus(

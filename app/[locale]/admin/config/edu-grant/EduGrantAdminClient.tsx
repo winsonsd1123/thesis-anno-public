@@ -82,9 +82,18 @@ export function EduGrantAdminClient({ openWindow, claimCount }: Props) {
         marginBottom: 24,
       }}
     >
-      <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 16 }}>
-        {openWindow ? t("statusOpen") : t("statusClosed")}
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <span
+          className={
+            openWindow ? "admin-pill-badge admin-pill-badge--emerald" : "admin-pill-badge admin-pill-badge--slate"
+          }
+        >
+          {openWindow ? t("badgePanelLive") : t("badgePanelIdle")}
+        </span>
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          {openWindow ? t("statusOpenHint") : t("statusClosedHint")}
+        </span>
+      </div>
       {openWindow && (
         <div style={{ fontSize: 14, color: "var(--text-primary)", marginBottom: 8 }}>
           <strong>{t("openedAt")}:</strong> {openedLabel}

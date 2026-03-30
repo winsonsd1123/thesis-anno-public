@@ -48,6 +48,24 @@ export async function getMaxAllowedWords(): Promise<number> {
 }
 
 /**
+ * 按字数阶梯返回参考文献核查允许的最大条目数；未配置 max_ref_count 的阶梯返回 null（不限制）。
+ */
+export async function getMaxReferenceCountForWords(
+  wordCount: number
+): Promise<number | null> {
+  const config = await getBillingConfig();
+  const rules = [...config.module_consumption_rules].sort(
+    (a, b) => a.max_words - b.max_words
+  );
+  for (const rule of rules) {
+    if (wordCount <= rule.max_words) {
+      return rule.max_ref_count ?? null;
+    }
+  }
+  return null;
+}
+
+/**
  * 按 planOptions 中已启用的维度累加积分单价。
  */
 export function sumModuleCostsForPlan(costs: ModuleCosts, planOptions: ReviewPlanOptions): number {

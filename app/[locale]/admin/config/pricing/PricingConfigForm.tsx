@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import type { BillingConfig, ModuleConsumptionRule, ModuleCosts } from "@/lib/schemas/config.schemas";
+import styles from "./PricingConfigForm.module.css";
 
 const MODULE_KEYS: (keyof ModuleCosts)[] = ["logic", "format", "aitrace", "reference"];
 
@@ -35,6 +36,25 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
     setConsumptionRules((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], max_words: value };
+      return next;
+    });
+  }
+
+  function updateRuleMaxRefCount(index: number, raw: string) {
+    setConsumptionRules((prev) => {
+      const next = [...prev];
+      const base = { ...next[index] };
+      if (raw.trim() === "") {
+        delete base.max_ref_count;
+      } else {
+        const n = parseInt(raw, 10);
+        if (Number.isFinite(n) && n > 0) {
+          base.max_ref_count = n;
+        } else {
+          delete base.max_ref_count;
+        }
+      }
+      next[index] = base;
       return next;
     });
   }
@@ -75,188 +95,230 @@ export function PricingConfigForm({ initialConfig }: { initialConfig: BillingCon
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error ?? "Save failed");
+        throw new Error(err.error ?? t("saveError"));
       }
 
       router.refresh();
       setSaving(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(err instanceof Error ? err.message : t("saveError"));
       setSaving(false);
     }
   }
 
-  const inputStyle = {
-    padding: 8,
-    border: "1px solid var(--border)",
-    borderRadius: 6,
-    fontSize: 13,
-    width: "100%",
-  };
-
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {error && (
-        <div
-          style={{
-            padding: 12,
-            background: "rgba(239, 68, 68, 0.1)",
-            borderRadius: 8,
-            color: "var(--error)",
-            fontSize: 14,
-          }}
-        >
-          {error}
-        </div>
-      )}
+    <form className={styles.form} onSubmit={handleSubmit}>
+      {error && <div className={styles.errorBanner}>{error}</div>}
 
-      {/* Meta */}
-      <div style={{ display: "flex", gap: 16 }}>
-        {[
-          { label: "Version", value: version, set: setVersion, type: "text" },
-          { label: "Currency", value: currency, set: setCurrency, type: "text" },
-        ].map(({ label, value, set, type }) => (
-          <div key={label}>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              {label}
-            </label>
-            <input
-              type={type}
-              value={value}
-              onChange={(e) => set(e.target.value)}
-              style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 8, fontSize: 14 }}
-            />
+      {/* Global meta */}
+      <section className={styles.section} aria-labelledby="pricing-section-global">
+        <header className={styles.sectionHead}>
+          <p className={styles.eyebrow}>{t("sectionEyebrowGlobal")}</p>
+          <h2 id="pricing-section-global" className={styles.sectionTitle}>
+            {t("sectionTitleGlobal")}
+          </h2>
+          <p className={styles.sectionLead}>{t("sectionLeadGlobal")}</p>
+        </header>
+        <div className={styles.sectionBody}>
+          <div className={styles.metaGrid}>
+            <div>
+              <label className={styles.fieldLabel} htmlFor="billing-version">
+                {t("fieldVersion")}
+              </label>
+              <input
+                id="billing-version"
+                className={styles.input}
+                type="text"
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className={styles.fieldLabel} htmlFor="billing-currency">
+                {t("fieldCurrency")}
+              </label>
+              <input
+                id="billing-currency"
+                className={styles.input}
+                type="text"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className={styles.fieldLabel} htmlFor="billing-max-words">
+                {t("maxAllowedWords")}
+              </label>
+              <input
+                id="billing-max-words"
+                className={styles.inputMono}
+                type="number"
+                min={1}
+                value={maxAllowedWords}
+                onChange={(e) => setMaxAllowedWords(e.target.value)}
+              />
+              <span className={styles.fieldHint}>{t("maxAllowedWordsHint")}</span>
+            </div>
           </div>
-        ))}
-        <div>
-          <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            {t("maxAllowedWords")}
-          </label>
-          <input
-            type="number"
-            value={maxAllowedWords}
-            onChange={(e) => setMaxAllowedWords(e.target.value)}
-            style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 8, fontSize: 14 }}
-          />
         </div>
-      </div>
+      </section>
 
       {/* Packages */}
-      <div>
-        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>{t("packages")}</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {packages.map((pkg, i) => (
-            <div
-              key={pkg.id}
-              style={{
-                padding: 16,
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                gap: 12,
-              }}
-            >
-              <input type="hidden" value={pkg.id} readOnly />
-              {(["name", "nameZh"] as const).map((f) => (
-                <div key={f}>
-                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>{f}</label>
-                  <input
-                    value={pkg[f]}
-                    onChange={(e) => updatePackage(i, f, e.target.value)}
-                    style={inputStyle}
-                  />
+      <section className={styles.section} aria-labelledby="pricing-section-packages">
+        <header className={styles.sectionHead}>
+          <p className={styles.eyebrow}>{t("sectionEyebrowPackages")}</p>
+          <h2 id="pricing-section-packages" className={styles.sectionTitle}>
+            {t("packages")}
+          </h2>
+          <p className={styles.sectionLead}>{t("packagesLead")}</p>
+        </header>
+        <div className={styles.sectionBody}>
+          <div className={styles.packageStack}>
+            {packages.map((pkg, i) => (
+              <div key={pkg.id} className={styles.packageCard}>
+                <div className={styles.packageBar}>
+                  <span className={styles.packageTitle}>
+                    {pkg.nameZh?.trim() || pkg.name || t("packageUntitled")}
+                  </span>
+                  <span className={styles.packageId}>{pkg.id}</span>
                 </div>
-              ))}
-              {(["credits", "price", "original_price"] as const).map((f) => (
-                <div key={f}>
-                  <label style={{ fontSize: 12, color: "var(--text-muted)" }}>{f}</label>
+                <div className={styles.packageGrid}>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgName")}</label>
+                    <input
+                      className={styles.input}
+                      value={pkg.name}
+                      onChange={(e) => updatePackage(i, "name", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgNameZh")}</label>
+                    <input
+                      className={styles.input}
+                      value={pkg.nameZh}
+                      onChange={(e) => updatePackage(i, "nameZh", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgCredits")}</label>
+                    <input
+                      className={styles.inputMono}
+                      type="number"
+                      value={pkg.credits}
+                      onChange={(e) => updatePackage(i, "credits", parseInt(e.target.value, 10) || 0)}
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgPrice")}</label>
+                    <input
+                      className={styles.inputMono}
+                      type="number"
+                      value={pkg.price}
+                      onChange={(e) => updatePackage(i, "price", parseInt(e.target.value, 10) || 0)}
+                    />
+                    <span className={styles.fieldHint}>{t("pkgPriceHint")}</span>
+                  </div>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgOriginalPrice")}</label>
+                    <input
+                      className={styles.inputMono}
+                      type="number"
+                      value={pkg.original_price}
+                      onChange={(e) =>
+                        updatePackage(i, "original_price", parseInt(e.target.value, 10) || 0)
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className={styles.fieldLabel}>{t("pkgTag")}</label>
+                    <input
+                      className={styles.input}
+                      value={pkg.tag ?? ""}
+                      onChange={(e) =>
+                        updatePackage(i, "tag", e.target.value === "" ? null : e.target.value)
+                      }
+                      placeholder={t("pkgTagPlaceholder")}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Word tiers + module costs */}
+      <section className={styles.section} aria-labelledby="pricing-section-tiers">
+        <header className={styles.sectionHead}>
+          <p className={styles.eyebrow}>{t("sectionEyebrowTiers")}</p>
+          <h2 id="pricing-section-tiers" className={styles.sectionTitle}>
+            {t("consumptionRules")}
+          </h2>
+          <p className={styles.sectionLead}>{t("tiersLead")}</p>
+        </header>
+        <div className={styles.sectionBody}>
+          <div className={styles.rulesScroll}>
+            <div className={styles.rulesTable} role="group" aria-label={t("consumptionRules")}>
+              <div className={styles.rulesRowGrid}>
+                <span className={styles.rulesHeaderCell}>{t("columnWordCeiling")}</span>
+                <span className={styles.rulesHeaderCell}>{t("columnRefCap")}</span>
+                {MODULE_KEYS.map((k) => (
+                  <span key={k} className={styles.rulesHeaderCellCenter}>
+                    {t(`moduleLabels.${k}`)}
+                  </span>
+                ))}
+              </div>
+
+              {consumptionRules.map((rule, i) => (
+                <div
+                  key={i}
+                  className={`${styles.rulesDataRow} ${styles.rulesRowGrid}${i % 2 === 1 ? ` ${styles.rulesDataRowAlt}` : ""}`}
+                >
                   <input
                     type="number"
-                    value={pkg[f]}
-                    onChange={(e) => updatePackage(i, f, parseInt(e.target.value, 10) || 0)}
-                    style={inputStyle}
+                    className={styles.inputMono}
+                    min={1}
+                    value={rule.max_words}
+                    onChange={(e) => updateRuleMaxWords(i, parseInt(e.target.value, 10) || 0)}
+                    aria-label={t("columnWordCeiling")}
                   />
+                  <input
+                    type="number"
+                    min={1}
+                    className={styles.inputMono}
+                    placeholder={t("refCapPlaceholder")}
+                    value={rule.max_ref_count ?? ""}
+                    onChange={(e) => updateRuleMaxRefCount(i, e.target.value)}
+                    title={t("maxRefCountHint")}
+                    aria-label={t("columnRefCap")}
+                  />
+                  {MODULE_KEYS.map((k) => (
+                    <input
+                      key={`${k}-${i}`}
+                      type="number"
+                      className={styles.inputMono}
+                      style={{ textAlign: "center" }}
+                      value={rule.costs[k]}
+                      onChange={(e) => updateRuleCost(i, k, parseInt(e.target.value, 10) || 0)}
+                      aria-label={t("moduleCostAria", { module: t(`moduleLabels.${k}`) })}
+                    />
+                  ))}
                 </div>
               ))}
-              <div>
-                <label style={{ fontSize: 12, color: "var(--text-muted)" }}>tag</label>
-                <input
-                  value={pkg.tag ?? ""}
-                  onChange={(e) =>
-                    updatePackage(i, "tag", e.target.value === "" ? null : e.target.value)
-                  }
-                  style={inputStyle}
-                />
-              </div>
             </div>
-          ))}
+          </div>
+          <p className={styles.rulesFootnote}>{t("tiersFootnote")}</p>
         </div>
+      </section>
+
+      <div className={styles.submitRow}>
+        <button type="submit" className={styles.submitBtn} disabled={saving}>
+          {saving ? t("saving") : t("save")}
+        </button>
+        <span className={styles.submitHint}>{t("submitHint")}</span>
       </div>
-
-      {/* Module Consumption Rules */}
-      <div>
-        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
-          {t("consumptionRules")}
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "120px repeat(4, 1fr)",
-            gap: "8px 12px",
-            alignItems: "center",
-          }}
-        >
-          {/* Header */}
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>max_words</span>
-          {MODULE_KEYS.map((k) => (
-            <span key={k} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textAlign: "center" }}>
-              {k}
-            </span>
-          ))}
-
-          {/* Rows */}
-          {consumptionRules.map((rule, i) => (
-            <React.Fragment key={i}>
-              <input
-                type="number"
-                value={rule.max_words}
-                onChange={(e) => updateRuleMaxWords(i, parseInt(e.target.value, 10) || 0)}
-                style={inputStyle}
-              />
-              {MODULE_KEYS.map((k) => (
-                <input
-                  key={`${k}-${i}`}
-                  type="number"
-                  value={rule.costs[k]}
-                  onChange={(e) => updateRuleCost(i, k, parseInt(e.target.value, 10) || 0)}
-                  style={{ ...inputStyle, textAlign: "center" }}
-                />
-              ))}
-            </React.Fragment>
-          ))}
-        </div>
-        <p style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)" }}>
-          单位：积分（整数）。各维度为该字数档下单独消耗的积分数，未勾选模块不扣费。
-        </p>
-      </div>
-
-      <button
-        type="submit"
-        disabled={saving}
-        style={{
-          padding: "12px 24px",
-          background: "var(--brand)",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: saving ? "not-allowed" : "pointer",
-        }}
-      >
-        {saving ? "Saving…" : t("save")}
-      </button>
     </form>
   );
 }

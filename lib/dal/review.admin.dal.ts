@@ -75,6 +75,12 @@ export const reviewAdminDAL = {
       .eq("id", reviewId);
     if (upErr) throw new Error(`REVIEW_ADMIN_SUSPEND: ${upErr.message}`);
 
+    let reporterEmail: string | null = null;
+    const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(review.user_id);
+    if (!authErr && authUser?.user?.email) {
+      reporterEmail = authUser.user.email;
+    }
+
     const { error: ticketErr } = await supabase.from("support_tickets").insert({
       user_id: review.user_id,
       review_id: reviewId,
@@ -83,6 +89,7 @@ export const reviewAdminDAL = {
       description: `Task failed after orchestration. Error: ${errorMessage}`,
       status: "open",
       priority: "high",
+      reporter_email: reporterEmail,
     });
     if (ticketErr) throw new Error(`REVIEW_ADMIN_TICKET: ${ticketErr.message}`);
   },

@@ -1,13 +1,18 @@
-import { Link } from "@/i18n/navigation";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getTranslations } from "next-intl/server";
 import { profileDAL } from "@/lib/dal/profile.dal";
 import { getWalletBalance } from "@/lib/actions/billing.actions";
 import { eduCreditGrantService } from "@/lib/services/edu-credit-grant.service";
-import { SignOutButton } from "./SignOutButton";
-import { LocaleSwitcher } from "@/app/components/LocaleSwitcher";
-import { DashboardEduGrantNavLink } from "./DashboardEduGrantNavLink";
+import { userInboxService } from "@/lib/services/user-inbox.service";
+import { DashboardTopBar } from "./DashboardTopBar";
+
+const dashHeader = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-dash-header",
+  display: "swap",
+});
 
 export default async function DashboardLayout({
   children,
@@ -21,9 +26,10 @@ export default async function DashboardLayout({
   const profile = await profileDAL.getById(data.user.id);
   const isAdmin = profile?.role === "admin";
 
-  const [balance, grantWindowOpen] = await Promise.all([
+  const [balance, grantWindowOpen, inboxUnread] = await Promise.all([
     getWalletBalance(),
     eduCreditGrantService.isGrantWindowOpen(),
+    userInboxService.countUnread(data.user.id),
   ]);
   const grantNavEmphasized = grantWindowOpen
     ? eduCreditGrantService.getBillingUiEligibility({
@@ -34,10 +40,9 @@ export default async function DashboardLayout({
       }).showApply
     : false;
 
-  const t = await getTranslations("dashboard");
-
   return (
     <div
+      className={dashHeader.variable}
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -45,82 +50,13 @@ export default async function DashboardLayout({
         background: "var(--bg-subtle)",
       }}
     >
-      <header
-        style={{
-          height: 56,
-          padding: "0 24px",
-          background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-          <Link
-            href="/dashboard"
-            style={{
-              fontFamily: "inherit",
-              fontWeight: 700,
-              fontSize: 18,
-              color: "var(--text-primary)",
-              textDecoration: "none",
-            }}
-          >
-            ThesisAI
-          </Link>
-          <nav style={{ display: "flex", gap: 16 }}>
-            <Link
-              href="/dashboard"
-              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
-            >
-              {t("home")}
-            </Link>
-            <Link
-              href="/dashboard/billing"
-              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
-            >
-              {t("billing")}
-            </Link>
-            <Link
-              href="/dashboard/transactions"
-              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
-            >
-              {t("transactions")}
-            </Link>
-            <Link
-              href="/dashboard/settings"
-              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
-            >
-              {t("settings")}
-            </Link>
-            {grantWindowOpen && (
-              <DashboardEduGrantNavLink emphasized={grantNavEmphasized} />
-            )}
-            {isAdmin && (
-              <Link
-                href="/admin/config"
-                style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none" }}
-              >
-                {t("admin")}
-              </Link>
-            )}
-          </nav>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <LocaleSwitcher />
-          <Link
-            href="/dashboard/settings"
-            style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
-          >
-            {data.user.email}
-          </Link>
-          <Link href="/" style={{ fontSize: 14, color: "var(--brand)", textDecoration: "none" }}>
-            {t("backToHome")}
-          </Link>
-          <SignOutButton />
-        </div>
-      </header>
+      <DashboardTopBar
+        isAdmin={isAdmin}
+        grantWindowOpen={grantWindowOpen}
+        grantNavEmphasized={grantNavEmphasized}
+        inboxUnread={inboxUnread}
+        userEmail={data.user.email ?? ""}
+      />
 
       <main style={{ flex: 1, padding: 24 }}>{children}</main>
     </div>

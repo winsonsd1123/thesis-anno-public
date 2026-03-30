@@ -40,6 +40,8 @@ export const moduleCostsSchema = z.object({
 /** 字数阶梯：按 max_words 升序排列，取第一个满足 wordCount <= max_words 的规则 */
 export const moduleConsumptionRuleSchema = z.object({
   max_words: z.number().int().positive(),
+  /** 该字数档下参考文献核查允许的最大条目数（可选，缺省表示不限制） */
+  max_ref_count: z.number().int().positive().optional(),
   costs: moduleCostsSchema,
 });
 
