@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { task } from "@trigger.dev/sdk/v3";
 import { getMaxReferenceCountForWords } from "@/lib/config/billing";
 import { QUEUE_LIMITS } from "@/lib/config/queue-limits";
@@ -8,6 +6,7 @@ import { storageDAL } from "@/lib/dal/storage.dal";
 import { promptsSchema } from "@/lib/schemas/config.schemas";
 import type { PromptsConfig } from "@/lib/schemas/config.schemas";
 import { getPromptsDirect } from "@/lib/services/config.service";
+import promptsDefaultJson from "@/config/prompts.default.json";
 import { parseHybridDocx } from "@/lib/review/hybrid-docx-parser";
 import {
   analyzeFormat,
@@ -47,13 +46,10 @@ async function loadPromptsConfig(): Promise<PromptsConfig> {
     return await getPromptsDirect();
   } catch (e) {
     console.warn(
-      "[orchestrate-review] getPromptsDirect failed, falling back to config/prompts.default.json",
+      "[orchestrate-review] getPromptsDirect failed, falling back to bundled prompts.default.json",
       e
     );
-    const raw = JSON.parse(
-      readFileSync(join(process.cwd(), "config", "prompts.default.json"), "utf8")
-    );
-    return promptsSchema.parse(raw);
+    return promptsSchema.parse(promptsDefaultJson);
   }
 }
 
@@ -503,6 +499,14 @@ export const orchestrateReview = task({
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error("[orchestrate-review] failed", reviewId, msg);
+
+      // 整体崩溃时先全额退款，再挂起建工单（status=needs_manual_review）
+      try {
+        await reviewAdminDAL.fullRefundProcessingReview(reviewId, "orchestration_error");
+      } catch (refundErr) {
+        // 退款失败可能是 review 已不处于 processing（重试等场景），打日志但不影响后续挂起
+        console.error("[orchestrate-review] fullRefund on crash failed", reviewId, refundErr);
+      }
       await reviewAdminDAL.suspendToManualReview(reviewId, msg || "Unknown orchestration error");
     }
   },
