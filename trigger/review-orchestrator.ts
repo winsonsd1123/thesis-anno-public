@@ -1,5 +1,5 @@
 import { task } from "@trigger.dev/sdk/v3";
-import { getMaxReferenceCountForWords } from "@/lib/config/billing";
+import { getMaxReferenceCountForWordsDirect } from "@/lib/config/billing";
 import { QUEUE_LIMITS } from "@/lib/config/queue-limits";
 import { reviewAdminDAL } from "@/lib/dal/review.admin.dal";
 import { storageDAL } from "@/lib/dal/storage.dal";
@@ -288,24 +288,23 @@ export const orchestrateReview = task({
         };
       }
 
-      const [formatRes, logicRes] = await Promise.all([
-        plan.format
-          ? runAgent(
-              reviewId,
-              "format",
-              () => analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx, hybrid.documentSetup, hybrid.headerFooterAst, runLocalChunksFn),
-              { runningLog: "正在对照格式说明进行语义与版式分析…" }
-            )
-          : skippedAgent("format"),
-        plan.logic
-          ? runAgent(
-              reviewId,
-              "logic",
-              () => analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images }),
-              { runningLog: "正在通读全文并检测论证与结构问题…" }
-            )
-          : skippedAgent("logic"),
-      ]);
+      const formatRes = plan.format
+        ? await runAgent(
+            reviewId,
+            "format",
+            () => analyzeFormat(hybrid.markdown, hybrid.styleAst, "text", ctx, hybrid.documentSetup, hybrid.headerFooterAst, runLocalChunksFn),
+            { runningLog: "正在对照格式说明进行语义与版式分析…" }
+          )
+        : skippedAgent("format");
+
+      const logicRes = plan.logic
+        ? await runAgent(
+            reviewId,
+            "logic",
+            () => analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images }),
+            { runningLog: "正在通读全文并检测论证与结构问题…" }
+          )
+        : skippedAgent("logic");
 
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
@@ -378,7 +377,7 @@ export const orchestrateReview = task({
               const totalRefs = refList.length;
 
               const wc = review.word_count ?? 0;
-              const maxRefCount = await getMaxReferenceCountForWords(wc);
+              const maxRefCount = await getMaxReferenceCountForWordsDirect(wc);
               if (maxRefCount !== null && totalRefs > maxRefCount) {
                 throw new Error(
                   `参考文献条目数（${totalRefs} 条）超出当前字数（约 ${wc} 字）` +

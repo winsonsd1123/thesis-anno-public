@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, Play } from "lucide-react";
+
 import { EmbeddedObjectTip } from "./EmbeddedObjectTip";
 import type { StaticPlanStepId } from "@/lib/review/buildStaticPlan";
 import type { ReviewPlanOptions } from "@/lib/types/review";
+
+const STARTING_HINTS = [
+  "正在验证账户信息…",
+  "正在处理积分扣费…",
+  "正在派发审阅任务…",
+  "即将完成，请稍候…",
+] as const;
 
 export type PlanStepRow = {
   id: StaticPlanStepId;
@@ -110,6 +118,18 @@ export function PlanConfirmBubble({
   rechargeHref,
 }: PlanConfirmBubbleProps) {
   const [busy, setBusy] = useState(false);
+  const [hintIndex, setHintIndex] = useState(0);
+
+  useEffect(() => {
+    if (!busy) {
+      setHintIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setHintIndex((prev) => Math.min(prev + 1, STARTING_HINTS.length - 1));
+    }, 3000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   function toggleStep(id: StaticPlanStepId) {
     if (!planEditable) return;
@@ -483,39 +503,63 @@ export function PlanConfirmBubble({
         {showStartButton ? (
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
               paddingTop: 14,
               marginTop: 4,
               borderTop: "1px solid var(--border)",
             }}
           >
-            <button
-              type="button"
-              disabled={disabled || busy || insufficientCredits}
-              onClick={handleClick}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "8px 18px",
-                borderRadius: 999,
-                border: "none",
-                cursor: disabled || busy || insufficientCredits ? "not-allowed" : "pointer",
-                opacity: disabled || busy || insufficientCredits ? 0.45 : 1,
-                background: disabled || busy || insufficientCredits ? "var(--bg-muted)" : "var(--brand)",
-                color: disabled || busy || insufficientCredits ? "var(--text-secondary)" : "#fff",
-                boxShadow: disabled || busy || insufficientCredits ? "none" : "0 4px 14px rgba(0,87,255,0.30)",
-                transition: "background 0.2s, box-shadow 0.2s, opacity 0.2s",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <Play size={12} strokeWidth={2.5} aria-hidden style={{ marginLeft: -1 }} />
-              {busy ? startingLabel : startLabel}
-            </button>
+            <style>{`@keyframes _spin{to{transform:rotate(360deg)}} @keyframes _fadein{from{opacity:0}to{opacity:1}}`}</style>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                disabled={disabled || busy || insufficientCredits}
+                onClick={handleClick}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: "8px 18px",
+                  borderRadius: 999,
+                  border: "none",
+                  cursor: disabled || busy || insufficientCredits ? "not-allowed" : "pointer",
+                  opacity: disabled || busy || insufficientCredits ? 0.45 : 1,
+                  background: disabled || busy || insufficientCredits ? "var(--bg-muted)" : "var(--brand)",
+                  color: disabled || busy || insufficientCredits ? "var(--text-secondary)" : "#fff",
+                  boxShadow: disabled || busy || insufficientCredits ? "none" : "0 4px 14px rgba(0,87,255,0.30)",
+                  transition: "background 0.2s, box-shadow 0.2s, opacity 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {busy ? (
+                  <Loader2
+                    size={12}
+                    strokeWidth={2.5}
+                    aria-hidden
+                    style={{ marginLeft: -1, animation: "_spin 1s linear infinite" }}
+                  />
+                ) : (
+                  <Play size={12} strokeWidth={2.5} aria-hidden style={{ marginLeft: -1 }} />
+                )}
+                {busy ? startingLabel : startLabel}
+              </button>
+            </div>
+            {busy ? (
+              <p
+                key={hintIndex}
+                style={{
+                  margin: "8px 0 0",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  textAlign: "right",
+                  lineHeight: 1.5,
+                  animation: "_fadein 0.3s ease",
+                }}
+              >
+                {STARTING_HINTS[hintIndex]}
+              </p>
+            ) : null}
           </div>
         ) : footerNote ? (
           <div

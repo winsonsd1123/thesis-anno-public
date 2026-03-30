@@ -1,4 +1,4 @@
-import { ConfigService } from "@/lib/services/config.service";
+import { ConfigService, getConfigDirect } from "@/lib/services/config.service";
 import { billingSchema } from "@/lib/schemas/config.schemas";
 import type { ModuleCosts, ModuleConsumptionRule } from "@/lib/schemas/config.schemas";
 import type { ReviewPlanOptions } from "@/lib/types/review";
@@ -25,6 +25,27 @@ export type CostBreakdownSnapshot = Partial<Record<"logic" | "format" | "aitrace
 
 export async function getBillingConfig() {
   return ConfigService.get("billing", billingSchema);
+}
+
+/** 直读 Storage、不经 Next `unstable_cache`。供 Trigger.dev Worker 等非请求上下文使用。 */
+export async function getBillingConfigDirect() {
+  return getConfigDirect("billing", billingSchema);
+}
+
+/** Trigger.dev Worker 专用：按字数阶梯返回参考文献核查允许的最大条目数。 */
+export async function getMaxReferenceCountForWordsDirect(
+  wordCount: number
+): Promise<number | null> {
+  const config = await getBillingConfigDirect();
+  const rules = [...config.module_consumption_rules].sort(
+    (a, b) => a.max_words - b.max_words
+  );
+  for (const rule of rules) {
+    if (wordCount <= rule.max_words) {
+      return rule.max_ref_count ?? null;
+    }
+  }
+  return null;
 }
 
 export async function getPackages(): Promise<BillingPackage[]> {

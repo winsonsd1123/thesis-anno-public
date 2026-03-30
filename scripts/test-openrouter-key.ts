@@ -3,7 +3,7 @@
  * 使用原生 fetch 调用 OpenRouter API
  */
 
-const API_KEY = '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';
+const API_KEY = '';
 const API_URL = 'https://openrouter.ai/api/v1/auth/key';
 
 async function testApiKey() {
