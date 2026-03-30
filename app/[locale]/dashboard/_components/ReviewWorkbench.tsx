@@ -173,6 +173,12 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
     [activeReview?.id, clearSession, router]
   );
 
+  const handleRefreshProgress = useCallback(async () => {
+    if (!activeReview?.id) return;
+    const result = await fetchReviewRow(activeReview.id);
+    if (result.ok) hydrateFromReview(result.review);
+  }, [activeReview?.id, hydrateFromReview]);
+
   const progressAgents = useMemo((): ProgressConsoleAgent[] => {
     const labels = {
       format: t("progressAgentFormat"),
@@ -492,6 +498,9 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
                   barFootnote={t("progressBarFootnote")}
                   agents={progressAgents}
                   logLines={logLines}
+                  onRefresh={handleRefreshProgress}
+                  refreshLabel={t("progressRefresh")}
+                  refreshingLabel={t("progressRefreshing")}
                 />
                 <p
                   style={{

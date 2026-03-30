@@ -442,6 +442,8 @@
       "progressAgentAitrace": "AI 痕迹智能体",
       "progressAgentRefs": "参考文献智能体",
       "progressWaitLog": "[ThesisAI] 正在连接各智能体，同步实时进度…",
+      "progressRefresh": "刷新进度",
+      "progressRefreshing": "刷新中…",
       "reportTabStructure": "格式检查",
       "reportTabLogic": "逻辑检查",
       "reportTabAiTrace": "AI 痕迹检查",

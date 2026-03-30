@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useState } from "react";
 
 export type ProgressConsoleAgent = {
   key: string;
@@ -19,6 +20,12 @@ type ProgressConsoleProps = {
   barFootnote: string;
   agents: ProgressConsoleAgent[];
   logLines: string[];
+  /** 手动刷新回调，有值时展示刷新按钮 */
+  onRefresh?: () => Promise<void> | void;
+  /** 刷新按钮文案 */
+  refreshLabel?: string;
+  /** 刷新中文案 */
+  refreshingLabel?: string;
 };
 
 const badgeStyles: Record<ProgressConsoleAgent["badgeTone"], { bg: string; color: string; border: string }> = {
@@ -55,11 +62,48 @@ export function ProgressConsole({
   barFootnote,
   agents,
   logLines,
+  onRefresh,
+  refreshLabel = "刷新",
+  refreshingLabel = "刷新中…",
 }: ProgressConsoleProps) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <div className="progress-console-root">
       <div className="progress-console-header">
-        <div className="progress-console-title">{title}</div>
+        <div className="progress-console-title-row">
+          <div className="progress-console-title">{title}</div>
+          {onRefresh ? (
+            <button
+              type="button"
+              className="progress-console-refresh-btn"
+              onClick={() => void handleRefresh()}
+              disabled={refreshing}
+              aria-label={refreshing ? refreshingLabel : refreshLabel}
+            >
+              <span
+                className="progress-console-refresh-icon"
+                data-spinning={refreshing ? "true" : "false"}
+                aria-hidden
+              >
+                ↻
+              </span>
+              <span className="progress-console-refresh-label">
+                {refreshing ? refreshingLabel : refreshLabel}
+              </span>
+            </button>
+          ) : null}
+        </div>
         {subtitle?.trim() ? <p className="progress-console-subtitle">{subtitle}</p> : null}
         <p className="progress-console-footnote">{barFootnote}</p>
       </div>
@@ -154,11 +198,55 @@ export function ProgressConsole({
           padding: 18px 22px 14px;
           border-bottom: 1px solid rgba(148, 163, 184, 0.2);
         }
+        .progress-console-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
         .progress-console-title {
           font-size: 1.05rem;
           font-weight: 700;
           letter-spacing: 0.02em;
           color: #f8fafc;
+        }
+        .progress-console-refresh-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 12px 5px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(51, 120, 255, 0.35);
+          background: rgba(51, 120, 255, 0.1);
+          color: #93c5fd;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          cursor: pointer;
+          transition: background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+          flex-shrink: 0;
+        }
+        .progress-console-refresh-btn:hover:not(:disabled) {
+          background: rgba(51, 120, 255, 0.2);
+          border-color: rgba(51, 120, 255, 0.6);
+        }
+        .progress-console-refresh-btn:disabled {
+          opacity: 0.5;
+          cursor: default;
+        }
+        .progress-console-refresh-icon {
+          font-size: 14px;
+          line-height: 1;
+          display: inline-block;
+        }
+        .progress-console-refresh-icon[data-spinning="true"] {
+          animation: _pc_spin 0.7s linear infinite;
+        }
+        @keyframes _pc_spin {
+          to { transform: rotate(360deg); }
+        }
+        .progress-console-refresh-label {
+          line-height: 1;
         }
         .progress-console-subtitle {
           margin-top: 6px;

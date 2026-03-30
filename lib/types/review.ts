@@ -90,9 +90,17 @@ export const INITIAL_REVIEW_STAGES: ReviewStageEntry[] = [
 ];
 
 export function parseStages(raw: unknown): ReviewStageEntry[] {
-  if (!Array.isArray(raw)) return [];
+  let data: unknown = raw;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(data)) return [];
   const out: ReviewStageEntry[] = [];
-  for (const s of raw) {
+  for (const s of data) {
     if (!s || typeof s !== "object") continue;
     const o = s as Record<string, unknown>;
     const agent = o.agent;

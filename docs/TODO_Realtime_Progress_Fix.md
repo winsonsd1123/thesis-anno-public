@@ -1,5 +1,7 @@
 # TODO：前端实时进度更新修复方案
 
+**状态**：已实现（`parseStages` 字符串兜底；`useReviewRealtime` 仅 Realtime 断连时启动 **10s** Polling，经 `fetchReviewRow` → GET `/api/reviews/:id`）。
+
 **问题描述**：Trigger.dev 任务执行时数据库已更新（刷新后可见），但前端进度面板不实时刷新。
 
 **诊断结论**：数据库侧配置正常（`REPLICA IDENTITY FULL`、`supabase_realtime` publication 已启用、RLS SELECT 策略存在）。问题在前端 Realtime 订阅层。
@@ -103,10 +105,10 @@ useEffect(() => {
 
 ### Step 3：加入 Polling 兜底（`lib/hooks/useReviewRealtime.ts`）
 
-在同一个 `useEffect` 内，增加 5s 定时轮询，作为 Realtime 失效时的降级方案：
+在同一个 `useEffect` 内，**仅在** `CHANNEL_ERROR` / `TIMED_OUT` 时启动 **10s** 定时轮询；`SUBSCRIBED` 时停止 Polling。请求走 `fetchReviewRow`（符合三层架构）。
 
 ```typescript
-// Polling 兜底：每 5s 拉取一次，与 Realtime 互为冗余
+// Polling 兜底：Realtime 断连后每 10s 拉取一次
 const pollInterval = setInterval(async () => {
   const result = await fetchReviewRow(reviewId);
   if (result.ok) {
@@ -116,7 +118,7 @@ const pollInterval = setInterval(async () => {
       routerRef.current.refresh();
     }
   }
-}, 5000);
+}, 10_000);
 
 return () => {
   supabase.removeChannel(channel);
@@ -135,7 +137,7 @@ return () => {
 | 文件 | 修改内容 |
 |------|---------|
 | `lib/types/review.ts` | `parseStages` 增加 string → JSON.parse fallback |
-| `lib/hooks/useReviewRealtime.ts` | 去除 `router` 依赖、加订阅状态回调、加 5s Polling 兜底 |
+| `lib/hooks/useReviewRealtime.ts` | 去除 `router` 依赖、加订阅状态回调、断连时 10s Polling 兜底 |
 
 ---
 
@@ -143,7 +145,7 @@ return () => {
 
 1. 启动一个新的审阅任务（触发 Trigger.dev）
 2. 在前端进度页保持不刷新
-3. 预期：每个智能体状态变化（pending → running → done）在约 5s 内自动反映到 UI
+3. 预期：Realtime 正常时即时反映；断连降级后最多约 10s 内反映到 UI
 4. 观察浏览器控制台，应无 `[Realtime] CHANNEL_ERROR` 报错
 
 ---

@@ -510,6 +510,8 @@
       "progressAgentAitrace": "AI-trace agent",
       "progressAgentRefs": "Reference agent",
       "progressWaitLog": "[ThesisAI] Connecting agents, syncing live progress…",
+      "progressRefresh": "Refresh progress",
+      "progressRefreshing": "Refreshing progress…",
       "reportTabStructure": "Structure",
       "reportTabLogic": "Logic",
       "reportTabAiTrace": "AI traces",
