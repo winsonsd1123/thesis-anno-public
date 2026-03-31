@@ -158,11 +158,13 @@ function toReferenceItems(chunks: string[]): MarkdownExtractedReference[] {
   const out: MarkdownExtractedReference[] = [];
   let id = 1;
   for (const rawText of chunks) {
-    const title = inferTitleFromRaw(rawText);
+    // 去掉 Word 书签锚点等 HTML 标签（hybrid-docx-parser 产物，对引用内容无语义价值）
+    const cleanedRaw = rawText.replace(/<[^>]+>/g, "").replace(/\u00a0/g, " ").trim();
+    const title = inferTitleFromRaw(cleanedRaw);
     out.push({
       id: id++,
-      title: title || rawText.slice(0, 120).trim(),
-      rawText: rawText.replace(/\u00a0/g, " ").trim(),
+      title: title || cleanedRaw.slice(0, 120).trim(),
+      rawText: cleanedRaw,
     });
   }
   return out;

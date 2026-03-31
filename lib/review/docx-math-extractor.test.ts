@@ -295,3 +295,52 @@ test("appendMathToMarkdown: no fragments returns original", () => {
   const md = "# 标题\n\n正文";
   assert.strictEqual(appendMathToMarkdown(md, []), md);
 });
+
+test("appendMathToMarkdown: mammoth table fragment lines not matched by distant formula", () => {
+  const md = [
+    "## 3.3.1 实验数据集",
+    "",
+    "数据集",
+    "",
+    "C",
+    "",
+    "T",
+    "",
+    "L",
+    "",
+    "SearchSnippets",
+    "",
+    "8",
+    "",
+    "12340",
+    "",
+    "18",
+    "",
+    "20",
+    "",
+    "整个实验参数设置情况如下学习率lr=1e-5，batchsize=20，epoch=2000",
+  ].join("\n");
+  const fragments = [
+    {
+      paragraphText: "整个实验参数设置情况如下学习率lr1e5 batchsize20 epoch2000",
+      latex: ["W_{\\text{base}} = 1.0"],
+      display: false,
+    },
+  ];
+  const result = appendMathToMarkdown(md, fragments);
+  assert.ok(!result.includes("8 $W"), "formula must not be appended to short table cell '8'");
+  assert.ok(!result.includes("C $W"), "formula must not be appended to short table cell 'C'");
+  assert.ok(!result.includes("20 $W"), "formula must not be appended to short table cell '20'");
+});
+
+test("appendMathToMarkdown: fuzzy match still works for lines >= 4 chars", () => {
+  const md = "# 章节\n\n正文内容描述\n\n后续";
+  const fragments = [
+    { paragraphText: "正文内容描述及其扩展", latex: ["x = 1"], display: false },
+  ];
+  const result = appendMathToMarkdown(md, fragments);
+  assert.ok(
+    result.includes("正文内容描述 $x = 1$"),
+    "fuzzy match should still work when line has sufficient length",
+  );
+});
