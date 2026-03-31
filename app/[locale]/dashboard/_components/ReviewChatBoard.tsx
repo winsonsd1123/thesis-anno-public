@@ -8,7 +8,7 @@ import {
   updateReviewFormatGuidelines,
   getDefaultFormatGuidelinesZh,
 } from "@/lib/actions/review.action";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { startReviewEngine } from "@/lib/actions/trigger.action";
@@ -36,6 +36,7 @@ type ReviewChatBoardProps = {
 
 export function ReviewChatBoard({ balance }: ReviewChatBoardProps) {
   const t = useTranslations("dashboard.review");
+  const uiLocale = useLocale() === "en" ? "en" : "zh";
   const router = useRouter();
   const activeReview = useDashboardStore((s) => s.activeReview);
   const bubbles = useDashboardStore((s) => s.bubbles);
@@ -390,7 +391,11 @@ export function ReviewChatBoard({ balance }: ReviewChatBoardProps) {
                       return;
                     }
                   }
-                  const r = await startReviewEngine(planBubble.reviewId, planBubble.planOptions);
+                  const r = await startReviewEngine(
+                    planBubble.reviewId,
+                    planBubble.planOptions,
+                    uiLocale
+                  );
                   if (!r.ok) {
                     setPlanError(te(r.error));
                     return;

@@ -124,8 +124,9 @@ export const orchestrateReview = task({
     name: "main-review-queue",
     concurrencyLimit: QUEUE_LIMITS.MAIN_REVIEW_CONCURRENCY,
   },
-  run: async (payload: { reviewId: number }) => {
+  run: async (payload: { reviewId: number; uiLocale?: "zh" | "en" }) => {
     const { reviewId } = payload;
+    const uiLocale = payload.uiLocale === "en" ? "en" : "zh";
     try {
       const review = await reviewAdminDAL.getReviewById(reviewId);
       if (!review) {
@@ -145,7 +146,7 @@ export const orchestrateReview = task({
 
       const promptsConfig = await loadPromptsConfig();
 
-      const ctx: ReviewAnalyzeContext = { domain: review.domain };
+      const ctx: ReviewAnalyzeContext = { domain: review.domain, reviewUiLocale: uiLocale };
 
       if (plan.logic) {
         const logicP1 = promptsConfig.logic_review_pass1;
@@ -189,7 +190,7 @@ export const orchestrateReview = task({
         if (!refExtractCfg?.templates?.zh) {
           throw new Error("prompts config missing reference_extract (templates.zh)");
         }
-        if (!refVerifyCfg?.templates?.zh) {
+        if (!refVerifyCfg?.templates?.zh?.trim()) {
           throw new Error("prompts config missing reference_verification (templates.zh)");
         }
         const referenceExtractModelConfig = refExtractCfg.model_config ?? {
@@ -206,9 +207,15 @@ export const orchestrateReview = task({
           modelConfig: referenceExtractModelConfig,
           promptTemplate: refExtractCfg.templates.zh,
         };
+        const refVerifyTemplate =
+          uiLocale === "en" &&
+          typeof refVerifyCfg.templates.en === "string" &&
+          refVerifyCfg.templates.en.trim().length > 0
+            ? refVerifyCfg.templates.en
+            : refVerifyCfg.templates.zh;
         ctx.referenceVerify = {
           modelConfig: referenceVerifyModelConfig,
-          promptTemplate: refVerifyCfg.templates.zh,
+          promptTemplate: refVerifyTemplate,
           batchSize: referenceVerifyBatchSize,
         };
       }

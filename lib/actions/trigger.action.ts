@@ -38,9 +38,14 @@ function mapRollbackRpcError(message: string): string {
  * 顺序：RPC 扣费 + processing → tasks.trigger → 回写 trigger_run_id。
  * Trigger 未配置、派发失败或未取得 run id 时：调用 rollback_review_after_dispatch_failure（pending + 退款）。
  */
+function normalizeUiLocale(raw: unknown): "zh" | "en" {
+  return raw === "en" ? "en" : "zh";
+}
+
 export async function startReviewEngine(
   reviewId: number,
-  planOptionsInput?: ReviewPlanOptions
+  planOptionsInput?: ReviewPlanOptions,
+  uiLocale?: "zh" | "en"
 ): Promise<StartReviewResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -107,7 +112,10 @@ export async function startReviewEngine(
   let triggerRunId: string | null = null;
   try {
     const { tasks } = await import("@trigger.dev/sdk/v3");
-    const handle = await tasks.trigger("orchestrate-review", { reviewId });
+    const handle = await tasks.trigger("orchestrate-review", {
+      reviewId,
+      uiLocale: normalizeUiLocale(uiLocale),
+    });
     triggerRunId = handle?.id ?? null;
   } catch (e) {
     console.error("[startReviewEngine] Trigger.dev trigger failed after deduct:", e);

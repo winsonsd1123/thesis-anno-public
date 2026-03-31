@@ -80,6 +80,8 @@ export type FormatReviewContextPayload = {
 
 export type ReviewAnalyzeContext = {
   domain: string | null;
+  /** 审阅发起时的界面语言（参考文献核查补充指令等）；缺省按 zh */
+  reviewUiLocale?: "zh" | "en";
   /** 文档类型，用于门控结构完整性规则；未传时默认 chinese_degree_thesis */
   documentType?: DocumentType;
   logicReview?: LogicReviewContextPayload;

@@ -6,6 +6,7 @@
 export type { ReferenceCandidate } from "./types";
 
 export {
+  hasElectronicBibliographyOnlineMarker,
   isPrimarilyCjkTitle,
   isUrlReferenceWithoutScholarIdentifiers,
   normalizeTitleForExactMatch,

@@ -2,7 +2,11 @@ import { z } from "zod";
 import { generateObject, zodSchema } from "ai";
 import type { ModelMessage } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
-import { searchSourcesWaterfall, type ReferenceCandidate } from "@/lib/integrations/academic";
+import {
+  hasElectronicBibliographyOnlineMarker,
+  searchSourcesWaterfall,
+  type ReferenceCandidate,
+} from "@/lib/integrations/academic";
 import type { ReviewAnalyzeContext } from "./format.service";
 import { buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
@@ -13,6 +17,20 @@ import { findLastBibliographyHeadingLineStart } from "./reference-markdown-extra
 const REFERENCE_GENERATE_OBJECT_TIMEOUT_MS = 600_000;
 
 const REF_EXTRACT_LOG = "[reference extract]";
+
+/** 英文 [EB/OL] 批走联网模型时在中文系统提示后的补充段 */
+const REF_VERIFY_WEB_FALLBACK_APPEND_ZH =
+  "\n\n【补充】用户消息 JSON 中 `web_search_fallback_allowed` 为 `true` 的条目为 [EB/OL] 等网络文献。此类条目若 `database_candidate` 为空或不足以判定真实性，**允许使用联网检索**核对 URL、官方页或仓库是否存在，以及题名、日期与引用是否基本一致；**不得凭空编造 DOI**。若检索后仍无法核实或与引用明显不符，判 `fake_or_not_found`。**英文条目仍不得输出 `suspected`。**";
+
+const REF_VERIFY_WEB_FALLBACK_APPEND_EN =
+  "\n\n**Supplement:** For items with `web_search_fallback_allowed` true in the user JSON ([EB/OL] web references), if `database_candidate` is null or insufficient to judge factuality, **you may use web search** to check whether the URL or official page/repo exists and whether title and dates broadly match; **do not invent DOIs**. If still unverifiable or clearly inconsistent, output `fake_or_not_found`. **Never output `suspected` for English items.**";
+
+function englishEbolAllowsWebFallback(title: string, rawText: string): boolean {
+  return (
+    languagePrimaryForReference(title, rawText) === "en" &&
+    hasElectronicBibliographyOnlineMarker(rawText)
+  );
+}
 
 /**
  * 纯文本降级时整篇论文可能超出模型/上游上下文，输入被截断时常裁掉**文末**参考文献。
@@ -149,6 +167,7 @@ function buildBatchVerificationMessages(
       raw_reference_text: rawText,
       database_candidate: candidate,
       language_primary: languagePrimaryForReference(title, rawText),
+      web_search_fallback_allowed: englishEbolAllowsWebFallback(title, rawText),
     })),
   };
   return [
@@ -266,21 +285,30 @@ export async function verifyReferenceBatch(
   const enModelId = rv.modelConfig.model;
   const verifyTemperature = rv.modelConfig.temperature;
   const verifySystemPrompt = rv.promptTemplate;
+  const webFallbackSuffix =
+    ctx.reviewUiLocale === "en"
+      ? REF_VERIFY_WEB_FALLBACK_APPEND_EN
+      : REF_VERIFY_WEB_FALLBACK_APPEND_ZH;
 
   async function runLlmVerify(
-    subset: typeof candidates
+    subset: typeof candidates,
+    opts?: { useOnlineModelForEnglish?: boolean; systemSuffix?: string }
   ): Promise<z.infer<typeof batchVerificationSchema>> {
     if (subset.length === 0) {
       return { results: [] };
     }
     const isZh = languagePrimaryForReference(subset[0].title, subset[0].rawText) === "zh";
-    const modelId = isZh ? zhModelId : enModelId;
+    let modelId = isZh ? zhModelId : enModelId;
+    if (!isZh && opts?.useOnlineModelForEnglish) {
+      modelId = zhModelId;
+    }
     const model = getLLMModel(modelId);
     const messages = buildBatchVerificationMessages(subset);
+    const system = verifySystemPrompt + (opts?.systemSuffix ?? "");
     const gen = await generateObject({
       model,
       temperature: verifyTemperature,
-      system: verifySystemPrompt,
+      system,
       messages,
       schema,
       abortSignal: AbortSignal.timeout(REFERENCE_GENERATE_OBJECT_TIMEOUT_MS),
@@ -288,21 +316,24 @@ export async function verifyReferenceBatch(
     return gen.object;
   }
 
+  const enEbol = enSubset.filter((c) => englishEbolAllowsWebFallback(c.title, c.rawText));
+  const enStrict = enSubset.filter((c) => !englishEbolAllowsWebFallback(c.title, c.rawText));
+
   let verification: z.infer<typeof batchVerificationSchema>;
   try {
-    if (enSubset.length > 0 && zhSubset.length > 0) {
-      const [enVer, zhVer] = await Promise.all([
-        runLlmVerify(enSubset),
-        runLlmVerify(zhSubset),
-      ]);
-      verification = {
-        results: [...enVer.results, ...zhVer.results],
-      };
-    } else if (enSubset.length > 0) {
-      verification = await runLlmVerify(enSubset);
-    } else {
-      verification = await runLlmVerify(zhSubset);
+    const tasks: Promise<z.infer<typeof batchVerificationSchema>>[] = [];
+    if (enStrict.length > 0) tasks.push(runLlmVerify(enStrict));
+    if (enEbol.length > 0) {
+      tasks.push(
+        runLlmVerify(enEbol, {
+          useOnlineModelForEnglish: true,
+          systemSuffix: webFallbackSuffix,
+        })
+      );
     }
+    if (zhSubset.length > 0) tasks.push(runLlmVerify(zhSubset));
+    const merged = await Promise.all(tasks);
+    verification = { results: merged.flatMap((r) => r.results) };
   } catch (e) {
     fail("llm_verify", e);
   }

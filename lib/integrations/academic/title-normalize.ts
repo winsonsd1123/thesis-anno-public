@@ -28,6 +28,14 @@ export function isUrlReferenceWithoutScholarIdentifiers(rawText: string, title: 
   return false;
 }
 
+/**
+ * GB/T 7714 等常用的电子文献类型标识 `[EB/OL]`（大小写、半角方括号/圆括号均可）。
+ * 用于英文题录在学术库未命中时，允许走联网模型兜底核查。
+ */
+export function hasElectronicBibliographyOnlineMarker(rawText: string): boolean {
+  return /[\[【（(]\s*EB\s*\/\s*OL\s*[\]】）)]/i.test(rawText);
+}
+
 /** 参考文献条目标题是否以中文等 CJK 为主：标题瀑布仅跑 CrossRef→OpenAlex（见 waterfall） */
 export function isPrimarilyCjkTitle(title: string): boolean {
   const t = title.trim();
