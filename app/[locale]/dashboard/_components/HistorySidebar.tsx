@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import {
-  MoreHorizontal,
+  MoreVertical,
   Pencil,
   Trash2,
   CircleDashed,
@@ -750,26 +750,26 @@ export function HistorySidebar({
                         height: 26,
                         borderRadius: 6,
                         border: "none",
-                        background: openMenu?.id === item.id ? "var(--bg-muted)" : "transparent",
+                        background: openMenu?.id === item.id ? "var(--brand-bg)" : "transparent",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "var(--text-secondary)",
+                        color: openMenu?.id === item.id ? "var(--brand)" : "var(--text-muted)",
                         flexShrink: 0,
                       }}
                       onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = "var(--bg-muted)";
-                        (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+                        (e.currentTarget as HTMLElement).style.background = "var(--brand-bg)";
+                        (e.currentTarget as HTMLElement).style.color = "var(--brand)";
                       }}
                       onMouseLeave={(e) => {
                         if (openMenu?.id !== item.id) {
                           (e.currentTarget as HTMLElement).style.background = "transparent";
+                          (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
                         }
-                        (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
                       }}
                     >
-                      <MoreHorizontal size={14} strokeWidth={2} aria-hidden />
+                      <MoreVertical size={14} strokeWidth={2} aria-hidden />
                     </button>
                   ) : null}
                 </div>

@@ -15,6 +15,8 @@ export type MathFragment = {
   paragraphText: string;
   latex: string[];
   display: boolean;
+  /** display 公式的前一个非公式段落文本，用于 Markdown 内联定位 */
+  prevText?: string;
 };
 
 /**
@@ -37,6 +39,7 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
 
   const paragraphs = doc.getElementsByTagNameNS(W_NS, "p");
   const results: MathFragment[] = [];
+  let lastNonMathText = "";
 
   for (let i = 0; i < paragraphs.length; i++) {
     const p = paragraphs[i];
@@ -56,7 +59,13 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
       }
     }
 
-    if (mathNodes.length === 0) continue;
+    if (mathNodes.length === 0) {
+      const textParts: string[] = [];
+      collectNonMathText(p, textParts);
+      const pText = textParts.join("").trim();
+      if (pText) lastNonMathText = pText;
+      continue;
+    }
 
     const textParts: string[] = [];
     collectNonMathText(p, textParts);
@@ -66,7 +75,8 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
     for (const mathNode of mathNodes) {
       try {
         const mathmlEl = omml2mathml(mathNode);
-        const latex = MathMLToLaTeX.convert(mathmlEl.outerHTML);
+        const raw = MathMLToLaTeX.convert(mathmlEl.outerHTML);
+        const latex = postProcessLatex(raw);
         if (latex.trim()) latexFragments.push(latex.trim());
       } catch {
         // unconvertible formula — skip
@@ -74,7 +84,11 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
     }
 
     if (latexFragments.length > 0) {
-      results.push({ paragraphText, latex: latexFragments, display: isDisplay });
+      const frag: MathFragment = { paragraphText, latex: latexFragments, display: isDisplay };
+      if (isDisplay && lastNonMathText) {
+        frag.prevText = lastNonMathText;
+      }
+      results.push(frag);
     }
   }
 
@@ -103,6 +117,41 @@ function collectNonMathText(node: XmldomNode, parts: string[]): void {
 
 function normalizeText(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/** strip Markdown inline 格式标记（**、__、*、_），用于模糊匹配 */
+function stripMarkdownInline(s: string): string {
+  return s.replace(/(\*\*|__|[*_])/g, "");
+}
+
+/**
+ * LaTeX 后处理：
+ * 1. 合并 omml2mathml 拆散的连续单字母为 \text{...}
+ * 2. 移除尾部公式编号（Word 制表符对齐的 (2.1) 等）
+ * 3. 清理 &nbsp; HTML 实体
+ * 4. 规范化 Unicode ‖ (U+2016) → \|
+ */
+export function postProcessLatex(latex: string): string {
+  let s = latex;
+
+  s = s.replace(/&nbsp;/g, " ");
+
+  s = s.replace(/‖/g, "\\|");
+
+  s = s.replace(
+    /\s*\\#\s*\\left[（(].*$/,
+    "",
+  );
+
+  s = s.replace(
+    /(?<![a-zA-Z\\])([a-zA-Z] ){2,}[a-zA-Z](?![a-zA-Z])/g,
+    (match) => {
+      const merged = match.replace(/ /g, "");
+      return `\\text{${merged}}`;
+    },
+  );
+
+  return s.replace(/\s{2,}/g, " ").trim();
 }
 
 /**
@@ -163,7 +212,48 @@ export function attachMathToStyleAst(
 const MATH_APPENDIX_HEADING = "\n\n---\n本文中的数学公式（原文中公式处可能显示为空白）：\n";
 
 /**
- * 在 Markdown 末尾追加公式附录，供 LLM 审阅时参考。
+ * 在 Markdown 行数组中找到 needle 所在的行索引（normalize 后包含匹配）。
+ * usedLines 记录已被占用的行，避免同一行重复匹配。
+ */
+function findLineIndex(
+  lines: string[],
+  needle: string,
+  usedLines: Set<number>,
+): number {
+  const norm = normalizeText(needle);
+  if (!norm) return -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (usedLines.has(i)) continue;
+    const normLine = normalizeText(lines[i]);
+    if (normLine === norm) return i;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    if (usedLines.has(i)) continue;
+    const normLine = normalizeText(lines[i]);
+    if (!normLine) continue;
+    if (normLine.includes(norm) || norm.includes(normLine)) return i;
+  }
+
+  const normStripped = normalizeText(stripMarkdownInline(needle));
+  for (let i = 0; i < lines.length; i++) {
+    if (usedLines.has(i)) continue;
+    const stripped = normalizeText(stripMarkdownInline(lines[i]));
+    if (!stripped) continue;
+    if (stripped === normStripped) return i;
+    if (stripped.includes(normStripped) || normStripped.includes(stripped)) return i;
+  }
+
+  return -1;
+}
+
+/**
+ * 将公式内联插入 Markdown（取代末尾附录模式）。
+ *
+ * - inline 公式：在 paragraphText 匹配行末尾追加 $...$
+ * - display 公式：用 prevText 定位前文行，在其后插入独立行 $$...$$
+ * - 未匹配公式：回退到末尾附录保底
  */
 export function appendMathToMarkdown(
   markdown: string,
@@ -171,19 +261,54 @@ export function appendMathToMarkdown(
 ): string {
   if (fragments.length === 0) return markdown;
 
-  const lines: string[] = [];
-  for (const frag of fragments) {
-    const ctx = frag.paragraphText.trim();
-    const ctxSnippet = ctx.length > 30 ? ctx.slice(0, 30) + "…" : ctx;
-    const prefix = ctxSnippet
-      ? `段落"${ctxSnippet}"中的公式`
-      : "独立公式";
+  const lines = markdown.split("\n");
+  const usedLines = new Set<number>();
+  const unmatched: MathFragment[] = [];
 
-    for (const tex of frag.latex) {
-      const wrap = frag.display ? `$$${tex}$$` : `$${tex}$`;
-      lines.push(`- ${prefix}：${wrap}`);
+  for (const frag of fragments) {
+    const texJoined = frag.latex.map((t) =>
+      frag.display ? `$$${t}$$` : `$${t}$`,
+    ).join(" ");
+
+    if (!frag.display && frag.paragraphText.trim()) {
+      const idx = findLineIndex(lines, frag.paragraphText, usedLines);
+      if (idx >= 0) {
+        lines[idx] = lines[idx] + " " + texJoined;
+        usedLines.add(idx);
+        continue;
+      }
     }
+
+    if (frag.display && frag.prevText) {
+      const idx = findLineIndex(lines, frag.prevText, usedLines);
+      if (idx >= 0) {
+        const displayBlock = "\n\n" + frag.latex.map((t) => `$$${t}$$`).join("\n");
+        lines[idx] = lines[idx] + displayBlock;
+        usedLines.add(idx);
+        continue;
+      }
+    }
+
+    unmatched.push(frag);
   }
 
-  return markdown + MATH_APPENDIX_HEADING + lines.join("\n") + "\n";
+  let result = lines.join("\n");
+
+  if (unmatched.length > 0) {
+    const fallback: string[] = [];
+    for (const frag of unmatched) {
+      const ctx = frag.paragraphText.trim();
+      const ctxSnippet = ctx.length > 30 ? ctx.slice(0, 30) + "…" : ctx;
+      const prefix = ctxSnippet
+        ? `段落"${ctxSnippet}"中的公式`
+        : "独立公式";
+      for (const tex of frag.latex) {
+        const wrap = frag.display ? `$$${tex}$$` : `$${tex}$`;
+        fallback.push(`- ${prefix}：${wrap}`);
+      }
+    }
+    result += MATH_APPENDIX_HEADING + fallback.join("\n") + "\n";
+  }
+
+  return result;
 }
