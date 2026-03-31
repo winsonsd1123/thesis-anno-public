@@ -416,6 +416,8 @@
       "historyNewReview": "New review",
       "historyRename": "Rename",
       "historyDelete": "Delete",
+      "deleteBlockedByOpenTicket": "This review is linked to a support ticket that is still open or in progress. Delete is disabled until the ticket is resolved or closed.",
+      "deleteBlockedDismiss": "OK",
       "historyRenamePlaceholder": "Enter a new name…",
       "historySeekHelp": "Get help",
       "helpTicketTitle": "Submit a support ticket",

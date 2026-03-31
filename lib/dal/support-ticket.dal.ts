@@ -39,4 +39,22 @@ export const supportTicketUserDAL = {
     const { error } = await supabase.from("support_tickets").insert(row);
     if (error) throw new Error(`SUPPORT_TICKET_INSERT: ${error.message}`);
   },
+
+  /**
+   * 该审阅下是否存在「待处理」工单（open / in_progress）。解决或关闭（resolved / closed）后不再阻塞删除。
+   */
+  async hasBlockingTicketForReview(
+    supabase: SupabaseClient,
+    reviewId: number,
+    userId: string
+  ): Promise<boolean> {
+    const { count, error } = await supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("review_id", reviewId)
+      .eq("user_id", userId)
+      .in("status", ["open", "in_progress"]);
+    if (error) throw new Error(`SUPPORT_TICKET_BLOCKING_COUNT: ${error.message}`);
+    return (count ?? 0) > 0;
+  },
 };

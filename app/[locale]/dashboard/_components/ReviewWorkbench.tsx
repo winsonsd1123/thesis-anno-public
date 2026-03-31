@@ -110,6 +110,8 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
 
   const [panelOverride, setPanelOverride] = useState<Panel | null>(null);
   const [copyHint, setCopyHint] = useState("");
+  /** 删除被工单阻塞时的顶栏提示 */
+  const [deleteBlockedHint, setDeleteBlockedHint] = useState<string | null>(null);
   /** 切换历史记录拉取详情时：左侧立即高亮、右侧遮罩，避免「点了没反应」 */
   const [loadingReviewId, setLoadingReviewId] = useState<number | null>(null);
 
@@ -163,14 +165,20 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
   const handleDelete = useCallback(
     async (id: number) => {
       const result = await deleteReview(id);
-      if (!result.ok) return;
+      if (!result.ok) {
+        if (result.error === "OPEN_SUPPORT_TICKET") {
+          setDeleteBlockedHint(t("deleteBlockedByOpenTicket"));
+        }
+        return;
+      }
+      setDeleteBlockedHint(null);
       if (activeReview?.id === id) {
         clearSession();
         setPanelOverride(null);
       }
       router.refresh();
     },
-    [activeReview?.id, clearSession, router]
+    [activeReview?.id, clearSession, router, t]
   );
 
   const handleRefreshProgress = useCallback(async () => {
@@ -241,6 +249,43 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
         minHeight: "calc(100vh - 56px - 24px)",
       }}
     >
+      {deleteBlockedHint ? (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: "12px 16px",
+            borderRadius: 12,
+            border: "1px solid #f59e0b",
+            background: "rgba(245, 158, 11, 0.1)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--text-primary)", flex: "1 1 200px", lineHeight: 1.5 }}>
+            {deleteBlockedHint}
+          </span>
+          <button
+            type="button"
+            onClick={() => setDeleteBlockedHint(null)}
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "6px 14px",
+              borderRadius: 999,
+              border: "1px solid rgba(180, 83, 9, 0.35)",
+              background: "var(--surface)",
+              color: "#b45309",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {t("deleteBlockedDismiss")}
+          </button>
+        </div>
+      ) : null}
       <div
         className="review-workbench-row"
         style={{

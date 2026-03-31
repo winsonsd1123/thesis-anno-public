@@ -345,6 +345,8 @@
       "historyNewReview": "新审阅",
       "historyRename": "重命名",
       "historyDelete": "删除",
+      "deleteBlockedByOpenTicket": "该审阅有关联的支持工单尚未解决或关闭，暂时无法删除。请待工单处理完毕后再试。",
+      "deleteBlockedDismiss": "知道了",
       "historyRenamePlaceholder": "输入新名称…",
       "historySeekHelp": "寻求帮助",
       "helpTicketTitle": "提交支持工单",

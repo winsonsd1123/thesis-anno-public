@@ -87,4 +87,12 @@ export const supportTicketService = {
 
     return { ok: true };
   },
+
+  async reviewHasBlockingTicket(
+    supabase: SupabaseClient,
+    reviewId: number,
+    userId: string
+  ): Promise<boolean> {
+    return supportTicketUserDAL.hasBlockingTicketForReview(supabase, reviewId, userId);
+  },
 };

@@ -5,6 +5,7 @@ import { isAllowedDocx, DOCX_MIME } from "@/lib/browser/thesis-file";
 import { isValidStagingPathForUser } from "@/lib/review/staging-path";
 import { storageDAL } from "@/lib/dal/storage.dal";
 import { reviewService } from "@/lib/services/review.service";
+import { supportTicketService } from "@/lib/services/support-ticket.service";
 import type { ReviewRow } from "@/lib/types/review";
 import { countWordsFromDocxBuffer } from "@/lib/services/docx-word-count.service";
 import { analyzeStagedDocxFromStorage } from "@/lib/services/staged-docx-cost.service";
@@ -261,6 +262,8 @@ export async function deleteReview(reviewId: number): Promise<SimpleActionResult
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: "NOT_AUTHENTICATED" };
   try {
+    const blocked = await supportTicketService.reviewHasBlockingTicket(supabase, reviewId, auth.user.id);
+    if (blocked) return { ok: false, error: "OPEN_SUPPORT_TICKET" };
     const fileUrl = await reviewService.deleteReview(reviewId, auth.user.id);
     if (fileUrl) {
       try {
