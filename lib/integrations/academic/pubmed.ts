@@ -1,6 +1,6 @@
 import { fetchJson } from "./http";
 import type { ReferenceCandidate } from "./types";
-import { normTitle } from "./title-normalize";
+import { normTitle, titlesExactMatchNormalized } from "./title-normalize";
 
 type ESearchResp = {
   esearchresult?: { idlist?: string[] };
@@ -51,9 +51,12 @@ export async function searchPubMed(
   const q = normTitle(query);
   if (q.length < 6) return null;
   const search = await fetchJson<ESearchResp>(
-    `${base}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(q)}&retmax=1&retmode=json&tool=${tool}&email=${encodeURIComponent(mail)}`
+    `${base}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(q)}&retmax=5&retmode=json&tool=${tool}&email=${encodeURIComponent(mail)}`
   );
-  const pmid = search?.esearchresult?.idlist?.[0];
-  if (!pmid) return null;
-  return searchPubMed(pmid, { byId: true });
+  const idlist = search?.esearchresult?.idlist ?? [];
+  for (const pmid of idlist) {
+    const candidate = await searchPubMed(pmid, { byId: true });
+    if (candidate && titlesExactMatchNormalized(query, candidate.title ?? "")) return candidate;
+  }
+  return null;
 }

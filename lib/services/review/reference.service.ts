@@ -237,27 +237,20 @@ export async function verifyReferenceBatch(
   const refsBatch = parseRefBatch(dataBatch);
   if (refsBatch.length === 0) return [];
 
-  let candidates: Array<{
+  const candidates: Array<{
     id: number;
     title: string;
     rawText: string;
     candidate: ReferenceCandidate | null;
-  }>;
+  }> = [];
   try {
-    candidates = await Promise.all(
-      refsBatch.map(async (ref) => {
-        const candidate = await searchSourcesWaterfall({
-          title: ref.title,
-          rawText: ref.rawText,
-        });
-        return {
-          id: ref.id,
-          title: ref.title,
-          rawText: ref.rawText,
-          candidate,
-        };
-      })
-    );
+    for (const ref of refsBatch) {
+      const candidate = await searchSourcesWaterfall({
+        title: ref.title,
+        rawText: ref.rawText,
+      });
+      candidates.push({ id: ref.id, title: ref.title, rawText: ref.rawText, candidate });
+    }
   } catch (e) {
     fail("metadata_search", e);
   }

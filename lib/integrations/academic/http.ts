@@ -15,11 +15,11 @@ export function semanticScholarHeaders(): HeadersInit {
   return h;
 }
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> {
+async function doFetch(url: string, init?: RequestInit): Promise<Response | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ACADEMIC_FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    return await fetch(url, {
       ...init,
       signal: ctrl.signal,
       headers: {
@@ -28,11 +28,20 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T |
         ...(init?.headers as Record<string, string>),
       },
     });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
   } catch {
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> {
+  let res = await doFetch(url, init);
+  if (res?.status === 429) {
+    console.warn(`[academic] 429 rate-limit from ${new URL(url).hostname}, retrying after 2s…`);
+    await new Promise((r) => setTimeout(r, 2_000));
+    res = await doFetch(url, init);
+  }
+  if (!res?.ok) return null;
+  return (await res.json()) as T;
 }

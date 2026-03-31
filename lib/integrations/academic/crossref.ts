@@ -1,6 +1,6 @@
 import { fetchJson } from "./http";
 import type { ReferenceCandidate } from "./types";
-import { normTitle } from "./title-normalize";
+import { normTitle, titlesExactMatchNormalized } from "./title-normalize";
 
 type CrossrefWorkMessage = {
   DOI?: string;
@@ -54,11 +54,15 @@ export async function searchCrossRefByTitle(title: string): Promise<ReferenceCan
   const data = await fetchJson<{
     message?: { items?: CrossrefWorkMessage[] };
   }>(
-    `https://api.crossref.org/works?query.title=${encodeURIComponent(q)}&rows=1`
+    `https://api.crossref.org/works?query.title=${encodeURIComponent(q)}&rows=5`
   );
-  const item = data?.message?.items?.[0];
-  if (!item?.title?.length) return null;
-  const c = crossrefMessageToCandidate(item);
-  const doi = item.DOI ?? null;
-  return { ...c, doi };
+  const items = data?.message?.items;
+  if (!items?.length) return null;
+  for (const item of items) {
+    if (!item?.title?.length) continue;
+    const c = crossrefMessageToCandidate(item);
+    if (!c.title || !titlesExactMatchNormalized(title, c.title)) continue;
+    return { ...c, doi: item.DOI ?? null };
+  }
+  return null;
 }

@@ -1,6 +1,6 @@
 import { fetchJson, semanticScholarHeaders } from "./http";
 import type { ReferenceCandidate } from "./types";
-import { normTitle } from "./title-normalize";
+import { normTitle, titlesExactMatchNormalized } from "./title-normalize";
 
 type S2SearchResp = {
   data?: Array<{
@@ -16,18 +16,23 @@ export async function searchSemanticScholar(title: string): Promise<ReferenceCan
   const q = normTitle(title);
   if (q.length < 6) return null;
   const data = await fetchJson<S2SearchResp>(
-    `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&limit=1&fields=title,year,venue,authors,externalIds`,
+    `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(q)}&limit=5&fields=title,year,venue,authors,externalIds`,
     { headers: semanticScholarHeaders() }
   );
-  const p = data?.data?.[0];
-  if (!p?.title) return null;
-  const authors = p.authors?.map((a) => a.name).filter(Boolean) as string[] | undefined;
-  return {
-    source: "semantic_scholar",
-    title: p.title,
-    authors: authors?.length ? authors : null,
-    year: p.year ?? null,
-    doi: p.externalIds?.DOI ?? null,
-    venue: p.venue ?? null,
-  };
+  const papers = data?.data;
+  if (!papers?.length) return null;
+  for (const p of papers) {
+    if (!p?.title) continue;
+    if (!titlesExactMatchNormalized(title, p.title)) continue;
+    const authors = p.authors?.map((a) => a.name).filter(Boolean) as string[] | undefined;
+    return {
+      source: "semantic_scholar",
+      title: p.title,
+      authors: authors?.length ? authors : null,
+      year: p.year ?? null,
+      doi: p.externalIds?.DOI ?? null,
+      venue: p.venue ?? null,
+    };
+  }
+  return null;
 }
