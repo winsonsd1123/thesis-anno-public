@@ -304,15 +304,6 @@ export const orchestrateReview = task({
           )
         : skippedAgent("format");
 
-      const logicRes = plan.logic
-        ? await runAgent(
-            reviewId,
-            "logic",
-            () => analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images }),
-            { runningLog: "正在通读全文并检测论证与结构问题…" }
-          )
-        : skippedAgent("logic");
-
       const aitraceRes = plan.aitrace
         ? await runAgent(reviewId, "aitrace", async () => {
             const tAi0 = performance.now();
@@ -366,6 +357,15 @@ export const orchestrateReview = task({
             };
           })
         : skippedAgent("aitrace");
+
+      const logicRes = plan.logic
+        ? await runAgent(
+            reviewId,
+            "logic",
+            () => analyzeLogic(hybrid.markdown, "text", ctx, { docxImages: hybrid.images }),
+            { runningLog: "正在通读全文并检测论证与结构问题…" }
+          )
+        : skippedAgent("logic");
 
       const refRes = plan.reference
         ? await runAgent(

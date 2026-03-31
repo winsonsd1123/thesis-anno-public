@@ -3,7 +3,7 @@
  * 约 2000 字、仅在段落边界合并；超长单段不中段切断，单独成块。
  */
 
-export const AITRACE_MARKDOWN_CHUNK_CHARS = 2000;
+export const AITRACE_MARKDOWN_CHUNK_CHARS = 5000;
 
 /** 首个标题出现前的占位章节名（与提示词一致） */
 export const AITRACE_DEFAULT_SECTION_LABEL = "文档开头";
