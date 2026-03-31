@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateObject, zodSchema, type LanguageModelUsage } from "ai";
+import { generateObject, generateText, zodSchema, type LanguageModelUsage } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
 import type { DocxStyleAstNode, DocumentSetup } from "@/lib/types/docx-hybrid";
 import {
@@ -328,8 +328,6 @@ export async function analyzeFormat(
 
   const globalSchema = zodSchema(GlobalSemanticResultSchema);
   const localSchema = zodSchema(LocalSemanticResultSchema);
-  const extractSchema = zodSchema(formatPhysicalExtractSchema);
-
   const extractUserText = `以下为用户提供的论文格式要求（自然语言）。请仅依据文中**明确写出**的约束抽取结构化字段；禁止臆造未出现的规则。\n\n---\n${fr.formatGuidelines}`;
 
   const tSem0 = performance.now();
@@ -393,14 +391,21 @@ export async function analyzeFormat(
   }
 
   // --- Extract Task（物理规格，并行跑）---
-  // reasoning：不在此关闭，由 OpenRouter/模型默认（便于复杂规范推理；页边距已用整数 mm 约束输出形态）
+  // 使用 generateText 而非 generateObject：Gemini structured output 对 optional array-item
+  // 字段极度保守（只填 required），导致 headings 只返回 level。改为自由文本 + Zod 手动解析。
   const extractTask = withRetries(() =>
-    generateObject({
+    generateText({
       model: extractModel,
       temperature: fr.extract.modelConfig.temperature,
-      system: fr.extract.promptTemplate,
+      system: fr.extract.promptTemplate + "\n\n请以严格 JSON 格式输出，不要包含 markdown 代码块标记。",
       messages: [{ role: "user", content: extractUserText }],
-      schema: extractSchema,
+    }).then((gen) => {
+      const jsonStr = gen.text
+        .replace(/^```json?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
+      const object = formatPhysicalExtractSchema.parse(JSON.parse(jsonStr));
+      return { object, usage: gen.usage, reasoning: gen.reasoning };
     })
   );
 
@@ -428,7 +433,7 @@ export async function analyzeFormat(
 
   const semanticResult = { issues: semanticIssues };
 
-  let extractResult: z.infer<typeof formatPhysicalExtractSchema>;
+  let extractResult: FormatPhysicalExtract;
   let extractLlmOk = true;
   let extractGen: Awaited<typeof extractTask> | null = null;
   if (extSettled.status === "fulfilled") {

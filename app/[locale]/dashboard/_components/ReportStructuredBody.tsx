@@ -246,6 +246,83 @@ function IssueCard(props: {
   );
 }
 
+const OVERALL_DIMENSIONS: { key: string; labelKey: string }[] = [
+  { key: "research_value", labelKey: "reportOverallResearchValue" },
+  { key: "methodology_fitness", labelKey: "reportOverallMethodology" },
+  { key: "argumentation_completeness", labelKey: "reportOverallArgumentation" },
+  { key: "overall_comment", labelKey: "reportOverallComment" },
+];
+
+function OverallAssessmentCard(props: {
+  assessment: Record<string, unknown>;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const { assessment, t } = props;
+  return (
+    <article
+      className="animate-fade-up"
+      style={{
+        marginBottom: 20,
+        borderRadius: 14,
+        border: "1px solid color-mix(in srgb, var(--brand) 25%, var(--border))",
+        background:
+          "linear-gradient(145deg, color-mix(in srgb, var(--brand) 6%, var(--surface)) 0%, var(--surface) 100%)",
+        boxShadow: "0 2px 12px color-mix(in srgb, var(--brand) 8%, transparent), var(--shadow-sm)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "16px 20px 12px",
+          borderBottom: "1px solid color-mix(in srgb, var(--brand) 12%, var(--border))",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 16,
+            fontWeight: 700,
+            color: "var(--brand)",
+            letterSpacing: "0.3px",
+          }}
+        >
+          {t("reportOverallAssessmentTitle" as never)}
+        </h3>
+      </div>
+      <div style={{ padding: "14px 20px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {OVERALL_DIMENSIONS.map(({ key, labelKey }) => {
+          const text = typeof assessment[key] === "string" ? (assessment[key] as string) : "";
+          if (!text) return null;
+          return (
+            <div key={key}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                  marginBottom: 4,
+                }}
+              >
+                {t(labelKey as never)}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {text}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
 function ReferenceRow(props: {
   row: Record<string, unknown>;
   index: number;
@@ -675,10 +752,19 @@ export function ReportStructuredBody({ tab, value, emptyLabel }: { tab: TabId; v
     })
     .filter(Boolean);
 
+  const overallAssessment =
+    tab === "logic" && isRecord(value) && isRecord(value.overall_assessment)
+      ? (value.overall_assessment as Record<string, unknown>)
+      : null;
+
   return (
     <div>
       {sectionRunSummary ? <p style={REPORT_RUN_NOTE_STYLE}>{sectionRunSummary}</p> : null}
       {tab === "structure" ? <p style={REPORT_RUN_NOTE_STYLE}>{t("reportFormatExperimentalDisclaimer")}</p> : null}
+
+      {overallAssessment ? (
+        <OverallAssessmentCard assessment={overallAssessment} t={t} />
+      ) : null}
 
       {issuesRaw.length === 0 ? (
         <div

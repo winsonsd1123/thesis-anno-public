@@ -103,6 +103,11 @@ export function ReportViewer({
       refLabelFact: t("exportMdRefFact"),
       refLabelFormat: t("exportMdRefFormat"),
       refsEmpty: t("reportRefsEmptyTitle"),
+      overallAssessmentHeader: t("reportOverallAssessmentTitle" as never),
+      overallResearchValue: t("reportOverallResearchValue" as never),
+      overallMethodology: t("reportOverallMethodology" as never),
+      overallArgumentation: t("reportOverallArgumentation" as never),
+      overallComment: t("reportOverallComment" as never),
       translateIssueType: (code: string) => {
         const safe = code.trim() || "unknown";
         if (REPORT_ISSUE_TYPE_KEYS.has(safe)) {

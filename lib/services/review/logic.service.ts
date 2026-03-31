@@ -27,6 +27,15 @@ const logicIssueSchema = z.object({
 
 export type LogicIssue = z.infer<typeof logicIssueSchema>;
 
+const overallAssessmentSchema = z.object({
+  research_value: z.string(),
+  methodology_fitness: z.string(),
+  argumentation_completeness: z.string(),
+  overall_comment: z.string(),
+});
+
+export type LogicOverallAssessment = z.infer<typeof overallAssessmentSchema>;
+
 const SEVERITY_ORDER: Record<LogicIssue["severity"], number> = {
   High: 0,
   Medium: 1,
@@ -44,12 +53,22 @@ export function sortLogicIssues(issues: LogicIssue[]): LogicIssue[] {
   });
 }
 
+/** Pass1 输出：含 overall_assessment + issues */
+export const LogicPass1ResultSchema = z.object({
+  overall_assessment: overallAssessmentSchema,
+  issues: z.array(logicIssueSchema),
+});
+
+/** Pass2 输出：仅 issues（补漏） */
 export const LogicResultSchema = z.object({
   issues: z.array(logicIssueSchema),
 });
 
 /** LLM 结构化输出形状（不含观测字段） */
 export type LogicLlmObject = z.infer<typeof LogicResultSchema>;
+
+/** Pass1 LLM 结构化输出 */
+type LogicPass1LlmObject = z.infer<typeof LogicPass1ResultSchema>;
 
 /** 持久化在 `reviews.result.logic_result.observability`，便于对比 Pass2 是否带来增量 */
 export type LogicReviewObservability = {
@@ -61,6 +80,7 @@ export type LogicReviewObservability = {
 };
 
 export type LogicReviewResult = LogicLlmObject & {
+  overall_assessment?: LogicOverallAssessment;
   observability: LogicReviewObservability;
 };
 
@@ -93,9 +113,10 @@ export async function analyzeLogic(
     options?.docxImages !== undefined
       ? buildDocxMultimodalMessages(content, options.docxImages)
       : buildReviewMessages(content, contentType);
-  const schema = zodSchema(LogicResultSchema);
+  const pass1Schema = zodSchema(LogicPass1ResultSchema);
+  const pass2Schema = zodSchema(LogicResultSchema);
 
-  let initialDraft: LogicLlmObject;
+  let initialDraft: LogicPass1LlmObject;
   const t0 = performance.now();
   try {
     const pass1 = await generateObject({
@@ -103,7 +124,7 @@ export async function analyzeLogic(
       temperature,
       system: lr.pass1SystemPrompt,
       messages,
-      schema,
+      schema: pass1Schema,
     });
     initialDraft = pass1.object;
   } catch (e) {
@@ -113,7 +134,7 @@ export async function analyzeLogic(
 
   const pass2System = lr.pass2TemplateRaw.replace(
     "{{initial_draft}}",
-    JSON.stringify(initialDraft)
+    JSON.stringify(initialDraft.issues)
   );
 
   let pass2Result: LogicLlmObject;
@@ -124,7 +145,7 @@ export async function analyzeLogic(
       temperature,
       system: pass2System,
       messages,
-      schema,
+      schema: pass2Schema,
     });
     pass2Result = pass2.object;
   } catch (e) {
@@ -154,6 +175,7 @@ export async function analyzeLogic(
   );
 
   return {
+    overall_assessment: initialDraft.overall_assessment,
     issues: mergedIssues,
     observability,
   };

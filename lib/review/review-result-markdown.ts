@@ -43,6 +43,11 @@ export type ReviewMarkdownLabels = {
   refLabelFact: string;
   refLabelFormat: string;
   refsEmpty: string;
+  overallAssessmentHeader: string;
+  overallResearchValue: string;
+  overallMethodology: string;
+  overallArgumentation: string;
+  overallComment: string;
   translateIssueType: (code: string) => string;
   translateRefFact: (fact: string) => string;
   translateRefFormat: (fmt: string) => string;
@@ -127,6 +132,24 @@ function formatIssuesMarkdown(
     );
     lines.push("");
   }
+  if (tab === "logic" && isRecord(payload.overall_assessment)) {
+    const oa = payload.overall_assessment as Record<string, unknown>;
+    lines.push(`### ${l.overallAssessmentHeader}`);
+    lines.push("");
+    const dims: [string, string][] = [
+      ["research_value", l.overallResearchValue],
+      ["methodology_fitness", l.overallMethodology],
+      ["argumentation_completeness", l.overallArgumentation],
+      ["overall_comment", l.overallComment],
+    ];
+    for (const [key, label] of dims) {
+      const text = typeof oa[key] === "string" ? (oa[key] as string).trim() : "";
+      if (text) {
+        lines.push(`**${label}** ${text}`, "");
+      }
+    }
+  }
+
   if (!Array.isArray(issuesRaw)) {
     lines.push(fenceBlock(JSON.stringify(payload, null, 2)));
     return lines.join("\n");
