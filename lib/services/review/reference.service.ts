@@ -189,8 +189,19 @@ export async function extractReferences(
     );
     return codeRefs;
   }
+
+  // 若连参考文献章节标题都不存在，说明论文本身没有参考文献清单，直接返回空。
+  // 避免将全文扔给 LLM 导致把正文行文引用误识别为参考文献条目。
+  const hasHeading = findLastBibliographyHeadingLineStart(markdown) !== null;
+  if (!hasHeading) {
+    console.info(
+      `${REF_EXTRACT_LOG} 来源=跳过 原因=论文无参考文献章节标题，不调用 reference_extract LLM`
+    );
+    return [];
+  }
+
   console.info(
-    `${REF_EXTRACT_LOG} 来源=LLM兜底 原因=未命中参考文献标题或代码分条为0 将调用 reference_extract model=${rx.modelConfig.model}`
+    `${REF_EXTRACT_LOG} 来源=LLM兜底 原因=有参考文献标题但代码分条为0 将调用 reference_extract model=${rx.modelConfig.model}`
   );
 
   const model = getLLMModel(rx.modelConfig.model);
