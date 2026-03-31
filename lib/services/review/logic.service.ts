@@ -3,7 +3,7 @@ import { generateObject, zodSchema } from "ai";
 import { getLLMModel } from "@/lib/integrations/openrouter";
 import type { DocxCompressedImagePart } from "@/lib/types/docx-hybrid";
 import type { ReviewAnalyzeContext, ReviewContentType } from "./format.service";
-import { buildDocxMultimodalMessages, buildReviewMessages } from "./review-messages";
+import { buildDocxInterleavedMessages, buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
 
 const logicIssueSchema = z.object({
@@ -111,7 +111,7 @@ export async function analyzeLogic(
   const temperature = lr.modelConfig.temperature;
   const messages =
     options?.docxImages !== undefined
-      ? buildDocxMultimodalMessages(content, options.docxImages)
+      ? buildDocxInterleavedMessages(content, options.docxImages)
       : buildReviewMessages(content, contentType);
   const pass1Schema = zodSchema(LogicPass1ResultSchema);
   const pass2Schema = zodSchema(LogicResultSchema);

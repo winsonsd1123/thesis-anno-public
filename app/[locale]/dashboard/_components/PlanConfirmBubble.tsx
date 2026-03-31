@@ -64,8 +64,6 @@ type PlanConfirmBubbleProps = {
   planScopeSummary?: string;
   /** Visio 等内置对象提示：另存为图片再插入 */
   embeddedObjectTip?: string;
-  /** 勾选「格式」时在条目旁展示的耗时警示（红字） */
-  formatHeavyWarning?: string;
   /** 每个已选模块的积分消耗，来自 cost_breakdown，勾选项右侧展示 "+N 积分" */
   stepCosts?: Partial<Record<StaticPlanStepId, number>>;
   /** 余额不足标志：true 时在统计区展示警示并禁用开始按钮 */
@@ -111,7 +109,6 @@ export function PlanConfirmBubble({
   importDefaultFormatBusyLabel,
   planScopeSummary,
   embeddedObjectTip,
-  formatHeavyWarning,
   stepCosts,
   insufficientCredits = false,
   insufficientCreditsHint,
@@ -480,21 +477,6 @@ export function PlanConfirmBubble({
                   </span>
                 ) : null}
               </label>
-              {step.id === "format" && planOptions.format && formatHeavyWarning ? (
-                <p
-                  role="note"
-                  style={{
-                    margin: "6px 0 0 38px",
-                    padding: 0,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "var(--danger)",
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {formatHeavyWarning}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>

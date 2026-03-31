@@ -42,7 +42,9 @@ export function isBibliographyHeadingLine(line: string): boolean {
   if (!t) return false;
   const withoutHash = t.replace(/^#{1,6}\s+/, "").trim();
   if (!withoutHash) return false;
-  const core = withoutHash.replace(/[:：]\s*$/, "").trim();
+  // 去掉 HTML 标签（如 hybrid-docx-parser 产出的 <a id="..."></a> 书签锚点）
+  const withoutHtml = withoutHash.replace(/<[^>]+>/g, "").trim();
+  const core = withoutHtml.replace(/[:：]\s*$/, "").trim();
   return BIBLIOGRAPHY_HEADING_EXACT.test(core);
 }
 

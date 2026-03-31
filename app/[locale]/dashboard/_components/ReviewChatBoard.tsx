@@ -371,7 +371,6 @@ export function ReviewChatBoard({ balance }: ReviewChatBoardProps) {
                 embeddedObjectTip={
                   activeReview.status === "pending" ? t("docxEmbeddedObjectTip") : undefined
                 }
-                formatHeavyWarning={t("planFormatHeavyWarning")}
                 stepCosts={planEstimatedBreakdown ?? undefined}
                 insufficientCredits={insufficientCredits}
                 insufficientCreditsHint={insufficientCredits ? t("planInsufficientCredits") : undefined}

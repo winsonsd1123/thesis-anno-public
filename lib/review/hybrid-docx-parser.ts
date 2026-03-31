@@ -21,6 +21,15 @@ export function stripMammothMarkdownEscapes(markdown: string): string {
 }
 
 /**
+ * 剥离 Mammoth 生成的图片占位符（`![图N]()`、`![图N（读取失败）]()` 等所有 alt 形式）。
+ * 仅用于格式审查轨：格式审查 LLM 看不到图片内容，占位符插入句子中间只会造成文本流断裂误报。
+ * 逻辑审查轨使用原始 markdown + 图文交织，不应调用此函数。
+ */
+export function stripDocxImagePlaceholders(markdown: string): string {
+  return markdown.replace(/!\[[^\]]*\]\(\)/g, "");
+}
+
+/**
  * 统一解析层：Mammoth Markdown 主干 + OOXML 样式 AST。
  * 供 `orchestrate-review` 在 DOCX 迁移完成后，于调用 LLM 前注入审阅管线。
  */

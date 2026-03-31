@@ -9,7 +9,7 @@ export type ReviewStatus =
 
 export type StageAgentStatus = "pending" | "running" | "done" | "failed" | "skipped";
 
-/** 与 `reviews.plan_options` 一致；未落库时由 normalize 使用默认（格式项默认关闭，其余开启） */
+/** 与 `reviews.plan_options` 一致；未落库时由 normalize 使用默认（四项默认均开启） */
 export type ReviewPlanOptions = {
   format: boolean;
   logic: boolean;

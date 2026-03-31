@@ -70,7 +70,7 @@
       "title1": "导师级 AI",
       "title2": "为你的论文",
       "title3": "保驾护航",
-      "subtitle": "上传 Word（.docx），用对话确认学位类型与审阅范围。格式、逻辑、AI 痕迹、参考文献由多智能体分工协作、可按需勾选并行运行；积分按所选智能体与字数阶梯合计扣除，通常数分钟内生成结构化预审报告。",
+      "subtitle": "上传 Word（.docx），用对话确认学位类型与审阅范围，多智能体并行协作生成结构化预审报告；扣费随所选维度与字数阶梯在控制台展示，通常数分钟内完成。",
       "stat1": "< 5min",
       "stat1Label": "常见耗时",
       "stat2": "4",
@@ -109,7 +109,7 @@
       "items": {
         "multiAgent": {
           "title": "多智能体协作",
-          "desc": "格式、逻辑、AI 痕迹、参考文献由四类专用智能体分工负责，并行协作、互不拖慢。格式智能体为可选项（默认关闭以节省积分），需要时一键启用。",
+          "desc": "格式、逻辑、AI 痕迹、参考文献由四类专用智能体分工负责，并行协作、互不拖慢；可在开始前按需调整审阅范围。",
           "tags": ["格式", "逻辑", "AI 痕迹", "参考文献"]
         },
         "chat": {
@@ -152,7 +152,7 @@
         },
         "chat": {
           "title": "对话式配置",
-          "desc": "确认学位类型、关注重点、是否启用格式检查及格式说明；开跑前可看到本次积分预估。",
+          "desc": "确认学位类型、关注重点与格式说明等；开跑前可在控制台查看本次扣费预估。",
           "tag": "本科 / 硕士 / 博士"
         },
         "parallel": {
@@ -278,7 +278,7 @@
       "subtitle": "来自早期用户与内测反馈（表述已做脱敏）",
       "testimonials": [
         { "name": "王同学", "school": "华中科技大学 · 硕士", "text": "参考文献 Tab 直接标出缺字段的条目，比我对着 PDF 肉眼找快很多；AI 痕迹提示也让我提前改了几段偏模板化的表述。" },
-        { "name": "陈同学", "school": "北京大学 · 博士", "text": "逻辑检查帮我揪出一处论证跳跃，答辩前改完心里踏实多了；模块化扣费也能让我先跑逻辑，省一点是一点。" },
+        { "name": "陈同学", "school": "北京大学 · 博士", "text": "逻辑检查帮我揪出一处论证跳跃，答辩前改完心里踏实多了；各维度进度在控制台也一目了然。" },
         { "name": "李同学", "school": "浙江大学 · 本科", "text": "上传 docx 后对话里勾模块很方便，进度条能看清哪一步在跑；导出 Markdown 贴回 Word 改格式也快。" }
       ]
     }
@@ -398,11 +398,10 @@
       "planBadge": "基于能力与领域",
       "planBadgeGeneral": "通用",
       "planItemFormat": "格式与结构完整性检查",
-      "planFormatHeavyWarning": "此项耗时很长，请谨慎勾选",
       "planItemLogic": "论证逻辑与章节连贯性",
       "planItemAitrace": "AI 痕迹与套话检测",
       "planItemRefs": "参考文献核查与引用规范(GB/T 7714-2015)",
-      "planStepHint": "勾选本次要执行的审阅项（格式检查默认关闭、较耗时）。其余项默认开启；仅测某一维时可只保留对应勾选。",
+      "planStepHint": "勾选本次要执行的审阅项；默认四项均开启，可按需取消勾选。未勾选项不纳入本次审阅。",
       "planStatsWordLabel": "字数",
       "planStatsWordScope": "全文估算",
       "planDomainPrefix": "论文领域：",
@@ -416,7 +415,7 @@
       "planStarting": "启动中…",
       "formatRequirementsLabel": "格式要求（自然语言）",
       "formatRequirementsPlaceholder": "粘贴本校格式说明，或点击「导入通用模板」后按需修改…",
-      "formatRequirementsHint": "启用格式检查时必须填写。将用于语义核对与排版规则抽取。",
+      "formatRequirementsHint": "勾选格式维度时须填写。将用于语义核对与排版规则抽取。",
       "formatRequirementsHintApplied": "以下为本次审阅所依据的格式说明（提交时提供）。",
       "importDefaultFormat": "导入通用模板",
       "importDefaultFormatBusy": "加载中…",
@@ -575,7 +574,7 @@
         "ROLLBACK_INVALID_COST": "退款校验失败，请联系支持",
         "RUN_ALREADY_ATTACHED": "任务已创建，请勿重复操作",
         "PLAN_EMPTY": "请至少勾选一项审阅内容",
-        "FORMAT_GUIDELINES_REQUIRED": "已启用格式检查，请填写格式要求或导入通用模板",
+        "FORMAT_GUIDELINES_REQUIRED": "请填写格式要求或导入通用模板",
         "GENERIC": "操作失败，请稍后重试"
       }
     }

@@ -70,7 +70,7 @@
       "title1": "Mentor-Level AI",
       "title2": "Guards Your",
       "title3": "Thesis",
-      "subtitle": "Upload a Word (.docx) file, confirm scope in chat, then let specialized agents collaborate in parallel—enable only the format, logic, AI-trace, and reference agents you need. Credits scale with selected agents and word-count tier; structured reports usually arrive within minutes.",
+      "subtitle": "Upload a Word (.docx) file, confirm scope in chat, then let specialized agents work in parallel. Pricing follows your selections and word-count tier (shown in-app); structured reports usually arrive within minutes.",
       "stat1": "< 5min",
       "stat1Label": "Typical runtime",
       "stat2": "4",
@@ -109,7 +109,7 @@
       "items": {
         "multiAgent": {
           "title": "Multi-agent collaboration",
-          "desc": "Dedicated agents for format, logic, AI trace, and references work in parallel without blocking each other. The format agent is optional (off by default to save credits) and can be enabled anytime.",
+          "desc": "Dedicated agents for format, logic, AI trace, and references work in parallel without blocking each other. Adjust what runs before you start.",
           "tags": ["Format", "Logic", "AI trace", "References"]
         },
         "chat": {
@@ -152,7 +152,7 @@
         },
         "chat": {
           "title": "Conversational config",
-          "desc": "Confirm degree level, focus, whether to enable format review, and your format notes. You’ll see the credit estimate before the run starts.",
+          "desc": "Confirm degree level, focus, and your format notes. You’ll see the cost estimate in the dashboard before the run starts.",
           "tag": "Bachelor / Master / PhD"
         },
         "parallel": {
@@ -344,7 +344,7 @@
         {
           "name": "Chen",
           "school": "Peking Univ. · PhD",
-          "text": "Logic review caught a reasoning leap I’d glossed over. Modular billing let me run logic first and skip format when I was low on credits."
+          "text": "Logic review caught a reasoning leap I’d glossed over before my defense. Progress per dimension was easy to follow in the dashboard."
         },
         {
           "name": "Li",
@@ -466,11 +466,10 @@
       "planBadge": "Capability + domain",
       "planBadgeGeneral": "General",
       "planItemFormat": "Format & structural integrity",
-      "planFormatHeavyWarning": "This step is very slow — use with care",
       "planItemLogic": "Argument flow & chapter coherence",
       "planItemAitrace": "AI traces & cliché detection",
       "planItemRefs": "Reference verification & citation style (GB/T 7714-2015)",
-      "planStepHint": "Choose which checks to run — format check is off by default (slow). Other items default on. Uncheck to narrow scope.",
+      "planStepHint": "Choose which checks to run — all four default on. Uncheck anything you don’t need this time.",
       "planStatsWordLabel": "Words",
       "planStatsWordScope": "Full-document estimate",
       "planDomainPrefix": "Paper field: ",
@@ -484,7 +483,7 @@
       "planStarting": "Starting…",
       "formatRequirementsLabel": "Format requirements (natural language)",
       "formatRequirementsPlaceholder": "Paste your school’s rules, or import the default template and edit…",
-      "formatRequirementsHint": "Required when format check is enabled. Used for semantic review and rule extraction.",
+      "formatRequirementsHint": "Required when the format dimension is selected. Used for semantic review and rule extraction.",
       "formatRequirementsHintApplied": "The format notes below were provided at submission and used for this review.",
       "importDefaultFormat": "Import default template",
       "importDefaultFormatBusy": "Loading…",
@@ -643,7 +642,7 @@
         "ROLLBACK_INVALID_COST": "Refund validation failed—contact support.",
         "RUN_ALREADY_ATTACHED": "A run already exists for this review.",
         "PLAN_EMPTY": "Select at least one review item",
-        "FORMAT_GUIDELINES_REQUIRED": "Format check is on—please enter format requirements or import the default template",
+        "FORMAT_GUIDELINES_REQUIRED": "Please enter format requirements or import the default template",
         "GENERIC": "Something went wrong, try again later"
       },
       "uploadDragLabel": "Drag & drop or click to select Word (.docx)",

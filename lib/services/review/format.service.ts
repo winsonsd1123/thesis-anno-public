@@ -20,6 +20,7 @@ import {
   extractGlobalSkeleton,
   splitMarkdownByChapters,
 } from "@/lib/review/format-markdown-chunks";
+import { stripDocxImagePlaceholders } from "@/lib/review/hybrid-docx-parser";
 
 export type ReviewContentType = "base64" | "text";
 
@@ -333,8 +334,11 @@ export async function analyzeFormat(
   const tSem0 = performance.now();
   const tExt0 = performance.now();
 
+  // 格式审查 LLM 看不到图片，图片占位符（`![图N]()`）插入句子中间只会造成误报，预先剥离
+  const cleanMarkdown = stripDocxImagePlaceholders(markdown);
+
   // --- 构建 Global Task ---
-  const globalSkeleton = extractGlobalSkeleton(markdown);
+  const globalSkeleton = extractGlobalSkeleton(cleanMarkdown);
   const globalTask = withRetries(() =>
     generateObject({
       model: globalSemanticModel,
@@ -346,7 +350,7 @@ export async function analyzeFormat(
   );
 
   // --- 构建 Local Tasks ---
-  const localChunks = splitMarkdownByChapters(markdown);
+  const localChunks = splitMarkdownByChapters(cleanMarkdown);
   // 进程内回退并发数（runLocalChunksFn 未注入时使用）；正常由 Trigger batchTriggerAndWait 控制并发
   const LOCAL_BATCH_SIZE = 2;
 
