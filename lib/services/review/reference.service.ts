@@ -18,12 +18,12 @@ const REFERENCE_GENERATE_OBJECT_TIMEOUT_MS = 600_000;
 
 const REF_EXTRACT_LOG = "[reference extract]";
 
-/** 英文 [EB/OL] 批走联网模型时在中文系统提示后的补充段 */
+/** 英文 [EB/OL] 批走联网模型时在系统提示后的补充段 */
 const REF_VERIFY_WEB_FALLBACK_APPEND_ZH =
-  "\n\n【补充】用户消息 JSON 中 `web_search_fallback_allowed` 为 `true` 的条目为 [EB/OL] 等网络文献。此类条目若 `database_candidate` 为空或不足以判定真实性，**允许使用联网检索**核对 URL、官方页或仓库是否存在，以及题名、日期与引用是否基本一致；**不得凭空编造 DOI**。若检索后仍无法核实或与引用明显不符，判 `fake_or_not_found`。**英文条目仍不得输出 `suspected`。**";
+  "\n\n【补充】用户消息 JSON 中 `web_search_fallback_allowed` 为 `true` 的条目为 [EB/OL] 等网络文献。此类条目若 `database_candidate` 为空或不足以判定真实性，**允许使用联网检索**核对 URL、官方页或仓库是否存在，以及题名、日期与引用是否基本一致；**不得凭空编造 DOI**。若检索后仍无法核实，判 `suspected`；若与引用明显存在实质冲突（如标题完全不同、来源已下线且内容无从佐证），判 `fake_or_not_found`。**英文 [EB/OL] 条目允许输出 `suspected`。**";
 
 const REF_VERIFY_WEB_FALLBACK_APPEND_EN =
-  "\n\n**Supplement:** For items with `web_search_fallback_allowed` true in the user JSON ([EB/OL] web references), if `database_candidate` is null or insufficient to judge factuality, **you may use web search** to check whether the URL or official page/repo exists and whether title and dates broadly match; **do not invent DOIs**. If still unverifiable or clearly inconsistent, output `fake_or_not_found`. **Never output `suspected` for English items.**";
+  "\n\n**Supplement:** For items with `web_search_fallback_allowed` true ([EB/OL] web references), if `database_candidate` is null or insufficient, **you may use web search** to check whether the URL or official page/repo exists and whether title and dates broadly match; **do not invent DOIs**. If still unverifiable after search, output `suspected`. Output `fake_or_not_found` only if there is a clear substantive conflict (e.g. title completely differs, source is gone with no corroboration). **English [EB/OL] items may output `suspected`.**";
 
 function englishEbolAllowsWebFallback(title: string, rawText: string): boolean {
   return (
@@ -357,9 +357,9 @@ export async function verifyReferenceBatch(
 
     const yearCheck = declaredYearMismatchCandidate(ref.rawText, cand);
     if (yearCheck.mismatch && cand?.year != null) {
-      factStatus = "fake_or_not_found";
+      factStatus = "suspected";
       formatStatus = "unstandard";
-      const hint = `年份与权威记录不符（条目${yearCheck.declaredYear}，库${cand.year}）`;
+      const hint = `年份与权威记录不符（条目${yearCheck.declaredYear}，库${cand.year}），请核对后确认`;
       reason = reason?.trim() ? `${reason}；${hint}` : hint;
       if (standardFormat === undefined || standardFormat === "") {
         standardFormat = `[请按库中年份 ${cand.year} 等字段核对后重写本条]`;
