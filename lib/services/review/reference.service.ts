@@ -7,10 +7,7 @@ import type { ReviewAnalyzeContext } from "./format.service";
 import { buildReviewMessages } from "./review-messages";
 import { ReviewEngineError } from "./review-errors";
 import { declaredYearMismatchCandidate } from "./reference-citation-year";
-import {
-  extractReferencesFromMarkdown,
-  findLastBibliographyHeadingLineStart,
-} from "./reference-markdown-extract";
+import { findLastBibliographyHeadingLineStart } from "./reference-markdown-extract";
 
 /** 题录提取/核查：大 payload 时避免默认过短超时导致 Abort（与 OpenRouter 长请求一致）。 */
 const REFERENCE_GENERATE_OBJECT_TIMEOUT_MS = 600_000;
@@ -182,26 +179,18 @@ export async function extractReferences(
     );
   }
 
-  const codeRefs = extractReferencesFromMarkdown(markdown);
-  if (codeRefs.length > 0) {
-    console.info(
-      `${REF_EXTRACT_LOG} 来源=纯代码(Markdown标题+分条) 条数=${codeRefs.length}（未调用 reference_extract LLM）`
-    );
-    return codeRefs;
-  }
-
-  // 若连参考文献章节标题都不存在，说明论文本身没有参考文献清单，直接返回空。
-  // 避免将全文扔给 LLM 导致把正文行文引用误识别为参考文献条目。
+  // 无参考文献章节标题 → 论文没有参考文献清单，直接跳过，避免误把正文行文引用当作参考文献
   const hasHeading = findLastBibliographyHeadingLineStart(markdown) !== null;
   if (!hasHeading) {
     console.info(
-      `${REF_EXTRACT_LOG} 来源=跳过 原因=论文无参考文献章节标题，不调用 reference_extract LLM`
+      `${REF_EXTRACT_LOG} 来源=跳过 原因=论文无参考文献章节标题`
     );
     return [];
   }
 
+  // 有标题则交给 LLM 提取（格式多样，LLM 比代码正则更可靠）
   console.info(
-    `${REF_EXTRACT_LOG} 来源=LLM兜底 原因=有参考文献标题但代码分条为0 将调用 reference_extract model=${rx.modelConfig.model}`
+    `${REF_EXTRACT_LOG} 来源=LLM 将调用 reference_extract model=${rx.modelConfig.model}`
   );
 
   const model = getLLMModel(rx.modelConfig.model);
