@@ -49,4 +49,14 @@ describe("getBillingUiEligibility (balance rule)", () => {
     assert.equal(r.showApply, false);
     assert.equal(r.reason, "balance_not_zero");
   });
+
+  it("blocks claim when already claimed in open window", () => {
+    const r = eduCreditGrantService.getBillingUiEligibility({
+      ...okBase,
+      balance: 0,
+      claimedInOpenWindow: true,
+    });
+    assert.equal(r.showApply, false);
+    assert.equal(r.reason, "already_claimed_this_round");
+  });
 });

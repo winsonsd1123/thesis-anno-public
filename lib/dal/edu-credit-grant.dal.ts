@@ -84,6 +84,20 @@ export const eduCreditGrantDAL = {
     return count ?? 0;
   },
 
+  async hasUserClaimedWindow(userId: string, windowId: string): Promise<boolean> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("edu_credit_grant_claims")
+      .select("id")
+      .eq("window_id", windowId)
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(`EDU_GRANT_DAL_USER_CLAIM: ${error.message}`);
+    return data != null;
+  },
+
   /**
    * 管理端历史：按轮分页。依赖视图 `edu_credit_grant_claims_with_email`（见 docs/sql/20260332）。
    */

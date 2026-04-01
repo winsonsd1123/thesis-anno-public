@@ -1,0 +1,134 @@
+/* 设置页：紧凑、低对比装饰，偏精致而非张扬 */
+
+.shell {
+  position: relative;
+  min-height: calc(100vh - 56px);
+  padding: 20px 16px 36px;
+  isolation: isolate;
+}
+
+.shellInner {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.gridLayer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.glowPrimary {
+  position: absolute;
+  width: min(280px, 70vw);
+  height: min(280px, 70vw);
+  background: radial-gradient(
+    circle at 40% 35%,
+    rgba(0, 87, 255, 0.055) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  top: -5%;
+  right: -15%;
+  pointer-events: none;
+}
+
+.glowSecondary {
+  position: absolute;
+  width: min(220px, 55vw);
+  height: min(220px, 55vw);
+  background: radial-gradient(
+    circle at 60% 65%,
+    rgba(0, 180, 166, 0.045) 0%,
+    transparent 68%
+  );
+  border-radius: 50%;
+  bottom: 0;
+  left: -10%;
+  pointer-events: none;
+}
+
+.header {
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: settingsFadeUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.02s forwards;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-settings-display, inherit), ui-sans-serif, system-ui, sans-serif;
+}
+
+.kickerDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  opacity: 0.85;
+}
+
+.title {
+  font-family: var(--font-settings-display, inherit), "PingFang SC", "Microsoft YaHei",
+    "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  font-size: clamp(20px, 3.4vw, 24px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 36em;
+}
+
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stagger1 {
+  opacity: 0;
+  animation: settingsFadeUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.08s forwards;
+}
+
+.stagger2 {
+  opacity: 0;
+  animation: settingsFadeUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.14s forwards;
+}
+
+@keyframes settingsFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .stagger1,
+  .stagger2 {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

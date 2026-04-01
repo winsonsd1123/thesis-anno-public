@@ -11,6 +11,8 @@ type Props = {
   showApply: boolean;
   blockReason?: EduBillingGrantBlockReason;
   creditsAmount: number;
+  /** 当前开放申领轮次的总名额与剩余名额 */
+  roundQuota?: { remainingSlots: number; maxClaims: number };
 };
 
 function hintKeyForReason(r: EduBillingGrantBlockReason): string {
@@ -25,12 +27,19 @@ function hintKeyForReason(r: EduBillingGrantBlockReason): string {
       return "hintNotEdu";
     case "email_not_confirmed":
       return "hintUnconfirmed";
+    case "already_claimed_this_round":
+      return "hintAlreadyClaimed";
     default:
       return "hintEmail";
   }
 }
 
-export function EduGrantBillingSection({ showApply, blockReason, creditsAmount }: Props) {
+export function EduGrantBillingSection({
+  showApply,
+  blockReason,
+  creditsAmount,
+  roundQuota,
+}: Props) {
   const t = useTranslations("billing.eduGrant");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -102,6 +111,22 @@ export function EduGrantBillingSection({ showApply, blockReason, creditsAmount }
       <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 12, lineHeight: 1.5 }}>
         {t("description", { credits: creditsAmount })}
       </p>
+      {roundQuota && (
+        <p
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            marginBottom: 10,
+            lineHeight: 1.5,
+          }}
+        >
+          {t("roundQuota", {
+            remaining: roundQuota.remainingSlots,
+            max: roundQuota.maxClaims,
+          })}
+        </p>
+      )}
       {hint && (
         <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>{hint}</p>
       )}

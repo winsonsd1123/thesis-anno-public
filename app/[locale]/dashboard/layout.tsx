@@ -26,14 +26,17 @@ export default async function DashboardLayout({
   const profile = await profileDAL.getById(data.user.id);
   const isAdmin = profile?.role === "admin";
 
-  const [balance, grantWindowOpen, inboxUnread] = await Promise.all([
+  const [balance, grantRound, inboxUnread] = await Promise.all([
     getWalletBalance(),
-    eduCreditGrantService.isGrantWindowOpen(),
+    eduCreditGrantService.getBillingGrantRoundInfo(data.user.id),
     userInboxService.countUnread(data.user.id),
   ]);
-  const grantNavEmphasized = grantWindowOpen
+  const grantWindowOpen = grantRound.open;
+  const grantNavEmphasized = grantRound.open
     ? eduCreditGrantService.getBillingUiEligibility({
         hasOpenWindow: true,
+        claimedInOpenWindow:
+          grantRound.open === true ? grantRound.userClaimedThisRound === true : false,
         balance: balance ?? 0,
         email: data.user.email ?? null,
         emailConfirmed: Boolean(data.user.email_confirmed_at),

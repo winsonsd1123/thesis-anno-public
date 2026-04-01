@@ -38,7 +38,20 @@ export type EduBillingGrantBlockReason =
   | "balance_not_zero"
   | "email_not_confirmed"
   | "not_edu_email"
-  | "no_email";
+  | "no_email"
+  | "already_claimed_this_round";
+
+/** 计费页展示：当前开放窗口名额（用户侧可读） */
+export type EduGrantBillingRoundInfo =
+  | { open: false }
+  | {
+      open: true;
+      maxClaims: number;
+      claimedCount: number;
+      remainingSlots: number;
+      /** 传入 userId 时是否已在本轮申领过 */
+      userClaimedThisRound?: boolean;
+    };
 
 function messageIncludesMarker(msg: string): EduGrantClaimErrorCode {
   for (const m of EDU_GRANT_ERROR_MARKERS) {
@@ -152,14 +165,46 @@ export const eduCreditGrantService = {
     return w != null;
   },
 
+  /** 计费页：当前开放轮次名额；可选传入 userId 以判断该用户是否已领本轮。 */
+  async getBillingGrantRoundInfo(userId?: string | null): Promise<EduGrantBillingRoundInfo> {
+    const w = await eduCreditGrantDAL.getOpenWindow();
+    if (!w) return { open: false };
+
+    const claimedCount = await eduCreditGrantDAL.countClaimsForWindow(w.id);
+    const remainingSlots = Math.max(0, w.max_claims - claimedCount);
+
+    if (!userId) {
+      return {
+        open: true,
+        maxClaims: w.max_claims,
+        claimedCount,
+        remainingSlots,
+      };
+    }
+
+    const userClaimedThisRound = await eduCreditGrantDAL.hasUserClaimedWindow(userId, w.id);
+    return {
+      open: true,
+      maxClaims: w.max_claims,
+      claimedCount,
+      remainingSlots,
+      userClaimedThisRound,
+    };
+  },
+
   getBillingUiEligibility(input: {
     hasOpenWindow: boolean;
     balance: number;
     email: string | null | undefined;
     emailConfirmed: boolean;
+    /** 当前开放窗口内是否已申领过（每窗口限一次） */
+    claimedInOpenWindow?: boolean;
   }): { showApply: boolean; reason?: EduBillingGrantBlockReason } {
     if (!input.hasOpenWindow) {
       return { showApply: false, reason: "no_open_window" };
+    }
+    if (input.claimedInOpenWindow) {
+      return { showApply: false, reason: "already_claimed_this_round" };
     }
     if (!input.email) {
       return { showApply: false, reason: "no_email" };

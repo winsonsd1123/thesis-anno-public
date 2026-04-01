@@ -8,7 +8,10 @@ import {
   signInSchema,
   resetPasswordSchema,
   updatePasswordSchema,
+  changePasswordInSettingsSchema,
 } from "@/lib/schemas/auth.schema";
+import { getTranslations } from "next-intl/server";
+import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 
 export type AuthActionResult = { success: boolean; error?: string };
@@ -152,6 +155,83 @@ export async function resetPassword(
       error:
         process.env.NODE_ENV === "production"
           ? "发送重置邮件失败"
+          : String(e),
+    };
+  }
+}
+
+export async function changePasswordInSettings(
+  _prev: unknown,
+  formData: FormData
+): Promise<AuthActionResult> {
+  const t = await getTranslations("dashboard.changePasswordForm");
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+
+  if (!user?.email) {
+    return { success: false, error: t("errorNotLoggedIn") };
+  }
+
+  const hasEmailIdentity = user.identities?.some((i) => i.provider === "email");
+  if (!hasEmailIdentity) {
+    return { success: false, error: t("errorNotSupported") };
+  }
+
+  const parsed = changePasswordInSettingsSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmNewPassword: formData.get("confirmNewPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? t("errorValidation"),
+    };
+  }
+
+  const { currentPassword, newPassword, confirmNewPassword } = parsed.data;
+  if (currentPassword === newPassword) {
+    return { success: false, error: t("errorSameAsCurrent") };
+  }
+  if (newPassword !== confirmNewPassword) {
+    return { success: false, error: t("errorPasswordMismatch") };
+  }
+
+  try {
+    const result = await authService.changePasswordWithCurrentPassword(
+      user.email,
+      currentPassword,
+      newPassword
+    );
+
+    if (!result.ok) {
+      if (result.code === "wrong_current") {
+        return {
+          success: false,
+          error:
+            process.env.NODE_ENV === "development" && result.detail
+              ? `${t("errorWrongCurrent")} (${result.detail})`
+              : t("errorWrongCurrent"),
+        };
+      }
+      return {
+        success: false,
+        error:
+          process.env.NODE_ENV === "development" && result.detail
+            ? `${t("errorUpdateFailed")} (${result.detail})`
+            : t("errorUpdateFailed"),
+      };
+    }
+
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        process.env.NODE_ENV === "production"
+          ? t("errorUpdateFailed")
           : String(e),
     };
   }

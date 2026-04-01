@@ -5,64 +5,37 @@ import { useTranslations } from "next-intl";
 import { updateProfile } from "@/lib/actions/profile.actions";
 import { AvatarUpload } from "@/app/components/profile/AvatarUpload";
 import type { UserProfileDTO } from "@/lib/dtos/user.dto";
+import formStyles from "./SettingsForms.module.css";
 
 export function ProfileForm({ profile }: { profile: UserProfileDTO | null }) {
   const t = useTranslations("dashboard.profileForm");
+  const tLayout = useTranslations("dashboard.settingsLayout");
   const [state, formAction, isPending] = useActionState(updateProfile, null);
 
   return (
-    <form action={formAction} className="profile-form-card">
-      {/* 消息提示 */}
+    <form action={formAction} className={formStyles.card}>
       {state?.error && (
-        <div
-          className="form-message form-message-error"
-          style={{
-            padding: "12px 16px",
-            background: "rgba(239, 68, 68, 0.08)",
-            borderRadius: 10,
-            color: "var(--danger)",
-            fontSize: 14,
-            border: "1px solid rgba(239, 68, 68, 0.2)",
-            marginBottom: 24,
-          }}
-        >
+        <div className={`${formStyles.message} ${formStyles.messageError}`} role="alert">
           {state.error}
         </div>
       )}
 
       {state?.success && (
-        <div
-          className="form-message form-message-success"
-          style={{
-            padding: "12px 16px",
-            background: "rgba(16, 185, 129, 0.08)",
-            borderRadius: 10,
-            color: "var(--success)",
-            fontSize: 14,
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-            marginBottom: 24,
-          }}
-        >
+        <div className={`${formStyles.message} ${formStyles.messageSuccess}`} role="status">
           {t("saveSuccess")}
         </div>
       )}
 
-      {/* 头像区块 */}
-      <section className="profile-form-section">
-        <label
-          style={{
-            display: "block",
-            fontSize: 14,
-            fontWeight: 600,
-            marginBottom: 14,
-            color: "var(--text-primary)",
-            fontFamily: "inherit",
-          }}
-        >
-          {t("avatar")}
-        </label>
+      <div className={formStyles.cardHead}>
+        <h2 className={formStyles.cardTitle}>{tLayout("profileCardTitle")}</h2>
+        <p className={formStyles.cardSubtitle}>{tLayout("profileCardSubtitle")}</p>
+      </div>
+
+      <section className={formStyles.section}>
+        <span className={`${formStyles.label} ${formStyles.labelTight}`}>{t("avatar")}</span>
         <AvatarUpload
           currentUrl={profile?.avatarUrl ?? null}
+          displayName={profile?.fullName}
           onUrlChange={(url) => {
             const input = document.getElementById("avatarUrl") as HTMLInputElement;
             if (input) input.value = url;
@@ -76,29 +49,10 @@ export function ProfileForm({ profile }: { profile: UserProfileDTO | null }) {
         />
       </section>
 
-      {/* 分隔线 */}
-      <hr
-        style={{
-          border: "none",
-          height: 1,
-          background: "var(--border)",
-          margin: "28px 0",
-        }}
-      />
+      <hr className={formStyles.divider} />
 
-      {/* 昵称区块 */}
-      <section className="profile-form-section">
-        <label
-          htmlFor="fullName"
-          style={{
-            display: "block",
-            fontSize: 14,
-            fontWeight: 600,
-            marginBottom: 10,
-            color: "var(--text-primary)",
-            fontFamily: "inherit",
-          }}
-        >
+      <section className={formStyles.section}>
+        <label className={formStyles.label} htmlFor="fullName">
           {t("nickname")}
         </label>
         <input
@@ -107,22 +61,12 @@ export function ProfileForm({ profile }: { profile: UserProfileDTO | null }) {
           type="text"
           defaultValue={profile?.fullName ?? ""}
           placeholder={t("nicknamePlaceholder")}
-          className="profile-form-input"
+          className={formStyles.input}
         />
       </section>
 
-      {/* 提交按钮 */}
-      <div style={{ marginTop: 32 }}>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="btn-primary"
-          style={{
-            padding: "12px 28px",
-            fontSize: 15,
-            minWidth: 120,
-          }}
-        >
+      <div className={formStyles.actions}>
+        <button type="submit" disabled={isPending} className={`btn-primary ${formStyles.submit}`}>
           {isPending ? t("saving") : t("save")}
         </button>
       </div>

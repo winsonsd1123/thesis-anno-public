@@ -22,9 +22,13 @@ export default async function BillingPage({
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   const user = authData?.user;
-  const hasOpenWindow = await eduCreditGrantService.isGrantWindowOpen();
+  const grantRound = user
+    ? await eduCreditGrantService.getBillingGrantRoundInfo(user.id)
+    : { open: false as const };
   const grantUi = eduCreditGrantService.getBillingUiEligibility({
-    hasOpenWindow,
+    hasOpenWindow: grantRound.open,
+    claimedInOpenWindow:
+      grantRound.open === true ? grantRound.userClaimedThisRound === true : false,
     balance: balance ?? 0,
     email: user?.email ?? null,
     emailConfirmed: Boolean(user?.email_confirmed_at),
@@ -89,6 +93,14 @@ export default async function BillingPage({
           showApply={grantUi.showApply}
           blockReason={grantUi.reason}
           creditsAmount={EDU_GRANT_CREDIT_AMOUNT}
+          roundQuota={
+            grantRound.open
+              ? {
+                  remainingSlots: grantRound.remainingSlots,
+                  maxClaims: grantRound.maxClaims,
+                }
+              : undefined
+          }
         />
       )}
 

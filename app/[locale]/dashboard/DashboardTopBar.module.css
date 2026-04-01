@@ -317,6 +317,17 @@
   background: rgba(15, 23, 42, 0.06);
 }
 
+.signOut:disabled {
+  cursor: wait;
+  opacity: 0.88;
+  pointer-events: none;
+}
+
+.signOut:disabled:hover {
+  color: var(--text-secondary);
+  background: none;
+}
+
 .menuBtn {
   display: flex;
   align-items: center;

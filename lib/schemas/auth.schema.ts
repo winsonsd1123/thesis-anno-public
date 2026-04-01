@@ -42,7 +42,15 @@ export const updatePasswordSchema = z.object({
   password: passwordSchema,
 });
 
+/** 结构与强度校验；与当前密码不同、两次新密码一致在 Server Action 内用 i18n 校验 */
+export const changePasswordInSettingsSchema = z.object({
+  currentPassword: z.string().min(1, "请输入当前密码"),
+  newPassword: passwordSchema,
+  confirmNewPassword: z.string().min(1, "请再次输入新密码"),
+});
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+export type ChangePasswordInSettingsInput = z.infer<typeof changePasswordInSettingsSchema>;
