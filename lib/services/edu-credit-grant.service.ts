@@ -11,6 +11,9 @@ import type {
 /** 与 RPC `claim_edu_credit_grant` 内 `v_grant_amount` 保持一致 */
 export const EDU_GRANT_CREDIT_AMOUNT = 300;
 
+/** 余额须严格小于该值才可申领（与 RPC 内判断保持一致，修改时请同步 docs/sql 迁移） */
+export const EDU_GRANT_MAX_BALANCE_EXCLUSIVE = 100;
+
 /** 与 RPC RAISE 文案一致，供 Service 解析 */
 export const EDU_GRANT_ERROR_MARKERS = [
   "EDU_GRANT_NO_OPEN_WINDOW",
@@ -167,7 +170,7 @@ export const eduCreditGrantService = {
     if (!isEduCnEmailDomain(input.email)) {
       return { showApply: false, reason: "not_edu_email" };
     }
-    if (input.balance !== 0) {
+    if (input.balance >= EDU_GRANT_MAX_BALANCE_EXCLUSIVE) {
       return { showApply: false, reason: "balance_not_zero" };
     }
     return { showApply: true };

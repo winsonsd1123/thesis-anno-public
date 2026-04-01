@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isEduCnEmailDomain } from "./edu-credit-grant.service";
+import {
+  eduCreditGrantService,
+  isEduCnEmailDomain,
+} from "./edu-credit-grant.service";
 
 describe("isEduCnEmailDomain", () => {
   it("accepts .edu.cn and .ac.cn suffix", () => {
@@ -15,5 +18,35 @@ describe("isEduCnEmailDomain", () => {
     assert.equal(isEduCnEmailDomain("a@mit.edu"), false);
     assert.equal(isEduCnEmailDomain(""), false);
     assert.equal(isEduCnEmailDomain(null), false);
+  });
+});
+
+describe("getBillingUiEligibility (balance rule)", () => {
+  const okBase = {
+    hasOpenWindow: true,
+    email: "u@tsinghua.edu.cn",
+    emailConfirmed: true,
+  };
+
+  it("allows claim when balance is below 100", () => {
+    assert.equal(
+      eduCreditGrantService.getBillingUiEligibility({ ...okBase, balance: 0 })
+        .showApply,
+      true
+    );
+    assert.equal(
+      eduCreditGrantService.getBillingUiEligibility({ ...okBase, balance: 99 })
+        .showApply,
+      true
+    );
+  });
+
+  it("blocks claim when balance is 100 or more", () => {
+    const r = eduCreditGrantService.getBillingUiEligibility({
+      ...okBase,
+      balance: 100,
+    });
+    assert.equal(r.showApply, false);
+    assert.equal(r.reason, "balance_not_zero");
   });
 });
