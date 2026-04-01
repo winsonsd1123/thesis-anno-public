@@ -26,11 +26,14 @@ export function Pricing({ packages }: { packages: BillingPackage[] }) {
     const pkg = packages.find((p) => p.id === id);
     const priceStr = pkg ? `¥${formatPrice(pkg.price)}` : "";
     const hasSave = pkg && pkg.original_price > pkg.price;
+    const originalPriceStr =
+      pkg && pkg.original_price > pkg.price ? `¥${formatPrice(pkg.original_price)}` : null;
     const key = id.replace("pkg_", "") as "single" | "standard" | "pro";
     return {
       ...PLAN_META[i],
       id,
       price: priceStr,
+      originalPrice: originalPriceStr,
       name: pkg?.nameZh ?? t(`plans.${key}.name`),
       nameEn: pkg?.name ?? t(`plans.${key}.nameEn`),
       unit: t(`plans.${key}.unit`),
@@ -139,7 +142,15 @@ export function Pricing({ packages }: { packages: BillingPackage[] }) {
                   <span style={{ fontSize: 24 }}>{plan.emoji}</span>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    marginBottom: 6,
+                  }}
+                >
                   <span
                     style={{
                       fontSize: 42,
@@ -151,6 +162,17 @@ export function Pricing({ packages }: { packages: BillingPackage[] }) {
                   >
                     {plan.price}
                   </span>
+                  {plan.originalPrice && (
+                    <span
+                      style={{
+                        fontSize: 18,
+                        color: C.textMuted,
+                        textDecoration: "line-through",
+                      }}
+                    >
+                      {plan.originalPrice}
+                    </span>
+                  )}
                   <span style={{ fontSize: 14, color: C.textMuted }}>/ {plan.unit}</span>
                 </div>
 
