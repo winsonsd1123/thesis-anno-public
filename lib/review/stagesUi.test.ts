@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseReferenceProgressFromLog, stagesToProgressModels } from "./stagesUi";
+import { parseReferenceProgressFromLog, stagesToLogLines, stagesToProgressModels } from "./stagesUi";
 
 describe("parseReferenceProgressFromLog", () => {
   it("parses 已核查 a/b 条 from log", () => {
@@ -14,6 +14,36 @@ describe("parseReferenceProgressFromLog", () => {
   it("returns null when missing or invalid", () => {
     assert.equal(parseReferenceProgressFromLog(undefined), null);
     assert.equal(parseReferenceProgressFromLog("verifying"), null);
+  });
+});
+
+describe("stagesToLogLines", () => {
+  it("returns logs only from running or failed stages", () => {
+    assert.deepEqual(
+      stagesToLogLines([{ agent: "format", status: "running", log: "working" }], "fb"),
+      ["working"]
+    );
+  });
+
+  it("ignores log on done stages so stale running messages are not shown", () => {
+    assert.deepEqual(
+      stagesToLogLines([{ agent: "format", status: "done", log: "正在对照格式说明…" }], "fb", "processing"),
+      ["fb"]
+    );
+  });
+
+  it("returns empty when no logs and review is completed", () => {
+    assert.deepEqual(
+      stagesToLogLines([{ agent: "format", status: "done" }], "fb", "completed"),
+      []
+    );
+  });
+
+  it("returns fallback when no logs and review still processing", () => {
+    assert.deepEqual(
+      stagesToLogLines([{ agent: "format", status: "running" }], "fb", "processing"),
+      ["fb"]
+    );
   });
 });
 

@@ -199,8 +199,8 @@ export function ReviewWorkbench({ balance, initialReviews, isAdmin = false, supp
   }, [activeReview?.stages, t]);
 
   const logLines = useMemo(
-    () => stagesToLogLines(activeReview?.stages, t("progressWaitLog")),
-    [activeReview?.stages, t]
+    () => stagesToLogLines(activeReview?.stages, t("progressWaitLog"), activeReview?.status),
+    [activeReview?.stages, activeReview?.status, t]
   );
 
   /** 有退款记录的 agent → 退款积分映射，用于报告 Tab 退款通知 */

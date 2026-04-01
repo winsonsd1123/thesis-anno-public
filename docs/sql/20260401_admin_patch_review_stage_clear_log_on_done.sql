@@ -1,5 +1,5 @@
--- Reference copy: applied via Supabase migration `admin_patch_review_stage`
--- Atomically patch one agent in reviews.stages (parallel Trigger workers safe)
+-- 阶段完成时若未传入 p_log，应清除该 agent 的 log，避免前端 stagesToLogLines 仍展示「正在…」类 running 文案
+-- 与 20260322 版本相比：CASE 在 p_status = 'done' 且 p_log IS NULL 时写入 NULL，jsonb_strip_nulls 会去掉 log 键
 
 CREATE OR REPLACE FUNCTION public.admin_patch_review_stage(
   p_review_id bigint,
@@ -73,6 +73,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-REVOKE ALL ON FUNCTION public.admin_patch_review_stage(bigint, text, text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.admin_patch_review_stage(bigint, text, text, text) TO service_role;

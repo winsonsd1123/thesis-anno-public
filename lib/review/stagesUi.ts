@@ -1,4 +1,4 @@
-import type { ReviewStageEntry, StageAgentStatus } from "@/lib/types/review";
+import type { ReviewStageEntry, ReviewStatus, StageAgentStatus } from "@/lib/types/review";
 
 /** 解析参考文献阶段 log：`已核查 3/12 条 · …` */
 export function parseReferenceProgressFromLog(log: string | undefined): { current: number; total: number } | null {
@@ -71,9 +71,17 @@ export function stagesToProgressModels(
   });
 }
 
-export function stagesToLogLines(stages: ReviewStageEntry[] | null | undefined, fallback: string): string[] {
+export function stagesToLogLines(
+  stages: ReviewStageEntry[] | null | undefined,
+  fallback: string,
+  reviewRowStatus?: ReviewStatus
+): string[] {
   const list = stages ?? [];
-  const fromLogs = list.map((s) => s.log).filter((x): x is string => Boolean(x && x.trim()));
+  const fromLogs = list
+    .filter((s) => s.status === "running" || s.status === "failed")
+    .map((s) => s.log)
+    .filter((x): x is string => Boolean(x && x.trim()));
   if (fromLogs.length > 0) return fromLogs;
+  if (reviewRowStatus === "completed" || reviewRowStatus === "refunded") return [];
   return [fallback];
 }
