@@ -545,6 +545,7 @@
       "reportNoIssuesTitle": "未发现问题",
       "reportNoIssuesHint": "本维度未检出条目。需要汇总全文时，可使用「导出 Markdown」。",
       "reportFormatExperimentalDisclaimer": "格式检查能力仍在迭代与验证中，以下条目仅供辅助自查，不构成最终认定。若与院系要求或您的定稿不一致，请以学校规定与论文定稿为准。",
+      "reportFormatFormulaRecognitionNote": "论文公式在自动解析时可能发生误识别；若与您的定稿一致，相关提示可忽略。",
       "reportMetricSemanticIssues": "语义问题",
       "reportMetricPhysicalIssues": "物理版式",
       "reportMetricBaseline": "引擎基线",

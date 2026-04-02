@@ -613,6 +613,7 @@
       "reportNoIssuesTitle": "No issues found",
       "reportNoIssuesHint": "Nothing was flagged in this dimension. Use Export Markdown for the full combined report.",
       "reportFormatExperimentalDisclaimer": "Format checking is still being refined and validated. The items below are for self-review only—not a final ruling. If anything conflicts with your school’s guidelines or your final manuscript, follow those.",
+      "reportFormatFormulaRecognitionNote": "Formulas may be parsed incorrectly during automated extraction; if your final manuscript is correct, you can ignore related findings.",
       "reportMetricSemanticIssues": "Semantic issues",
       "reportMetricPhysicalIssues": "Physical layout",
       "reportMetricBaseline": "Engine baseline",

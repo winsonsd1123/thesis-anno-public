@@ -760,7 +760,12 @@ export function ReportStructuredBody({ tab, value, emptyLabel }: { tab: TabId; v
   return (
     <div>
       {sectionRunSummary ? <p style={REPORT_RUN_NOTE_STYLE}>{sectionRunSummary}</p> : null}
-      {tab === "structure" ? <p style={REPORT_RUN_NOTE_STYLE}>{t("reportFormatExperimentalDisclaimer")}</p> : null}
+      {tab === "structure" ? (
+        <div style={REPORT_RUN_NOTE_STYLE}>
+          <p style={{ margin: 0, marginBottom: 10 }}>{t("reportFormatExperimentalDisclaimer")}</p>
+          <p style={{ margin: 0, color: "var(--danger)", lineHeight: 1.6 }}>{t("reportFormatFormulaRecognitionNote")}</p>
+        </div>
+      ) : null}
 
       {overallAssessment ? (
         <OverallAssessmentCard assessment={overallAssessment} t={t} />
