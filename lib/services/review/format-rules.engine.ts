@@ -632,6 +632,7 @@ export function runPhysicalRuleEngine(
     const node = styleAst[i];
     const text = node.text.trim();
     if (text.length === 0) continue;
+    if (node.math_latex && node.math_latex.length > 0) continue;
 
     if (
       node.partition === "front_cover" ||

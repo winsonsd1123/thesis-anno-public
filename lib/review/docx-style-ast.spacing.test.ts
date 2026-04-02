@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildDocxStyleAst } from "@/lib/review/docx-style-ast";
+import { buildDocxStyleAst, parseThemeFonts } from "@/lib/review/docx-style-ast";
 
 const STYLES_EMPTY = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"></w:styles>`;
@@ -207,4 +207,134 @@ test("buildDocxStyleAst: 页眉节点在 headerFooterNodes 中，不出现在 no
   assert.equal(headerFooterNodes[0].text, "页眉文字");
   // nodes 中不应含 header context
   assert.ok(!nodes.some((n) => n.context === "header"), "nodes 中不应出现 header context");
+});
+
+// ────────────────────────────── theme font tests ──────────────────────────────
+
+const THEME_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office">
+  <a:themeElements>
+    <a:fontScheme name="Office">
+      <a:majorFont>
+        <a:latin a:typeface="Calibri Light"/>
+        <a:ea a:typeface="黑体"/>
+      </a:majorFont>
+      <a:minorFont>
+        <a:latin a:typeface="Calibri"/>
+        <a:ea a:typeface="宋体"/>
+      </a:minorFont>
+    </a:fontScheme>
+  </a:themeElements>
+</a:theme>`;
+
+test("parseThemeFonts: extracts major/minor ea and latin from theme XML", () => {
+  const map = parseThemeFonts(THEME_XML);
+  assert.equal(map.majorEastAsia, "黑体");
+  assert.equal(map.minorEastAsia, "宋体");
+  assert.equal(map.majorAscii, "Calibri Light");
+  assert.equal(map.minorAscii, "Calibri");
+});
+
+test("parseThemeFonts: returns empty map for null input", () => {
+  const map = parseThemeFonts(null);
+  assert.equal(map.majorEastAsia, undefined);
+  assert.equal(map.minorEastAsia, undefined);
+});
+
+test("parseThemeFonts: falls back to script=Hans when ea typeface is empty", () => {
+  const themeWithEmptyEa = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office">
+  <a:themeElements>
+    <a:fontScheme name="Office">
+      <a:majorFont>
+        <a:latin a:typeface="Calibri Light"/>
+        <a:ea a:typeface=""/>
+        <a:font a:script="Hans" a:typeface="等线 Light"/>
+      </a:majorFont>
+      <a:minorFont>
+        <a:latin a:typeface="Calibri"/>
+        <a:ea a:typeface=""/>
+        <a:font a:script="Hans" a:typeface="等线"/>
+      </a:minorFont>
+    </a:fontScheme>
+  </a:themeElements>
+</a:theme>`;
+  const map = parseThemeFonts(themeWithEmptyEa);
+  assert.equal(map.majorEastAsia, "等线 Light", "should fallback to Hans script");
+  assert.equal(map.minorEastAsia, "等线", "should fallback to Hans script");
+  assert.equal(map.majorAscii, "Calibri Light");
+  assert.equal(map.minorAscii, "Calibri");
+});
+
+test("buildDocxStyleAst: theme font resolves eastAsiaTheme to actual font name", () => {
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:eastAsiaTheme="minorEastAsia" w:asciiTheme="minorHAnsi"/>
+        <w:sz w:val="24"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>这是正文段落</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+  const { nodes } = buildDocxStyleAst(documentXml, stylesXml, [], [], THEME_XML);
+  assert.equal(nodes[0].font_zh, "宋体", "should resolve minorEastAsia to 宋体");
+  assert.equal(nodes[0].font_en, "Calibri", "should resolve minorHAnsi to Calibri");
+});
+
+test("buildDocxStyleAst: explicit eastAsia takes precedence over eastAsiaTheme", () => {
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:eastAsia="楷体" w:eastAsiaTheme="minorEastAsia"/>
+        <w:sz w:val="24"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>楷体正文</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+  const { nodes } = buildDocxStyleAst(documentXml, stylesXml, [], [], THEME_XML);
+  assert.equal(nodes[0].font_zh, "楷体", "explicit eastAsia should win over theme");
+});
+
+test("buildDocxStyleAst: multi-run paragraph resolves theme font per run", () => {
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:eastAsiaTheme="minorEastAsia"/>
+        <w:sz w:val="24"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+</w:styles>`;
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:r><w:t>关键词：</w:t></w:r>
+      <w:r><w:t>这是一段较长的关键词内容文本</w:t></w:r>
+    </w:p>
+  </w:body>
+</w:document>`;
+  const { nodes } = buildDocxStyleAst(documentXml, stylesXml, [], [], THEME_XML);
+  assert.ok(nodes[0].runs, "should have runs");
+  for (const run of nodes[0].runs!) {
+    assert.equal(run.font_zh, "宋体", `run "${run.text}" should resolve to 宋体`);
+  }
 });

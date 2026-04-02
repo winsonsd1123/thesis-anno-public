@@ -45,6 +45,30 @@ test("extractMathFragments: inline oMath x=y^2", () => {
   assert.ok(frags[0].latex[0].includes("y"));
   assert.ok(frags[0].latex[0].includes("2"));
   assert.strictEqual(frags[0].prevText, undefined);
+  assert.ok(frags[0].textWithMath?.includes("$"), "textWithMath should interleave LaTeX");
+  assert.ok(frags[0].textWithMath?.includes("其中"), "textWithMath keeps prefix text");
+});
+
+test("appendMathToMarkdown: textWithMath replaces inside line (suffix match, not short-line false positive)", () => {
+  const md = [
+    "短行因此，我", // 若用 norm.includes(短行) 会先误匹配此行
+    "",
+    "![图1]()__因此，我为每个用户维护两种动态状态—— 和 ，分别刻画其作为发起者和接收者的角色特征。__",
+  ].join("\n");
+  const fragments = [
+    {
+      paragraphText: "图题因此，我为每个用户维护两种动态状态—— 和 ，分别刻画其作为发起者和接收者的角色特征。",
+      textWithMath:
+        "图题因此，我为每个用户维护两种动态状态——$a$ 和 $b$，分别刻画其作为发起者和接收者的角色特征。",
+      latex: ["a", "b"],
+      display: false,
+    },
+  ];
+  const result = appendMathToMarkdown(md, fragments);
+  const line = result.split("\n").find((l) => l.includes("两种动态状态——"));
+  assert.ok(line?.includes("$a$"), "formula should be inline between em-dash and 和");
+  assert.ok(line?.includes("$b$"), "second formula inline");
+  assert.ok(!line?.endsWith("$a$ $b$"), "should not append formulas only at line end");
 });
 
 test("extractMathFragments: display oMathPara", () => {

@@ -17,6 +17,11 @@ export type MathFragment = {
   display: boolean;
   /** display 公式的前一个非公式段落文本，用于 Markdown 内联定位 */
   prevText?: string;
+  /**
+   * 内联公式：按 OOXML 子节点顺序交织的「文字 + $LaTeX$」，用于在 Markdown 中整段替换
+   * `paragraphText`（Mammoth 在公式处留空），避免公式被追加到错误行末。
+   */
+  textWithMath?: string;
 };
 
 /**
@@ -87,6 +92,11 @@ export function extractMathFragments(documentXml: string): MathFragment[] {
       const frag: MathFragment = { paragraphText, latex: latexFragments, display: isDisplay };
       if (isDisplay && lastNonMathText) {
         frag.prevText = lastNonMathText;
+      } else if (!isDisplay) {
+        const twm = buildTextWithMathFromParagraph(p as XmldomElement);
+        if (twm !== undefined && /\$/.test(twm)) {
+          frag.textWithMath = twm;
+        }
       }
       results.push(frag);
     }
@@ -113,6 +123,122 @@ function collectNonMathText(node: XmldomNode, parts: string[]): void {
       collectNonMathText(el, parts);
     }
   }
+}
+
+function ommlElementToLatex(mathNode: XmldomElement): string | undefined {
+  try {
+    const mathmlEl = omml2mathml(mathNode);
+    const raw = MathMLToLaTeX.convert(mathmlEl.outerHTML);
+    const latex = postProcessLatex(raw);
+    const t = latex.trim();
+    return t || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * 按段落子节点顺序输出「w:r 文本 + m:oMath → $...$」，供 Markdown 整段替换。
+ * 任一公式转换失败则返回 undefined（回退到行末追加逻辑）。
+ */
+function buildTextWithMathFromParagraph(p: XmldomElement): string | undefined {
+  let out = "";
+  for (let i = 0; i < p.childNodes.length; i++) {
+    const child = p.childNodes[i];
+    if (child.nodeType !== 1) continue;
+    const piece = emitParagraphSubtree(child as XmldomElement);
+    if (piece === null) return undefined;
+    out += piece;
+  }
+  return out;
+}
+
+function emitParagraphSubtree(el: XmldomElement): string | null {
+  if (el.namespaceURI === W_NS && el.localName === "pPr") return "";
+
+  if (el.namespaceURI === W_NS && el.localName === "r") {
+    const parts: string[] = [];
+    collectNonMathText(el, parts);
+    return parts.join("");
+  }
+
+  if (el.namespaceURI === M_NS && el.localName === "oMath") {
+    const latex = ommlElementToLatex(el);
+    if (!latex) return null;
+    return `$${latex}$`;
+  }
+
+  if (el.namespaceURI === M_NS && el.localName === "oMathPara") {
+    return "";
+  }
+
+  if (el.namespaceURI === W_NS && el.localName === "hyperlink") {
+    let s = "";
+    for (let i = 0; i < el.childNodes.length; i++) {
+      const c = el.childNodes[i];
+      if (c.nodeType !== 1) continue;
+      const p = emitParagraphSubtree(c as XmldomElement);
+      if (p === null) return null;
+      s += p;
+    }
+    return s;
+  }
+
+  if (el.namespaceURI === W_NS && el.localName === "sdt") {
+    const content = findChildByLocalName(el, W_NS, "sdtContent");
+    if (!content) return "";
+    let s = "";
+    for (let i = 0; i < content.childNodes.length; i++) {
+      const c = content.childNodes[i];
+      if (c.nodeType !== 1) continue;
+      const p = emitParagraphSubtree(c as XmldomElement);
+      if (p === null) return null;
+      s += p;
+    }
+    return s;
+  }
+
+  const skipLocalNames = new Set([
+    "bookmarkStart",
+    "bookmarkEnd",
+    "commentRangeStart",
+    "commentRangeEnd",
+    "proofErr",
+    "customXml",
+    "permStart",
+    "permEnd",
+    "moveFromRangeStart",
+    "moveFromRangeEnd",
+    "moveToRangeStart",
+    "moveToRangeEnd",
+  ]);
+  if (el.namespaceURI === W_NS && skipLocalNames.has(el.localName)) {
+    return "";
+  }
+
+  if (el.namespaceURI === W_NS) {
+    let s = "";
+    for (let i = 0; i < el.childNodes.length; i++) {
+      const c = el.childNodes[i];
+      if (c.nodeType !== 1) continue;
+      const p = emitParagraphSubtree(c as XmldomElement);
+      if (p === null) return null;
+      s += p;
+    }
+    return s;
+  }
+
+  return "";
+}
+
+function findChildByLocalName(parent: XmldomElement, ns: string, local: string): XmldomElement | undefined {
+  for (let i = 0; i < parent.childNodes.length; i++) {
+    const c = parent.childNodes[i];
+    if (c.nodeType !== 1) continue;
+    const e = c as XmldomElement;
+    if (e.namespaceURI === ns && e.localName === local) return e;
+  }
+  return undefined;
 }
 
 function normalizeText(s: string): string {
@@ -256,10 +382,63 @@ function findLineIndex(
   return -1;
 }
 
+/** Mammoth 常把段首插图与说明字变成 `![图N]()`，导致 paragraphText 无法整行匹配；取最长后缀对齐替换 */
+const MIN_SUFFIX_REPLACE_LEN = 24;
+
+function longestParagraphSuffixContainedInLine(paragraphText: string, line: string): string {
+  for (let i = 0; i < paragraphText.length; i++) {
+    const suf = paragraphText.slice(i);
+    if (line.includes(suf)) return suf;
+  }
+  return "";
+}
+
+/**
+ * 内联替换专用：必须能在该行找到足够长的 paragraphText 后缀，避免
+ * `norm.includes(短行)` 把长段落误匹配到表格碎片等先行行。
+ */
+function findLineIndexForInlineReplace(
+  lines: string[],
+  paragraphText: string,
+  usedLines: Set<number>,
+): number {
+  let bestIdx = -1;
+  let bestSuffixLen = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (usedLines.has(i)) continue;
+    const suf = longestParagraphSuffixContainedInLine(paragraphText, lines[i]);
+    if (suf.length >= MIN_SUFFIX_REPLACE_LEN && suf.length > bestSuffixLen) {
+      bestSuffixLen = suf.length;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function replaceParagraphTextInLine(
+  line: string,
+  paragraphText: string,
+  textWithMath: string,
+): string | null {
+  if (!paragraphText) return null;
+  if (line.includes(paragraphText)) {
+    return line.replace(paragraphText, textWithMath);
+  }
+  const suf = longestParagraphSuffixContainedInLine(paragraphText, line);
+  if (suf.length < MIN_SUFFIX_REPLACE_LEN) return null;
+  const idx = line.indexOf(suf);
+  if (idx < 0) return null;
+  const prefixLen = paragraphText.length - suf.length;
+  if (prefixLen > textWithMath.length) return null;
+  const replacement = textWithMath.slice(prefixLen);
+  return line.slice(0, idx) + replacement + line.slice(idx + suf.length);
+}
+
 /**
  * 将公式内联插入 Markdown（取代末尾附录模式）。
  *
- * - inline 公式：在 paragraphText 匹配行末尾追加 $...$
+ * - 内联且存在 textWithMath：在匹配行内用 textWithMath 替换 paragraphText（保留行首尾的 Markdown 标记）
+ * - 内联无 textWithMath：在匹配行末尾追加 $...$
  * - display 公式：用 prevText 定位前文行，在其后插入独立行 $$...$$
  * - 未匹配公式：回退到末尾附录保底
  */
@@ -279,8 +458,27 @@ export function appendMathToMarkdown(
     ).join(" ");
 
     if (!frag.display && frag.paragraphText.trim()) {
-      const idx = findLineIndex(lines, frag.paragraphText, usedLines);
+      let idx = frag.textWithMath
+        ? findLineIndexForInlineReplace(lines, frag.paragraphText, usedLines)
+        : findLineIndex(lines, frag.paragraphText, usedLines);
+      if (idx < 0 && frag.textWithMath) {
+        idx = findLineIndex(lines, frag.paragraphText, usedLines);
+      }
       if (idx >= 0) {
+        if (frag.textWithMath) {
+          const replaced = replaceParagraphTextInLine(
+            lines[idx],
+            frag.paragraphText,
+            frag.textWithMath,
+          );
+          if (replaced !== null) {
+            lines[idx] = replaced;
+            usedLines.add(idx);
+            continue;
+          }
+          unmatched.push(frag);
+          continue;
+        }
         lines[idx] = lines[idx] + " " + texJoined;
         usedLines.add(idx);
         continue;

@@ -20,7 +20,7 @@ import {
   extractGlobalSkeleton,
   splitMarkdownByChapters,
 } from "@/lib/review/format-markdown-chunks";
-import { stripDocxImagePlaceholders } from "@/lib/review/hybrid-docx-parser";
+import { neutralizeDocxImagePlaceholders } from "@/lib/review/hybrid-docx-parser";
 
 export type ReviewContentType = "base64" | "text";
 
@@ -336,8 +336,8 @@ export async function analyzeFormat(
   const tSem0 = performance.now();
   const tExt0 = performance.now();
 
-  // 格式审查 LLM 看不到图片，图片占位符（`![图N]()`）插入句子中间只会造成误报，预先剥离
-  const cleanMarkdown = stripDocxImagePlaceholders(markdown);
+  // 格式审查 LLM 看不到图片内容，将图片占位符替换为纯文本标记以避免 figure_table_mismatch 误报
+  const cleanMarkdown = neutralizeDocxImagePlaceholders(markdown);
 
   // --- 构建 Global Task ---
   const globalSkeleton = extractGlobalSkeleton(cleanMarkdown);

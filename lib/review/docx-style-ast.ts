@@ -9,9 +9,84 @@ const parser = new XMLParser({
   trimValues: false,
 });
 
+export type ThemeFontMap = {
+  majorEastAsia?: string;
+  minorEastAsia?: string;
+  majorAscii?: string;
+  minorAscii?: string;
+};
+
+const EMPTY_THEME: ThemeFontMap = {};
+
+/**
+ * 从 theme1.xml 提取主题字体映射。
+ * 路径：theme > themeElements > fontScheme > majorFont/minorFont 下的
+ *       ea/@typeface（东亚）和 latin/@typeface（西文）。
+ *
+ * 当 `<a:ea typeface="">` 为空时（中文版 Office 常见），
+ * 回退到 `<a:font script="Hans">` 取简体中文字体。
+ */
+export function parseThemeFonts(themeXml: string | null): ThemeFontMap {
+  if (!themeXml) return EMPTY_THEME;
+  let doc: Record<string, unknown>;
+  try {
+    doc = parser.parse(themeXml) as Record<string, unknown>;
+  } catch {
+    return EMPTY_THEME;
+  }
+  const theme = (doc.theme ?? doc) as Record<string, unknown>;
+  const elems = theme.themeElements as Record<string, unknown> | undefined;
+  if (!elems) return EMPTY_THEME;
+  const fs = elems.fontScheme as Record<string, unknown> | undefined;
+  if (!fs) return EMPTY_THEME;
+
+  const pickTypeface = (group: unknown, tag: string): string | undefined => {
+    if (!group || typeof group !== "object") return undefined;
+    const g = group as Record<string, unknown>;
+    const el = g[tag];
+    if (!el || typeof el !== "object") return undefined;
+    const o = el as Record<string, unknown>;
+    for (const [k, v] of Object.entries(o)) {
+      if (k.startsWith("@_") && typeof v === "string" && k.toLowerCase().includes("typeface")) {
+        return v || undefined;
+      }
+    }
+    return undefined;
+  };
+
+  /** 从 majorFont/minorFont 的 `<a:font script="Hans">` 取简体中文字体 */
+  const pickScriptHansTypeface = (group: unknown): string | undefined => {
+    if (!group || typeof group !== "object") return undefined;
+    const g = group as Record<string, unknown>;
+    for (const fontEl of ensureArray(g.font)) {
+      if (!fontEl || typeof fontEl !== "object") continue;
+      const fo = fontEl as Record<string, unknown>;
+      let isHans = false;
+      let typeface: string | undefined;
+      for (const [k, v] of Object.entries(fo)) {
+        if (!k.startsWith("@_") || typeof v !== "string") continue;
+        const bare = k.slice(2).toLowerCase();
+        if (bare === "script" && v === "Hans") isHans = true;
+        if (bare === "typeface" && v) typeface = v;
+      }
+      if (isHans && typeface) return typeface;
+    }
+    return undefined;
+  };
+
+  return {
+    majorEastAsia: pickTypeface(fs.majorFont, "ea") ?? pickScriptHansTypeface(fs.majorFont),
+    minorEastAsia: pickTypeface(fs.minorFont, "ea") ?? pickScriptHansTypeface(fs.minorFont),
+    majorAscii: pickTypeface(fs.majorFont, "latin"),
+    minorAscii: pickTypeface(fs.minorFont, "latin"),
+  };
+}
+
 type RPrParts = {
   fontEastAsia?: string;
   fontAscii?: string;
+  fontEastAsiaTheme?: string;
+  fontAsciiTheme?: string;
   sizeHalfPoints?: number;
   bold?: boolean;
   italic?: boolean;
@@ -87,28 +162,32 @@ function extractRPr(raw: unknown): RPrParts {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
   let sizeHalfPoints: number | undefined;
-  for (const key of ["sz", "szCs"]) {
-    for (const s of ensureArray(o[key])) {
-      if (s && typeof s === "object") {
-        const v = pickAttrVal(s as Record<string, unknown>);
-        if (v) {
-          const n = parseInt(v, 10);
-          if (!Number.isNaN(n)) sizeHalfPoints = n;
-        }
+  for (const s of ensureArray(o.sz)) {
+    if (s && typeof s === "object") {
+      const v = pickAttrVal(s as Record<string, unknown>);
+      if (v) {
+        const n = parseInt(v, 10);
+        if (!Number.isNaN(n)) sizeHalfPoints = n;
       }
     }
   }
   let fontEastAsia: string | undefined;
   let fontAscii: string | undefined;
+  let fontEastAsiaTheme: string | undefined;
+  let fontAsciiTheme: string | undefined;
   const rf = o.rFonts;
   if (rf && typeof rf === "object") {
     const rfo = rf as Record<string, unknown>;
     fontEastAsia = pickFontAttr(rfo, "eastAsia", "eastasia");
     fontAscii = pickFontAttr(rfo, "ascii", "hAnsi", "hansi");
+    fontEastAsiaTheme = pickFontAttr(rfo, "eastAsiaTheme", "eastasiatheme");
+    fontAsciiTheme = pickFontAttr(rfo, "asciiTheme", "asciitheme", "hAnsiTheme", "hansitheme");
   }
   return {
     fontEastAsia,
     fontAscii,
+    fontEastAsiaTheme,
+    fontAsciiTheme,
     sizeHalfPoints,
     bold: hasBoolOn(o.b),
     italic: hasBoolOn(o.i),
@@ -273,6 +352,8 @@ type ParsedStyles = {
   map: Map<string, StyleDef>;
   /** w:docDefaults/w:rPrDefault/w:rPr — 文档级默认字号/字体 */
   docDefaultsRPr: RPrParts;
+  /** w:default="1" 的段落样式 ID（通常为 Normal），无 pStyle 时隐式使用 */
+  defaultParagraphStyleId?: string;
   /** 样式名为 TOC* 的 w:styleId 集合，用于延长 toc 分区、避免目录项被当正文 */
   tocStyleIds: Set<string>;
 };
@@ -295,6 +376,8 @@ function parseStyles(stylesXml: string | null): ParsedStyles {
     }
   }
 
+  let defaultParagraphStyleId: string | undefined;
+
   for (const st of ensureArray(stylesRoot.style)) {
     if (!st || typeof st !== "object") continue;
     const so = st as Record<string, unknown>;
@@ -304,6 +387,21 @@ function parseStyles(stylesXml: string | null): ParsedStyles {
     if (styleName && /^toc\b/i.test(styleName.trim())) {
       tocStyleIds.add(id);
     }
+
+    // w:default="1" 且 w:type="paragraph" → 默认段落样式
+    if (!defaultParagraphStyleId) {
+      for (const [k, v] of Object.entries(so)) {
+        if (!k.startsWith("@_")) continue;
+        const bare = k.slice(2).toLowerCase();
+        if (bare.endsWith("default") && (v === "1" || v === "true" || v === true)) {
+          const typeAttr = Object.entries(so).find(([tk, tv]) =>
+            tk.startsWith("@_") && tk.slice(2).toLowerCase().endsWith("type") && tv === "paragraph"
+          );
+          if (typeAttr) defaultParagraphStyleId = id;
+        }
+      }
+    }
+
     map.set(id, {
       rPr: extractRPr(so.rPr),
       basedOn: extractBasedOn(so),
@@ -312,7 +410,7 @@ function parseStyles(stylesXml: string | null): ParsedStyles {
       spacingInd: extractSpacingIndFromPPr(so.pPr),
     });
   }
-  return { map, docDefaultsRPr, tocStyleIds };
+  return { map, docDefaultsRPr, defaultParagraphStyleId, tocStyleIds };
 }
 
 function getStyleRPrResolved(
@@ -416,7 +514,7 @@ function effectiveRunRPr(
     ? getStyleRPrResolved(paragraphStyleId, styleMap, docDefaultsRPr)
     : docDefaultsRPr;
   const rStyleId = getRStyleId(run);
-  const charRpr = rStyleId ? getStyleRPrResolved(rStyleId, styleMap, docDefaultsRPr) : {};
+  const charRpr = rStyleId ? getStyleRPrResolved(rStyleId, styleMap, {}) : {};
   const direct =
     run && typeof run === "object" ? extractRPr((run as Record<string, unknown>).rPr) : {};
   return mergeRPr(mergeRPr(paraRpr, charRpr), direct);
@@ -573,6 +671,8 @@ function parseHeaderFooterXml(
   hfCtx: "header" | "footer",
   styleMap: Map<string, StyleDef>,
   docDefaultsRPr: RPrParts,
+  themeMap: ThemeFontMap = EMPTY_THEME,
+  defaultParagraphStyleId?: string,
 ): DocxStyleAstNode[] {
   let doc: Record<string, unknown>;
   try {
@@ -589,7 +689,7 @@ function parseHeaderFooterXml(
 
   const nodes: DocxStyleAstNode[] = [];
   for (const t of tagged) {
-    const node = paragraphToNode({ raw: t.raw, context: hfCtx }, styleMap, docDefaultsRPr);
+    const node = paragraphToNode({ raw: t.raw, context: hfCtx }, styleMap, docDefaultsRPr, themeMap, defaultParagraphStyleId);
     if (hasPAGEField(t.raw)) {
       node.has_page_number = true;
     }
@@ -599,11 +699,30 @@ function parseHeaderFooterXml(
   return nodes;
 }
 
-function rprToRunSpan(text: string, rpr: RPrParts): RunSpan {
+function resolveThemeFont(
+  explicit: string | undefined,
+  themeRef: string | undefined,
+  themeMap: ThemeFontMap,
+  kind: "eastAsia" | "ascii",
+): string | undefined {
+  if (explicit) return explicit;
+  if (!themeRef) return undefined;
+  const key = themeRef.toLowerCase();
+  if (kind === "eastAsia") {
+    if (key.includes("major")) return themeMap.majorEastAsia;
+    if (key.includes("minor")) return themeMap.minorEastAsia;
+  } else {
+    if (key.includes("major")) return themeMap.majorAscii;
+    if (key.includes("minor")) return themeMap.minorAscii;
+  }
+  return undefined;
+}
+
+function rprToRunSpan(text: string, rpr: RPrParts, themeMap: ThemeFontMap): RunSpan {
   return {
     text,
-    font_zh: rpr.fontEastAsia,
-    font_en: rpr.fontAscii,
+    font_zh: resolveThemeFont(rpr.fontEastAsia, rpr.fontEastAsiaTheme, themeMap, "eastAsia"),
+    font_en: resolveThemeFont(rpr.fontAscii, rpr.fontAsciiTheme, themeMap, "ascii"),
     size_pt: rpr.sizeHalfPoints !== undefined ? rpr.sizeHalfPoints / 2 : undefined,
     bold: rpr.bold,
     italic: rpr.italic,
@@ -620,9 +739,11 @@ function paragraphToNode(
   tagged: TaggedParagraph,
   styleMap: Map<string, StyleDef>,
   docDefaultsRPr: RPrParts,
+  themeMap: ThemeFontMap = EMPTY_THEME,
+  defaultParagraphStyleId?: string,
 ): InternalAstNode {
   const p = tagged.raw;
-  const pStyleId = getPStyleId(p);
+  const pStyleId = getPStyleId(p) ?? defaultParagraphStyleId;
   const pPr = p && typeof p === "object" ? (p as Record<string, unknown>).pPr : undefined;
   
   let outlineLevel = getOutlineLevel(pPr);
@@ -654,7 +775,7 @@ function paragraphToNode(
     const runText = collectTextFromRun(run);
     if (runText.length === 0) continue;
     const eff = effectiveRunRPr(pStyleId, run, styleMap, docDefaultsRPr);
-    spans.push(rprToRunSpan(runText, eff));
+    spans.push(rprToRunSpan(runText, eff, themeMap));
   }
 
   const text = spans.map((s) => s.text).join("");
@@ -704,8 +825,8 @@ function paragraphToNode(
 
   return {
     text,
-    font_zh: dominant?.font_zh ?? fallbackRPr.fontEastAsia,
-    font_en: dominant?.font_en ?? fallbackRPr.fontAscii,
+    font_zh: dominant?.font_zh ?? resolveThemeFont(fallbackRPr.fontEastAsia, fallbackRPr.fontEastAsiaTheme, themeMap, "eastAsia"),
+    font_en: dominant?.font_en ?? resolveThemeFont(fallbackRPr.fontAscii, fallbackRPr.fontAsciiTheme, themeMap, "ascii"),
     size_pt: dominant?.size_pt ?? (fallbackRPr.sizeHalfPoints !== undefined ? fallbackRPr.sizeHalfPoints / 2 : undefined),
     bold: dominant?.bold ?? fallbackRPr.bold,
     italic: dominant?.italic ?? fallbackRPr.italic,
@@ -824,18 +945,20 @@ export function buildDocxStyleAst(
   stylesXml: string | null,
   headerXmls: string[] = [],
   footerXmls: string[] = [],
+  themeXml: string | null = null,
 ): { nodes: DocxStyleAstNode[]; headerFooterNodes: DocxStyleAstNode[]; setup: DocumentSetup } {
-  const { map: styleMap, docDefaultsRPr, tocStyleIds } = parseStyles(stylesXml);
+  const { map: styleMap, docDefaultsRPr, defaultParagraphStyleId, tocStyleIds } = parseStyles(stylesXml);
+  const themeMap = parseThemeFonts(themeXml);
   const { tagged, finalSectPr } = parseDocumentParagraphs(documentXml);
-  const nodes = tagged.map((t) => paragraphToNode(t, styleMap, docDefaultsRPr));
+  const nodes = tagged.map((t) => paragraphToNode(t, styleMap, docDefaultsRPr, themeMap, defaultParagraphStyleId));
 
   partitionDocumentAst(nodes, finalSectPr, tocStyleIds);
 
   const setup = extractDocumentSetup(finalSectPr);
 
   const headerFooterNodes: DocxStyleAstNode[] = [
-    ...headerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "header", styleMap, docDefaultsRPr)),
-    ...footerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "footer", styleMap, docDefaultsRPr)),
+    ...headerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "header", styleMap, docDefaultsRPr, themeMap, defaultParagraphStyleId)),
+    ...footerXmls.flatMap((xml) => parseHeaderFooterXml(xml, "footer", styleMap, docDefaultsRPr, themeMap, defaultParagraphStyleId)),
   ];
 
   return { nodes, headerFooterNodes, setup };

@@ -6,12 +6,14 @@ const MAX_XML_BYTES = 20 * 1024 * 1024;
 const HEADER_FOOTER_RE = /^word\/(header|footer)\d+\.xml$/;
 
 /**
- * 使用 yauzl 按 entry 读取 DOCX（zip），加载 `word/document.xml`、`word/styles.xml`
- * 以及所有 `word/header*.xml` / `word/footer*.xml`，不展开 `word/media/` 等大文件。
+ * 使用 yauzl 按 entry 读取 DOCX（zip），加载 `word/document.xml`、`word/styles.xml`、
+ * `word/theme/theme1.xml` 以及所有 `word/header*.xml` / `word/footer*.xml`，
+ * 不展开 `word/media/` 等大文件。
  */
 export function readDocxXmlParts(buffer: Buffer): Promise<{
   documentXml: string;
   stylesXml: string | null;
+  themeXml: string | null;
   headerXmls: string[];
   footerXmls: string[];
 }> {
@@ -28,6 +30,7 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{
 
       let documentXml: string | null = null;
       let stylesXml: string | null = null;
+      let themeXml: string | null = null;
       const headerXmls: string[] = [];
       const footerXmls: string[] = [];
 
@@ -37,16 +40,17 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{
           reject(new Error("DOCX_INVALID: missing word/document.xml"));
           return;
         }
-        resolve({ documentXml, stylesXml, headerXmls, footerXmls });
+        resolve({ documentXml, stylesXml, themeXml, headerXmls, footerXmls });
       });
 
       zipfile.on("entry", (entry) => {
         const name = entry.fileName;
         const isDocument = name === "word/document.xml";
         const isStyles = name === "word/styles.xml";
+        const isTheme = name === "word/theme/theme1.xml";
         const hfMatch = HEADER_FOOTER_RE.exec(name);
 
-        if (!isDocument && !isStyles && !hfMatch) {
+        if (!isDocument && !isStyles && !isTheme && !hfMatch) {
           zipfile.readEntry();
           return;
         }
@@ -73,6 +77,8 @@ export function readDocxXmlParts(buffer: Buffer): Promise<{
               documentXml = text;
             } else if (isStyles) {
               stylesXml = text;
+            } else if (isTheme) {
+              themeXml = text;
             } else if (hfMatch) {
               if (hfMatch[1] === "header") {
                 headerXmls.push(text);
