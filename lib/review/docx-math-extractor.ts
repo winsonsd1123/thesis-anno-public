@@ -212,7 +212,11 @@ function emitParagraphSubtree(el: XmldomElement): string | null {
     "moveToRangeStart",
     "moveToRangeEnd",
   ]);
-  if (el.namespaceURI === W_NS && skipLocalNames.has(el.localName)) {
+  if (
+    el.namespaceURI === W_NS &&
+    el.localName != null &&
+    skipLocalNames.has(el.localName)
+  ) {
     return "";
   }
 
