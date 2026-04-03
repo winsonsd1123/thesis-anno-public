@@ -19,6 +19,7 @@
     "register": {
       "title": "Create ThesisAI Account",
       "subtitle": "Create an account to start using AI thesis review",
+      "eduCreditsHint": "Register with an education network email (.edu.cn) to receive 300 bonus credits free.",
       "passwordPlaceholder": "At least 8 characters, 3 of: uppercase, lowercase, digits, symbols",
       "nickname": "Display name (optional)",
       "nicknamePlaceholder": "2-50 characters",

@@ -19,6 +19,7 @@
     "register": {
       "title": "注册 ThesisAI",
       "subtitle": "创建账号，开始使用 AI 论文批阅",
+      "eduCreditsHint": "教育网邮箱用户注册可免费领 300 积分。",
       "passwordPlaceholder": "至少 8 位，含大小写/数字/特殊符号中至少三种",
       "nickname": "昵称（选填）",
       "nicknamePlaceholder": "2-50 个字符",

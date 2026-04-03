@@ -19,6 +19,9 @@ export default function RegisterPage() {
         <p style={{ fontSize: 14, color: "var(--text-secondary)", marginTop: 8 }}>
           {t("subtitle")}
         </p>
+        <p style={{ fontSize: 14, color: "var(--brand)", marginTop: 10, fontWeight: 500 }}>
+          {t("eduCreditsHint")}
+        </p>
       </div>
 
       <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>

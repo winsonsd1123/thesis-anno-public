@@ -7,11 +7,11 @@ import {
   replaceReviewPdf,
   updateReviewFormatGuidelines,
   getDefaultFormatGuidelinesZh,
-} from "@/lib/actions/review.action";
+} from "@/lib/actions/review.actions";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
-import { startReviewEngine } from "@/lib/actions/trigger.action";
+import { startReviewEngine } from "@/lib/actions/trigger.actions";
 import { estimateCost } from "@/lib/actions/billing.actions";
 import type { CostBreakdownSnapshot } from "@/lib/config/billing";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";

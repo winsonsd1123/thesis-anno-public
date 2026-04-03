@@ -8,7 +8,7 @@ import { useRouter } from "@/i18n/navigation";
 import type { ReviewRow } from "@/lib/types/review";
 import { useDashboardStore } from "@/lib/store/useDashboardStore";
 import { useReviewRealtime } from "@/lib/hooks/useReviewRealtime";
-import { renameReview, deleteReview } from "@/lib/actions/review.action";
+import { renameReview, deleteReview } from "@/lib/actions/review.actions";
 import { fetchReviewRow } from "@/lib/browser/fetch-review-row";
 import { stagesToLogLines, stagesToProgressModels, type ProgressStageModel } from "@/lib/review/stagesUi";
 import type { ReviewStageEntry } from "@/lib/types/review";
