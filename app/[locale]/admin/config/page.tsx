@@ -1,88 +1,113 @@
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { adminStatsService } from "@/lib/services/admin-stats.service";
+import styles from "./admin-config.module.css";
+import { AdminDashboardSection } from "./AdminDashboardSection";
 
 export default async function AdminConfigPage() {
-  const t = await getTranslations("admin.config");
+  const [t, td, locale, stats] = await Promise.all([
+    getTranslations("admin.config"),
+    getTranslations("admin.dashboard"),
+    getLocale(),
+    adminStatsService.getDashboardStats(),
+  ]);
+
+  const intLocale = locale === "zh" ? "zh-CN" : "en-US";
+  const fmtInt = new Intl.NumberFormat(intLocale);
+  const fmtMoney = new Intl.NumberFormat(intLocale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const dashboardCards = [
+    {
+      label: td("profileCount"),
+      hint: td("profileCountHint"),
+      value: fmtInt.format(stats.profileCount),
+    },
+    {
+      label: td("revenueCny"),
+      hint: td("revenueCnyHint"),
+      value: fmtMoney.format(stats.revenueCny),
+    },
+    {
+      label: td("paidOrders"),
+      hint: td("paidOrdersHint"),
+      value: fmtInt.format(stats.paidOrderCount),
+    },
+    {
+      label: td("reviews"),
+      hint: td("reviewsHint"),
+      value: fmtInt.format(stats.reviewCount),
+    },
+    {
+      label: td("pendingTickets"),
+      hint: td("pendingTicketsHint"),
+      value: fmtInt.format(stats.pendingTicketCount),
+    },
+  ];
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
-        {t("title")}
-      </h1>
-      <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 32 }}>
-        {t("subtitle")}
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <Link
-          href="/admin/config/prompts"
-          style={{
-            padding: 24,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            textDecoration: "none",
-            color: "var(--text-primary)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("prompts")}</div>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-            Prompt 模板、多语言、模型参数
-          </div>
-        </Link>
-        <Link
-          href="/admin/config/pricing"
-          style={{
-            padding: 24,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            textDecoration: "none",
-            color: "var(--text-primary)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("pricing")}</div>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-            套餐价格、消耗规则
-          </div>
-        </Link>
-        <Link
-          href="/admin/config/system"
-          style={{
-            padding: 24,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            textDecoration: "none",
-            color: "var(--text-primary)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("system")}</div>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-            Feature Flags 开关
-          </div>
-        </Link>
-        <Link
-          href="/admin/config/edu-grant"
-          style={{
-            padding: 24,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            textDecoration: "none",
-            color: "var(--text-primary)",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{t("eduGrant")}</div>
-          <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>{t("eduGrantDesc")}</div>
-        </Link>
+    <div className={styles.page}>
+      <div id="admin-dashboard" className={styles.dashboardAnchor}>
+        <AdminDashboardSection
+          sectionTitle={td("sectionTitle")}
+          sectionLead={td("sectionLead")}
+          cards={dashboardCards}
+        />
       </div>
+
+      <section className={styles.configSection} aria-labelledby="admin-config-heading">
+        <header className={styles.configSectionHeader}>
+          <h1 id="admin-config-heading" className={styles.configTitle}>
+            {t("title")}
+          </h1>
+          <p className={styles.configSubtitle}>{t("subtitle")}</p>
+        </header>
+
+        <div className={styles.configGrid}>
+          <Link href="/admin/config/prompts" className={styles.configCard} data-area="prompts">
+            <span className={styles.configCardMark} aria-hidden />
+            <div className={styles.configCardBody}>
+              <div className={styles.configCardTitle}>{t("prompts")}</div>
+              <div className={styles.configCardDesc}>{t("promptsLead")}</div>
+            </div>
+            <span className={styles.configCardArrow} aria-hidden>
+              →
+            </span>
+          </Link>
+          <Link href="/admin/config/pricing" className={styles.configCard} data-area="pricing">
+            <span className={styles.configCardMark} aria-hidden />
+            <div className={styles.configCardBody}>
+              <div className={styles.configCardTitle}>{t("pricing")}</div>
+              <div className={styles.configCardDesc}>{t("pricingLead")}</div>
+            </div>
+            <span className={styles.configCardArrow} aria-hidden>
+              →
+            </span>
+          </Link>
+          <Link href="/admin/config/system" className={styles.configCard} data-area="system">
+            <span className={styles.configCardMark} aria-hidden />
+            <div className={styles.configCardBody}>
+              <div className={styles.configCardTitle}>{t("system")}</div>
+              <div className={styles.configCardDesc}>{t("systemLead")}</div>
+            </div>
+            <span className={styles.configCardArrow} aria-hidden>
+              →
+            </span>
+          </Link>
+          <Link href="/admin/config/edu-grant" className={styles.configCard} data-area="edu">
+            <span className={styles.configCardMark} aria-hidden />
+            <div className={styles.configCardBody}>
+              <div className={styles.configCardTitle}>{t("eduGrant")}</div>
+              <div className={styles.configCardDesc}>{t("eduGrantDesc")}</div>
+            </div>
+            <span className={styles.configCardArrow} aria-hidden>
+              →
+            </span>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

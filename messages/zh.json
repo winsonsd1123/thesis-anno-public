@@ -700,12 +700,29 @@
   "admin": {
     "title": "管理后台",
     "backToDashboard": "返回控制台",
+    "dashboard": {
+      "sectionTitle": "运营概览",
+      "sectionLead": "全站汇总指标",
+      "profileCount": "注册用户",
+      "profileCountHint": "profiles 记录数",
+      "revenueCny": "累计收入（元）",
+      "revenueCnyHint": "已支付订单金额合计",
+      "paidOrders": "成功支付笔数",
+      "paidOrdersHint": "状态为已支付的订单数",
+      "reviews": "审阅任务总数",
+      "reviewsHint": "reviews 表任务条数",
+      "pendingTickets": "待处理工单",
+      "pendingTicketsHint": "状态为 open 或 in_progress"
+    },
     "config": {
       "title": "配置管理",
       "subtitle": "管理 Prompt、计费规则与系统开关",
       "prompts": "Prompt Lab",
+      "promptsLead": "模板、多语言与模型参数",
       "pricing": "计费配置",
+      "pricingLead": "套餐与字数阶梯消耗规则",
       "system": "系统状态",
+      "systemLead": "Feature Flags 与运行开关",
       "eduGrant": "教育网申领",
       "eduGrantDesc": "教育网用户固定积分申领窗口"
     },

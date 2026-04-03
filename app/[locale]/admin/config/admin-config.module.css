@@ -1,0 +1,335 @@
+/* Admin 配置首页：运营看板 + 配置入口 — 与 globals 设计令牌对齐 */
+
+.page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 0.25rem 2.5rem;
+}
+
+.dashboardAnchor {
+  margin-bottom: 3rem;
+}
+
+.dashboardSection {
+  position: relative;
+}
+
+.dashboardPanel {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, var(--surface) 0%, var(--bg-subtle) 48%, var(--surface) 100%);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.dashboardPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--teal) 55%, var(--accent-light) 100%);
+  opacity: 0.95;
+}
+
+.dashboardPanelInner {
+  position: relative;
+  padding: 1.5rem 1.5rem 1.65rem;
+}
+
+@media (min-width: 640px) {
+  .dashboardPanelInner {
+    padding: 1.75rem 1.75rem 1.85rem;
+  }
+}
+
+.dashboardHeader {
+  margin-bottom: 1.35rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboardTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 0.35rem;
+}
+
+.dashboardLead {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 36rem;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .statGrid {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: 1rem;
+  }
+}
+
+@keyframes adminStatIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.statCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 6.75rem;
+  padding: 1.1rem 1rem 0.95rem;
+  border-radius: 0.875rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+  animation: adminStatIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.statCard:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.statCard:nth-child(2) {
+  animation-delay: 0.09s;
+}
+.statCard:nth-child(3) {
+  animation-delay: 0.14s;
+}
+.statCard:nth-child(4) {
+  animation-delay: 0.19s;
+}
+.statCard:nth-child(5) {
+  animation-delay: 0.24s;
+}
+.statCard:nth-child(6) {
+  animation-delay: 0.29s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .statCard:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.statCard:focus-within {
+  outline: none;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.statValue {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.statHint {
+  margin-top: auto;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* —— 配置区块 —— */
+
+.configSection {
+  scroll-margin-top: 1rem;
+}
+
+.configSectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.configTitle {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin: 0 0 0.4rem;
+}
+
+.configSubtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 40rem;
+}
+
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  gap: 1rem;
+}
+
+@keyframes adminConfigCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.configCard {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.15rem 1.1rem 1.15rem 1rem;
+  border-radius: 0.875rem;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+  animation: adminConfigCardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.configCard:nth-child(1) {
+  animation-delay: 0.12s;
+}
+.configCard:nth-child(2) {
+  animation-delay: 0.17s;
+}
+.configCard:nth-child(3) {
+  animation-delay: 0.22s;
+}
+.configCard:nth-child(4) {
+  animation-delay: 0.27s;
+}
+
+.configCard:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .configCard:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+    box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent);
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-subtle) 100%);
+  }
+
+  .configCard:hover .configCardArrow {
+    transform: translateX(3px);
+    color: var(--brand);
+  }
+}
+
+.configCardMark {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+}
+
+.configCard[data-area="prompts"] .configCardMark {
+  background: var(--brand-bg);
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--border));
+}
+
+.configCard[data-area="pricing"] .configCardMark {
+  background: var(--teal-bg);
+  border-color: color-mix(in srgb, var(--teal) 28%, var(--border));
+}
+
+.configCard[data-area="system"] .configCardMark {
+  background: var(--accent-bg);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+}
+
+.configCard[data-area="edu"] .configCardMark {
+  background: linear-gradient(135deg, var(--brand-bg) 0%, var(--accent-bg) 100%);
+  border-color: color-mix(in srgb, var(--brand) 18%, var(--border));
+}
+
+.configCardBody {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.configCardTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.configCardDesc {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.configCardArrow {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statCard,
+  .configCard {
+    animation: none !important;
+  }
+
+  .statCard:hover,
+  .configCard:hover {
+    transform: none !important;
+  }
+
+  .configCard:hover .configCardArrow {
+    transform: none !important;
+  }
+}

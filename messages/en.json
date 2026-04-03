@@ -771,12 +771,29 @@
   "admin": {
     "title": "Admin",
     "backToDashboard": "Back to Dashboard",
+    "dashboard": {
+      "sectionTitle": "Overview",
+      "sectionLead": "Site-wide metrics (admin only)",
+      "profileCount": "Registered users",
+      "profileCountHint": "Rows in profiles",
+      "revenueCny": "Revenue (CNY)",
+      "revenueCnyHint": "Sum of paid orders",
+      "paidOrders": "Paid orders",
+      "paidOrdersHint": "Orders with status paid",
+      "reviews": "Review jobs",
+      "reviewsHint": "Total rows in reviews",
+      "pendingTickets": "Pending tickets",
+      "pendingTicketsHint": "Status open or in_progress"
+    },
     "config": {
       "title": "Config Management",
       "subtitle": "Manage Prompts, billing rules, and system flags",
       "prompts": "Prompt Lab",
+      "promptsLead": "Templates, locales, and model tuning",
       "pricing": "Pricing Config",
+      "pricingLead": "Packages and word-tier consumption rules",
       "system": "System Status",
+      "systemLead": "Feature flags and runtime toggles",
       "eduGrant": "Edu grant",
       "eduGrantDesc": "Fixed credits for .edu.cn / .ac.cn accounts"
     },
