@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/middleware";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 
+function localeFromPathname(pathname: string): string {
+  const first = pathname.split("/").filter(Boolean)[0];
+  return routing.locales.includes(first as "en" | "zh") ? first : routing.defaultLocale;
+}
+
 const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/verify-email"];
 const PROTECTED_ROUTES_PREFIX = "/dashboard";
 const ADMIN_ROUTES_PREFIX = "/admin";
@@ -36,6 +41,24 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl, { headers: intlResponse.headers });
+  }
+
+  if (isLoggedIn && isProtectedRoute(pathname) && data.user) {
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("is_disabled")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (profileRow?.is_disabled === true) {
+      const locale = localeFromPathname(pathname);
+      const redirectResponse = NextResponse.redirect(
+        new URL(`/${locale}/account-disabled`, request.url)
+      );
+      const supabaseSignOut = createClient(request, redirectResponse);
+      await supabaseSignOut.auth.signOut();
+      return redirectResponse;
+    }
   }
 
   if (isLoggedIn && isAuthRoute(pathname)) {
