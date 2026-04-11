@@ -4,7 +4,8 @@
     "password": "Password",
     "newPassword": "New Password",
     "fullName": "Full Name",
-    "user": "User"
+    "user": "User",
+    "networkError": "Network error. Check your connection and try again."
   },
   "accountDisabled": {
     "title": "Account disabled",
@@ -18,6 +19,7 @@
       "forgotPassword": "Forgot password?",
       "submit": "Sign in",
       "submitting": "Signing in…",
+      "slowNetworkHint": "This is taking longer than usual. Still working…",
       "noAccount": "Don't have an account?",
       "registerNow": "Sign up now",
       "useEmailCode": "Sign in with email code",
@@ -35,6 +37,7 @@
       "resend": "Resend code",
       "resendWait": "Resend in {seconds}s",
       "backEditEmail": "Change email",
+      "slowNetworkHint": "This is taking longer than usual. Still working…",
       "errorNotRegistered": "This email isn't registered yet. Please sign up first.",
       "errorRateLimit": "Too many requests. Please try again later.",
       "errorEmailInvalid": "Invalid email format",

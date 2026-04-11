@@ -490,6 +490,19 @@ details[open] .edu-grant-round-chevron {
   transform: translateY(0);
 }
 
+.btn-primary:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-primary:disabled:hover {
+  background: var(--brand);
+  box-shadow: none;
+  transform: none;
+}
+
 .btn-secondary {
   background: var(--bg-subtle);
   color: var(--text-primary);

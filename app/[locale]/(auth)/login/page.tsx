@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, type CSSProperties } from "react";
+import { Loader2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -11,6 +12,8 @@ import {
 
 type LoginMode = "password" | "otp";
 type OtpStep = "email" | "code";
+
+const SLOW_NETWORK_MS = 7000;
 
 const inputStyle: CSSProperties = {
   width: "100%",
@@ -30,6 +33,7 @@ export default function LoginPage() {
   const [otpStep, setOtpStep] = useState<OtpStep>("email");
   const [otpEmail, setOtpEmail] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [showSlowHint, setShowSlowHint] = useState(false);
 
   const [signInState, signInAction, signInPending] = useActionState(signIn, null);
   const [sendState, sendAction, sendPending] = useActionState(sendEmailLoginOtp, null);
@@ -38,11 +42,14 @@ export default function LoginPage() {
     null
   );
 
+  const authBusy = signInPending || sendPending || verifyPending;
+
   useEffect(() => {
-    if (sendState?.success) {
+    if (!sendState?.success) return;
+    queueMicrotask(() => {
       setOtpStep("code");
       setCooldown(60);
-    }
+    });
   }, [sendState?.success]);
 
   useEffect(() => {
@@ -51,13 +58,25 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  useEffect(() => {
+    if (!authBusy) return;
+    const id = setTimeout(() => setShowSlowHint(true), SLOW_NETWORK_MS);
+    return () => {
+      clearTimeout(id);
+      setShowSlowHint(false);
+    };
+  }, [authBusy]);
+
   function switchMode(next: LoginMode) {
+    if (authBusy) return;
     setMode(next);
     if (next === "otp") {
       setOtpStep("email");
       setCooldown(0);
     }
   }
+
+  const slowHintText = mode === "password" ? t("slowNetworkHint") : tOtp("slowNetworkHint");
 
   return (
     <>
@@ -82,13 +101,15 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => switchMode("password")}
+          disabled={authBusy}
           style={{
             fontSize: 14,
             fontWeight: mode === "password" ? 600 : 400,
             color: mode === "password" ? "var(--brand)" : "var(--text-secondary)",
             background: "none",
             border: "none",
-            cursor: "pointer",
+            cursor: authBusy ? "not-allowed" : "pointer",
+            opacity: authBusy ? 0.55 : 1,
             textDecoration: mode === "password" ? "underline" : "none",
             padding: "4px 8px",
           }}
@@ -99,13 +120,15 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => switchMode("otp")}
+          disabled={authBusy}
           style={{
             fontSize: 14,
             fontWeight: mode === "otp" ? 600 : 400,
             color: mode === "otp" ? "var(--brand)" : "var(--text-secondary)",
             background: "none",
             border: "none",
-            cursor: "pointer",
+            cursor: authBusy ? "not-allowed" : "pointer",
+            opacity: authBusy ? 0.55 : 1,
             textDecoration: mode === "otp" ? "underline" : "none",
             padding: "4px 8px",
           }}
@@ -114,8 +137,31 @@ export default function LoginPage() {
         </button>
       </div>
 
+      {authBusy && showSlowHint && (
+        <p
+          role="status"
+          aria-live="polite"
+          style={{
+            margin: "0 0 16px",
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "var(--text-secondary)",
+            background: "var(--bg-subtle)",
+            textAlign: "center",
+            lineHeight: 1.5,
+          }}
+        >
+          {slowHintText}
+        </p>
+      )}
+
       {mode === "password" && (
-        <form action={signInAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <form
+          action={signInAction}
+          aria-busy={signInPending}
+          style={{ display: "flex", flexDirection: "column", gap: 20 }}
+        >
           {signInState?.error && (
             <div
               style={{
@@ -150,6 +196,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               placeholder="you@example.com"
+              disabled={signInPending}
               style={inputStyle}
             />
           </div>
@@ -174,6 +221,7 @@ export default function LoginPage() {
               required
               autoComplete="current-password"
               placeholder="••••••••"
+              disabled={signInPending}
               style={inputStyle}
             />
           </div>
@@ -193,13 +241,29 @@ export default function LoginPage() {
             className="btn-primary"
             style={{ width: "100%", padding: "14px", justifyContent: "center" }}
           >
-            {signInPending ? t("submitting") : t("submit")}
+            {signInPending ? (
+              <>
+                <Loader2
+                  size={18}
+                  strokeWidth={2.25}
+                  className="animate-spin motion-reduce:animate-none shrink-0"
+                  aria-hidden
+                />
+                <span>{t("submitting")}</span>
+              </>
+            ) : (
+              t("submit")
+            )}
           </button>
         </form>
       )}
 
       {mode === "otp" && otpStep === "email" && (
-        <form action={sendAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <form
+          action={sendAction}
+          aria-busy={sendPending}
+          style={{ display: "flex", flexDirection: "column", gap: 20 }}
+        >
           {sendState?.error && (
             <div
               style={{
@@ -236,6 +300,7 @@ export default function LoginPage() {
               value={otpEmail}
               onChange={(e) => setOtpEmail(e.target.value)}
               placeholder="you@example.com"
+              disabled={sendPending}
               style={inputStyle}
             />
           </div>
@@ -246,14 +311,30 @@ export default function LoginPage() {
             className="btn-primary"
             style={{ width: "100%", padding: "14px", justifyContent: "center" }}
           >
-            {sendPending ? tOtp("sendingCode") : tOtp("sendCode")}
+            {sendPending ? (
+              <>
+                <Loader2
+                  size={18}
+                  strokeWidth={2.25}
+                  className="animate-spin motion-reduce:animate-none shrink-0"
+                  aria-hidden
+                />
+                <span>{tOtp("sendingCode")}</span>
+              </>
+            ) : (
+              tOtp("sendCode")
+            )}
           </button>
         </form>
       )}
 
       {mode === "otp" && otpStep === "code" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <form action={verifyAction} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <form
+            action={verifyAction}
+            aria-busy={verifyPending}
+            style={{ display: "flex", flexDirection: "column", gap: 20 }}
+          >
             {verifyState?.error && (
               <div
                 style={{
@@ -303,6 +384,7 @@ export default function LoginPage() {
                 autoComplete="one-time-code"
                 required
                 placeholder={tOtp("otpPlaceholder")}
+                disabled={verifyPending || sendPending}
                 style={inputStyle}
               />
             </div>
@@ -313,11 +395,23 @@ export default function LoginPage() {
               className="btn-primary"
               style={{ width: "100%", padding: "14px", justifyContent: "center" }}
             >
-              {verifyPending ? tOtp("verifying") : tOtp("verify")}
+              {verifyPending ? (
+                <>
+                  <Loader2
+                    size={18}
+                    strokeWidth={2.25}
+                    className="animate-spin motion-reduce:animate-none shrink-0"
+                    aria-hidden
+                  />
+                  <span>{tOtp("verifying")}</span>
+                </>
+              ) : (
+                tOtp("verify")
+              )}
             </button>
           </form>
 
-          <form action={sendAction} style={{ margin: 0 }}>
+          <form action={sendAction} aria-busy={sendPending} style={{ margin: 0 }}>
             <input type="hidden" name="email" value={otpEmail} readOnly />
             <button
               type="submit"
@@ -333,16 +427,27 @@ export default function LoginPage() {
                 border: "1px solid var(--border)",
               }}
             >
-              {cooldown > 0
-                ? tOtp("resendWait", { seconds: cooldown })
-                : sendPending
-                  ? tOtp("sendingCode")
-                  : tOtp("resend")}
+              {cooldown > 0 ? (
+                tOtp("resendWait", { seconds: cooldown })
+              ) : sendPending ? (
+                <>
+                  <Loader2
+                    size={16}
+                    strokeWidth={2.25}
+                    className="animate-spin motion-reduce:animate-none shrink-0"
+                    aria-hidden
+                  />
+                  <span>{tOtp("sendingCode")}</span>
+                </>
+              ) : (
+                tOtp("resend")
+              )}
             </button>
           </form>
 
           <button
             type="button"
+            disabled={authBusy}
             onClick={() => {
               setOtpStep("email");
               setCooldown(0);
@@ -352,7 +457,8 @@ export default function LoginPage() {
               color: "var(--text-secondary)",
               background: "none",
               border: "none",
-              cursor: "pointer",
+              cursor: authBusy ? "not-allowed" : "pointer",
+              opacity: authBusy ? 0.55 : 1,
               textAlign: "center",
             }}
           >

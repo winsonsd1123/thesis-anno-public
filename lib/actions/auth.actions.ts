@@ -18,6 +18,23 @@ import { headers } from "next/headers";
 
 export type AuthActionResult = { success: boolean; error?: string };
 
+function isLikelyNetworkError(e: unknown): boolean {
+  const s = String(e).toLowerCase();
+  return (
+    s.includes("fetch failed") ||
+    s.includes("network") ||
+    s.includes("econnreset") ||
+    s.includes("etimedout") ||
+    s.includes("timeout") ||
+    s.includes("socket hang up") ||
+    s.includes("econnrefused") ||
+    s.includes("enotfound") ||
+    s.includes("aborted") ||
+    s.includes("eai_again") ||
+    s.includes("enetunreach")
+  );
+}
+
 async function getRequestOrigin(): Promise<string> {
   const headersList = await headers();
   return headersList.get("x-forwarded-host")
@@ -85,6 +102,10 @@ export async function signUp(
     redirect("/dashboard");
   } catch (e) {
     if (isRedirectError(e)) throw e;
+    const tCommon = await getTranslations("common");
+    if (isLikelyNetworkError(e)) {
+      return { success: false, error: tCommon("networkError") };
+    }
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? "注册失败" : String(e),
@@ -115,6 +136,10 @@ export async function signIn(
     redirect("/dashboard");
   } catch (e) {
     if (isRedirectError(e)) throw e;
+    const tCommon = await getTranslations("common");
+    if (isLikelyNetworkError(e)) {
+      return { success: false, error: tCommon("networkError") };
+    }
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? "登录失败" : String(e),
@@ -149,6 +174,10 @@ export async function sendEmailLoginOtp(
 
     return { success: true };
   } catch (e) {
+    const tCommon = await getTranslations("common");
+    if (isLikelyNetworkError(e)) {
+      return { success: false, error: tCommon("networkError") };
+    }
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? t("errorSendFailed") : String(e),
@@ -184,6 +213,10 @@ export async function verifyEmailLoginOtp(
     redirect("/dashboard");
   } catch (e) {
     if (isRedirectError(e)) throw e;
+    const tCommon = await getTranslations("common");
+    if (isLikelyNetworkError(e)) {
+      return { success: false, error: tCommon("networkError") };
+    }
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? t("errorVerifyFailed") : String(e),
