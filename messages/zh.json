@@ -19,7 +19,28 @@
       "submit": "登录",
       "submitting": "登录中…",
       "noAccount": "还没有账号？",
-      "registerNow": "立即注册"
+      "registerNow": "立即注册",
+      "useEmailCode": "使用邮箱验证码登录",
+      "usePassword": "使用密码登录"
+    },
+    "loginOtp": {
+      "subtitle": "向您的邮箱发送验证码，无需密码即可登录（限已注册邮箱）",
+      "sendCode": "发送验证码",
+      "sendingCode": "发送中…",
+      "codeSentHint": "验证码已发送，请查收邮件（含垃圾箱）",
+      "otpCode": "验证码",
+      "otpPlaceholder": "请输入邮件中的数字",
+      "verify": "验证并登录",
+      "verifying": "验证中…",
+      "resend": "重新发送",
+      "resendWait": "{seconds} 秒后可重新发送",
+      "backEditEmail": "返回修改邮箱",
+      "errorNotRegistered": "该邮箱尚未注册，请先注册",
+      "errorRateLimit": "发送过于频繁，请稍后再试",
+      "errorEmailInvalid": "邮箱格式无效",
+      "errorInvalidCode": "验证码无效或已过期",
+      "errorSendFailed": "发送验证码失败",
+      "errorVerifyFailed": "验证失败"
     },
     "register": {
       "title": "注册 ThesisAI",

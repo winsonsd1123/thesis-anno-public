@@ -1,5 +1,10 @@
 import { authDAL } from "@/lib/dal/auth.dal";
-import type { SignUpInput, SignInInput } from "@/lib/schemas/auth.schema";
+import type {
+  SignUpInput,
+  SignInInput,
+  EmailOtpSendInput,
+  EmailOtpVerifyInput,
+} from "@/lib/schemas/auth.schema";
 
 export const authService = {
   async signUp(input: SignUpInput, origin: string) {
@@ -14,6 +19,26 @@ export const authService = {
   async signInWithOAuth(provider: "google" | "github", origin: string) {
     const redirectTo = `${origin}/auth/callback`;
     return authDAL.signInWithOAuth(provider, redirectTo);
+  },
+
+  /**
+   * 向已注册邮箱发送登录 OTP（不自动创建用户）。
+   * emailRedirectTo 供邮件内魔法链接使用，与 OTP 输入框登录并存。
+   */
+  async sendEmailLoginOtp(input: EmailOtpSendInput, origin: string) {
+    const emailRedirectTo = `${origin}/auth/callback`;
+    return authDAL.signInWithEmailOtp({
+      email: input.email,
+      emailRedirectTo,
+      shouldCreateUser: false,
+    });
+  },
+
+  async verifyEmailLoginOtp(input: EmailOtpVerifyInput) {
+    return authDAL.verifyEmailOtp({
+      email: input.email,
+      token: input.token,
+    });
   },
 
   async signOut() {

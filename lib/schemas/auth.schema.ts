@@ -49,8 +49,23 @@ export const changePasswordInSettingsSchema = z.object({
   confirmNewPassword: z.string().min(1, "请再次输入新密码"),
 });
 
+/** 邮箱验证码登录：发码 */
+export const emailOtpSendSchema = z.object({
+  email: emailSchema,
+});
+
+/** 邮箱验证码登录：验码（Supabase 默认 6 位数字，兼容 6–8 位） */
+export const emailOtpVerifySchema = z.object({
+  email: emailSchema,
+  token: z
+    .string()
+    .regex(/^\d{6,8}$/, "请输入邮件中的数字验证码（6–8 位）"),
+});
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
 export type ChangePasswordInSettingsInput = z.infer<typeof changePasswordInSettingsSchema>;
+export type EmailOtpSendInput = z.infer<typeof emailOtpSendSchema>;
+export type EmailOtpVerifyInput = z.infer<typeof emailOtpVerifySchema>;

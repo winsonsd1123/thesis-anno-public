@@ -19,7 +19,28 @@
       "submit": "Sign in",
       "submitting": "Signing in…",
       "noAccount": "Don't have an account?",
-      "registerNow": "Sign up now"
+      "registerNow": "Sign up now",
+      "useEmailCode": "Sign in with email code",
+      "usePassword": "Sign in with password"
+    },
+    "loginOtp": {
+      "subtitle": "We'll email you a one-time code—no password needed (registered emails only)",
+      "sendCode": "Send code",
+      "sendingCode": "Sending…",
+      "codeSentHint": "Code sent. Check your inbox (and spam).",
+      "otpCode": "Verification code",
+      "otpPlaceholder": "Enter the code from your email",
+      "verify": "Verify and sign in",
+      "verifying": "Verifying…",
+      "resend": "Resend code",
+      "resendWait": "Resend in {seconds}s",
+      "backEditEmail": "Change email",
+      "errorNotRegistered": "This email isn't registered yet. Please sign up first.",
+      "errorRateLimit": "Too many requests. Please try again later.",
+      "errorEmailInvalid": "Invalid email format",
+      "errorInvalidCode": "Invalid or expired code",
+      "errorSendFailed": "Failed to send code",
+      "errorVerifyFailed": "Verification failed"
     },
     "register": {
       "title": "Create ThesisAI Account",

@@ -1,6 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SignUpInput, SignInInput } from "@/lib/schemas/auth.schema";
 
+export type SignInWithEmailOtpParams = {
+  email: string;
+  /** 魔法链接兜底；OTP 邮件通常不依赖此项，但部分项目模板会带链接 */
+  emailRedirectTo?: string;
+  shouldCreateUser?: boolean;
+};
+
+export type VerifyEmailOtpParams = {
+  email: string;
+  token: string;
+};
+
 export const authDAL = {
   async signUp(input: SignUpInput & { redirectTo?: string }) {
     const supabase = await createClient();
@@ -27,6 +39,26 @@ export const authDAL = {
     return supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
+    });
+  },
+
+  async signInWithEmailOtp(params: SignInWithEmailOtpParams) {
+    const supabase = await createClient();
+    return supabase.auth.signInWithOtp({
+      email: params.email,
+      options: {
+        shouldCreateUser: params.shouldCreateUser ?? false,
+        emailRedirectTo: params.emailRedirectTo,
+      },
+    });
+  },
+
+  async verifyEmailOtp(params: VerifyEmailOtpParams) {
+    const supabase = await createClient();
+    return supabase.auth.verifyOtp({
+      email: params.email,
+      token: params.token,
+      type: "email",
     });
   },
 

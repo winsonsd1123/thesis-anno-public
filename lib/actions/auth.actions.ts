@@ -9,12 +9,48 @@ import {
   resetPasswordSchema,
   updatePasswordSchema,
   changePasswordInSettingsSchema,
+  emailOtpSendSchema,
+  emailOtpVerifySchema,
 } from "@/lib/schemas/auth.schema";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 
 export type AuthActionResult = { success: boolean; error?: string };
+
+async function getRequestOrigin(): Promise<string> {
+  const headersList = await headers();
+  return headersList.get("x-forwarded-host")
+    ? `${headersList.get("x-forwarded-proto") ?? "https"}://${headersList.get("x-forwarded-host")}`
+    : headersList.get("origin") ?? "http://localhost:3000";
+}
+
+function mapEmailOtpSendError(raw: string, t: (key: string) => string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("signups not allowed") || lower.includes("signup not allowed")) {
+    return t("errorNotRegistered");
+  }
+  if (lower.includes("rate limit") || lower.includes("too many") || lower.includes("after seconds")) {
+    return t("errorRateLimit");
+  }
+  if (lower.includes("email") && (lower.includes("invalid") || lower.includes("format"))) {
+    return t("errorEmailInvalid");
+  }
+  return raw;
+}
+
+function mapEmailOtpVerifyError(raw: string, t: (key: string) => string): string {
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("expired") ||
+    lower.includes("invalid otp") ||
+    lower.includes("invalid token") ||
+    lower.includes("otp") && lower.includes("invalid")
+  ) {
+    return t("errorInvalidCode");
+  }
+  return raw;
+}
 
 export async function signUp(
   _prev: unknown,
@@ -82,6 +118,75 @@ export async function signIn(
     return {
       success: false,
       error: process.env.NODE_ENV === "production" ? "登录失败" : String(e),
+    };
+  }
+}
+
+export async function sendEmailLoginOtp(
+  _prev: unknown,
+  formData: FormData
+): Promise<AuthActionResult> {
+  const parsed = emailOtpSendSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "校验失败" };
+  }
+
+  const t = await getTranslations("auth.loginOtp");
+
+  try {
+    const origin = await getRequestOrigin();
+    const { error } = await authService.sendEmailLoginOtp(parsed.data, origin);
+
+    if (error) {
+      return {
+        success: false,
+        error: mapEmailOtpSendError(error.message, t),
+      };
+    }
+
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: process.env.NODE_ENV === "production" ? t("errorSendFailed") : String(e),
+    };
+  }
+}
+
+export async function verifyEmailLoginOtp(
+  _prev: unknown,
+  formData: FormData
+): Promise<AuthActionResult> {
+  const parsed = emailOtpVerifySchema.safeParse({
+    email: formData.get("email"),
+    token: formData.get("token"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "校验失败" };
+  }
+
+  const t = await getTranslations("auth.loginOtp");
+
+  try {
+    const { error } = await authService.verifyEmailLoginOtp(parsed.data);
+
+    if (error) {
+      return {
+        success: false,
+        error: mapEmailOtpVerifyError(error.message, t),
+      };
+    }
+
+    redirect("/dashboard");
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
+    return {
+      success: false,
+      error: process.env.NODE_ENV === "production" ? t("errorVerifyFailed") : String(e),
     };
   }
 }
