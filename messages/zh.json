@@ -729,6 +729,22 @@
   "admin": {
     "title": "管理后台",
     "backToDashboard": "返回控制台",
+    "home": {
+      "navOverview": "总览",
+      "eyebrow": "Operations · 仅管理员",
+      "pageTitle": "运营控制台",
+      "pageLead": "关键指标、策略配置与用户服务入口集中呈现；下方卡片与顶栏导航一一对应，便于日常巡检与快速跳转。",
+      "sectionConfigTitle": "配置与策略",
+      "sectionConfigLead": "Prompt、计费、系统开关与教育网申领",
+      "sectionOpsTitle": "用户与服务",
+      "sectionOpsLead": "用户档案、支持工单与站内信编排",
+      "opsUsersTitle": "用户管理",
+      "opsUsersLead": "档案、角色、禁用状态与创建登录账户",
+      "opsTicketsTitle": "工单",
+      "opsTicketsLead": "待处理与历史退款 / 支持工单",
+      "opsMessagesTitle": "用户消息",
+      "opsMessagesLead": "查询已发送信件并撰写新消息"
+    },
     "dashboard": {
       "sectionTitle": "运营概览",
       "sectionLead": "全站汇总指标",

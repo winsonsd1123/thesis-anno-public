@@ -1,9 +1,66 @@
 /* Admin 配置首页：运营看板 + 配置入口 — 与 globals 设计令牌对齐 */
 
 .page {
-  max-width: 56rem;
+  max-width: min(72rem, 100%);
   margin: 0 auto;
   padding: 0 0.25rem 2.5rem;
+}
+
+/* —— 运营控制台页眉 —— */
+
+.homeHero {
+  position: relative;
+  margin-bottom: 2rem;
+  padding: 0.25rem 0 0.25rem 1.25rem;
+}
+
+.homeHeroAccent {
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  width: 4px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--brand) 0%, var(--teal) 55%, var(--accent) 100%);
+  opacity: 0.92;
+}
+
+.homeHeroInner {
+  position: relative;
+  max-width: 42rem;
+}
+
+.homeEyebrow {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.homeTitle {
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+}
+
+.homeLead {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (min-width: 640px) {
+  .homeHero {
+    margin-bottom: 2.25rem;
+    padding-left: 1.5rem;
+  }
 }
 
 .dashboardAnchor {
@@ -168,6 +225,7 @@
 
 .configSection {
   scroll-margin-top: 1rem;
+  margin-bottom: 2.75rem;
 }
 
 .configSectionHeader {
@@ -318,18 +376,167 @@
   line-height: 1;
 }
 
+/* —— 用户 / 工单 / 站内信 —— */
+
+.opsSection {
+  scroll-margin-top: 1rem;
+}
+
+.opsSectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.opsSectionTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin: 0 0 0.4rem;
+}
+
+.opsSectionLead {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 40rem;
+}
+
+.opsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+@keyframes adminOpsCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.opsCard {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.15rem 1.1rem 1.15rem 1rem;
+  border-radius: 0.875rem;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+  animation: adminOpsCardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.opsCard:nth-child(1) {
+  animation-delay: 0.08s;
+}
+.opsCard:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.opsCard:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.opsCard:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .opsCard:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--brand) 28%, var(--border));
+    box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--brand) 10%, transparent);
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-subtle) 100%);
+  }
+
+  .opsCard:hover .opsCardArrow {
+    transform: translateX(3px);
+    color: var(--brand);
+  }
+}
+
+.opsCardMark {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+}
+
+.opsCard[data-area="users"] .opsCardMark {
+  background: var(--brand-bg);
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--border));
+}
+
+.opsCard[data-area="tickets"] .opsCardMark {
+  background: var(--accent-bg);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.opsCard[data-area="messages"] .opsCardMark {
+  background: var(--teal-bg);
+  border-color: color-mix(in srgb, var(--teal) 28%, var(--border));
+}
+
+.opsCardBody {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.opsCardTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.opsCardDesc {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.opsCardArrow {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+  line-height: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .statCard,
-  .configCard {
+  .configCard,
+  .opsCard {
     animation: none !important;
   }
 
   .statCard:hover,
-  .configCard:hover {
+  .configCard:hover,
+  .opsCard:hover {
     transform: none !important;
   }
 
-  .configCard:hover .configCardArrow {
+  .configCard:hover .configCardArrow,
+  .opsCard:hover .opsCardArrow {
     transform: none !important;
   }
 }

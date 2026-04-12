@@ -34,7 +34,7 @@ export default async function AdminLayout({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
           <Link
-            href="/admin/config"
+            href="/admin"
             style={{
               fontFamily: "inherit",
               fontWeight: 700,
@@ -47,10 +47,10 @@ export default async function AdminLayout({
           </Link>
           <nav style={{ display: "flex", gap: 16 }}>
             <Link
-              href="/admin/config"
+              href="/admin"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >
-              {t("config.title")}
+              {t("home.navOverview")}
             </Link>
             <Link
               href="/admin/config/prompts"

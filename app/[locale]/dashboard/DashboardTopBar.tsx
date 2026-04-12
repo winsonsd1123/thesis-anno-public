@@ -100,7 +100,7 @@ export function DashboardTopBar({
             <div className={styles.actions}>
               {grantWindowOpen ? <DashboardEduGrantNavLink emphasized={grantNavEmphasized} /> : null}
               {isAdmin ? (
-                <Link href="/admin/config" className={styles.adminLink}>
+                <Link href="/admin" className={styles.adminLink}>
                   {t("admin")}
                 </Link>
               ) : null}
@@ -174,7 +174,7 @@ export function DashboardTopBar({
               </div>
               {isAdmin ? (
                 <Link
-                  href="/admin/config"
+                  href="/admin"
                   className={clsx(styles.adminLink, styles.drawerAdminLink)}
                   onClick={() => setMenuOpen(false)}
                 >

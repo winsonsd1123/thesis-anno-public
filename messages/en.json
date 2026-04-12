@@ -800,6 +800,22 @@
   "admin": {
     "title": "Admin",
     "backToDashboard": "Back to Dashboard",
+    "home": {
+      "navOverview": "Overview",
+      "eyebrow": "Operations · admin only",
+      "pageTitle": "Operations console",
+      "pageLead": "Metrics, policy config, and user-facing tools in one place. Cards mirror the top navigation for daily checks and fast jumps.",
+      "sectionConfigTitle": "Config & policy",
+      "sectionConfigLead": "Prompts, billing, feature flags, and edu grants",
+      "sectionOpsTitle": "Users & support",
+      "sectionOpsLead": "Directory, tickets, and in-app messaging",
+      "opsUsersTitle": "Users",
+      "opsUsersLead": "Profiles, roles, bans, and account creation",
+      "opsTicketsTitle": "Tickets",
+      "opsTicketsLead": "Pending and historical refund / support tickets",
+      "opsMessagesTitle": "Messages",
+      "opsMessagesLead": "Browse sent mail and compose new messages"
+    },
     "dashboard": {
       "sectionTitle": "Overview",
       "sectionLead": "Site-wide metrics (admin only)",

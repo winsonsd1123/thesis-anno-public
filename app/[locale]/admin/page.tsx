@@ -1,7 +1,5 @@
-import { redirect } from "@/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { AdminHomePage } from "./AdminHomePage";
 
-export default async function AdminIndexPage() {
-  const locale = await getLocale();
-  redirect({ href: "/admin/config", locale });
+export default function AdminIndexPage() {
+  return <AdminHomePage />;
 }
