@@ -8,6 +8,23 @@ import {
   type StageAgentStatus,
 } from "@/lib/types/review";
 
+export const REVIEW_ADMIN_LIST_LIMIT = 500;
+
+function sanitizeEmailSubstr(raw: string): string {
+  return raw.trim().replace(/[%_\\]/g, "");
+}
+
+export type AdminReviewListRow = {
+  id: number;
+  user_id: string;
+  file_name: string | null;
+  status: string;
+  completed_at: string | null;
+  updated_at: string;
+  created_at: string;
+  user_email: string;
+};
+
 /**
  * 仅用于无用户 JWT 的后台任务（如 Trigger.dev）更新审阅行。
  * 禁止在用户会话路径中调用 —— 用户写操作应走 review.dal + RLS。
@@ -174,8 +191,8 @@ export const reviewAdminDAL = {
     const supabase = createAdminClient();
     const { error } = await supabase.rpc("admin_partial_refund_review_stage", {
       p_review_id: reviewId,
-      p_agent:     agent,
-      p_reason:    reason ?? null,
+      p_agent: agent,
+      p_reason: reason ?? null,
     });
     if (error) {
       console.error(`PARTIAL_REFUND_STAGE[${agent}] review=${reviewId}:`, error.message);
@@ -191,11 +208,88 @@ export const reviewAdminDAL = {
     const supabase = createAdminClient();
     const { error } = await supabase.rpc("admin_full_refund_processing_review", {
       p_review_id: reviewId,
-      p_reason:    reason ?? null,
+      p_reason: reason ?? null,
     });
     if (error) {
       console.error(`FULL_REFUND review=${reviewId}:`, error.message);
       throw new Error(`FULL_REFUND: ${error.message}`);
     }
+  },
+
+  /**
+   * 运营后台列表：不含 result；按完成时间倒序，再以更新时间倒序。
+   */
+  async listReviewsForAdmin(filters: { emailSubstr?: string }): Promise<AdminReviewListRow[]> {
+    const supabase = createAdminClient();
+
+    const emailPart = filters.emailSubstr ? sanitizeEmailSubstr(filters.emailSubstr) : "";
+    let userIdFilter: string[] | null = null;
+
+    if (emailPart.length > 0) {
+      const { data: dirRows, error: dirErr } = await supabase
+        .from("admin_user_directory")
+        .select("id")
+        .ilike("email", `%${emailPart}%`)
+        .limit(500);
+      if (dirErr) throw new Error(`REVIEW_ADMIN_DIR: ${dirErr.message}`);
+      userIdFilter = (dirRows ?? []).map((r) => (r as { id: string }).id).filter(Boolean);
+      if (userIdFilter.length === 0) return [];
+    }
+
+    let q = supabase
+      .from("reviews")
+      .select("id, user_id, file_name, status, completed_at, updated_at, created_at")
+      .order("completed_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .limit(REVIEW_ADMIN_LIST_LIMIT);
+
+    if (userIdFilter) {
+      q = q.in("user_id", userIdFilter);
+    }
+
+    const { data, error } = await q;
+    if (error) throw new Error(`REVIEW_ADMIN_LIST: ${error.message}`);
+
+    const rows = (data ?? []) as Record<string, unknown>[];
+    const userIds = [...new Set(rows.map((r) => String(r.user_id ?? "")).filter(Boolean))];
+    const emailByUserId = new Map<string, string>();
+
+    if (userIds.length > 0) {
+      const { data: emails, error: eErr } = await supabase
+        .from("admin_user_directory")
+        .select("id, email")
+        .in("id", userIds);
+      if (eErr) throw new Error(`REVIEW_ADMIN_EMAILS: ${eErr.message}`);
+      for (const row of emails ?? []) {
+        const o = row as { id: string; email: string | null };
+        emailByUserId.set(o.id, o.email ?? "");
+      }
+    }
+
+    return rows.map((r) => {
+      const user_id = String(r.user_id ?? "");
+      return {
+        id: Number(r.id),
+        user_id,
+        file_name: (r.file_name as string | null) ?? null,
+        status: String(r.status ?? ""),
+        completed_at: (r.completed_at as string | null) ?? null,
+        updated_at: String(r.updated_at ?? ""),
+        created_at: String(r.created_at ?? ""),
+        user_email: emailByUserId.get(user_id) ?? "—",
+      };
+    });
+  },
+
+  async getUserEmailForAdmin(userId: string): Promise<string> {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("admin_user_directory")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(`REVIEW_ADMIN_USER_EMAIL: ${error.message}`);
+    const email = (data as { email: string | null } | null)?.email;
+    return email?.trim() ? email : "—";
   },
 };

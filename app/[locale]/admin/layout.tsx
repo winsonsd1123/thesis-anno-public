@@ -77,6 +77,12 @@ export default async function AdminLayout({
               {t("config.eduGrant")}
             </Link>
             <Link
+              href="/admin/reviews"
+              style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              {t("reviews.navLabel")}
+            </Link>
+            <Link
               href="/admin/order-query"
               style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none" }}
             >

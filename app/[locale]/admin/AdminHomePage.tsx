@@ -130,6 +130,16 @@ export async function AdminHomePage() {
         </header>
 
         <div className={styles.opsGrid}>
+          <Link href="/admin/reviews" className={styles.opsCard} data-area="reviews">
+            <span className={styles.opsCardMark} aria-hidden />
+            <div className={styles.opsCardBody}>
+              <div className={styles.opsCardTitle}>{th("opsReviewsTitle")}</div>
+              <div className={styles.opsCardDesc}>{th("opsReviewsLead")}</div>
+            </div>
+            <span className={styles.opsCardArrow} aria-hidden>
+              →
+            </span>
+          </Link>
           <Link href="/admin/order-query" className={styles.opsCard} data-area="order-query">
             <span className={styles.opsCardMark} aria-hidden />
             <div className={styles.opsCardBody}>
