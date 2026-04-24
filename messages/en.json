@@ -1,7 +1,19 @@
 {
   "seo": {
     "homeTitle": "ThesisAI · AI thesis review",
-    "homeDescription": "Multi-agent collaboration for format, logic, and references—structured pre-review reports in minutes."
+    "homeDescription": "Multi-agent collaboration for format, logic, and references—structured pre-review reports in minutes.",
+    "docsTitle": "Docs · ThesisAI",
+    "docsDescription": "Upload limits, review flow, billing, and export notes.",
+    "gradingStandardsTitle": "Grading standards · ThesisAI",
+    "gradingStandardsDescription": "What each review dimension covers (format, logic, references, optional AI-trace hints).",
+    "sampleReportTitle": "Sample report · ThesisAI",
+    "sampleReportDescription": "Report layout, exports, and advisory scope.",
+    "aboutTitle": "About · ThesisAI",
+    "aboutDescription": "What ThesisAI is and how to reach us.",
+    "privacyTitle": "Privacy · ThesisAI",
+    "privacyDescription": "High-level privacy and data handling summary.",
+    "termsTitle": "Terms · ThesisAI",
+    "termsDescription": "High-level terms of service summary."
   },
   "common": {
     "email": "Email",
@@ -332,32 +344,26 @@
     "footer": {
       "slogan": "AI thesis pre-review: Word-native upload, chat-based configuration, multi-agent collaboration, and transparent credits per agent.",
       "product": "Product",
-      "productLinks": [
-        "Features",
-        "Workflow",
-        "Pricing",
-        "Sample Report"
+      "productItems": [
+        { "key": "features", "label": "Features" },
+        { "key": "workflow", "label": "Workflow" },
+        { "key": "pricing", "label": "Pricing" },
+        { "key": "sampleReport", "label": "Sample Report" }
       ],
       "resources": "Resources",
-      "resourceLinks": [
-        "Docs",
-        "Standards",
-        "Changelog",
-        "API"
+      "resourceItems": [
+        { "key": "docs", "label": "Docs" },
+        { "key": "gradingStandards", "label": "Standards" }
       ],
       "about": "About",
-      "aboutLinks": [
-        "About Us",
-        "Contact",
-        "Privacy",
-        "Terms"
+      "aboutItems": [
+        { "key": "about", "label": "About Us" },
+        { "key": "contact", "label": "Contact" },
+        { "key": "privacy", "label": "Privacy" },
+        { "key": "terms", "label": "Terms" }
       ],
       "copyright": "© 2026 ThesisAI. All rights reserved.",
-      "social": [
-        "WeChat",
-        "Xiaohongshu",
-        "Zhihu"
-      ]
+      "socialLabels": ["WeChat", "Xiaohongshu", "Zhihu"]
     },
     "socialProof": {
       "stats": [
@@ -384,6 +390,137 @@
           "name": "Li",
           "school": "Zhejiang Univ. · Bachelor",
           "text": "Uploading docx and toggling modules in chat feels natural. Exporting Markdown back into Word for formatting tweaks is quick."
+        }
+      ]
+    }
+  },
+  "marketing": {
+    "docs": {
+      "title": "Documentation",
+      "backHome": "Back to home",
+      "intro": "ThesisAI is a Word (.docx) pre-review workflow for Chinese theses: after upload, you confirm degree type and review modules in chat; credits are charged per selected modules and word bands, then you get a structured report.",
+      "sections": [
+        {
+          "title": "Account & entry",
+          "body": "Create an account from the sign-up page and verify your email, then sign in to the dashboard. Edu users may claim trial credits on the billing page when the campaign is open (follow on-page hints)."
+        },
+        {
+          "title": "Upload & file requirements",
+          "body": "Upload .docx only, up to 50MB per file. MVP targets Chinese university theses (bachelor/master/PhD) within the configured character cap (around 120k Chinese characters—see in-app prompts). PDF upload is not supported yet."
+        },
+        {
+          "title": "Review flow",
+          "body": "Upload → confirm thesis type and enabled modules in chat → check the cost estimate → start the run. Jobs execute in the background; runtime depends on length and modules, often within minutes. Track progress and per-dimension output in the dashboard."
+        },
+        {
+          "title": "Credits & billing",
+          "body": "Prepaid credits: only enabled modules are charged using word-band pricing; failed modules may refund credits per policy (see FAQ). Purchased credits do not expire."
+        },
+        {
+          "title": "Reports & export",
+          "body": "Results are grouped by dimension. Export a Markdown bundle for Word/Notion workflows; for a fixed-layout PDF, use your browser’s print-to-PDF."
+        },
+        {
+          "title": "Support & tickets",
+          "body": "For refund edge cases or stuck jobs, use the in-dashboard support path; operators may coordinate via tickets when needed."
+        }
+      ]
+    },
+    "gradingStandards": {
+      "title": "Grading standards",
+      "backHome": "Back to home",
+      "intro": "User-facing notes for each dimension. Output is advisory pre-review—not a substitute for school or advisor review. Checks may vary slightly by configuration and thesis type.",
+      "sections": [
+        {
+          "title": "Format & layout",
+          "body": "Rule-based checks against common school or GB/T-style expectations (heading levels, paragraph conventions, captions, headers/footers). You can add natural-language format notes in chat to steer format review."
+        },
+        {
+          "title": "Logic & argument",
+          "body": "Highlights possible reasoning gaps, weak evidence, or terminology drift across sections to help you self-edit before submission."
+        },
+        {
+          "title": "References",
+          "body": "Consistency of citation style and completeness of bibliographic fields; optional web-assisted checks compare entries to public sources (coverage depends on data sources—verify critical references manually)."
+        },
+        {
+          "title": "AI-trace (optional)",
+          "body": "Flags paragraphs that may read overly templated or machine-like for you to rewrite; it is not an academic-misconduct determination."
+        }
+      ]
+    },
+    "sampleReport": {
+      "title": "Sample report",
+      "backHome": "Back to home",
+      "intro": "Primary flow is “sign in and upload your thesis.” This page explains how finished reports are organized. For a redacted sample PDF, ask operations via the in-dashboard support channel.",
+      "sections": [
+        {
+          "title": "Structure",
+          "body": "Completed reports use tabs per dimension (format, logic, references, optional AI-trace, etc.) with module status so you can edit item by item."
+        },
+        {
+          "title": "Export",
+          "body": "Export Markdown in one click; use browser print-to-PDF when you need a PDF snapshot."
+        },
+        {
+          "title": "Scope & disclaimer",
+          "body": "ThesisAI provides pre-submission guidance, not institutional approval. Models and data sources have limits—verify citations, facts, and policy-sensitive statements yourself."
+        }
+      ]
+    },
+    "about": {
+      "title": "About us",
+      "backHome": "Back to home",
+      "intro": "ThesisAI focuses on Chinese thesis pre-review in Word: multiple agents collaborate on format, logic, references, and related dimensions with readable, exportable output.",
+      "body": "We iterate on models, orchestration, billing, and support workflows for real campus use. The product is an editing aid—not a replacement for formal review.",
+      "contactHeading": "Contact",
+      "contactEmailLead": "For business or partnerships, email:",
+      "contactNoEmail": "If no public mailbox is configured, sign in and reach us via the dashboard support entry (including ticket flows).",
+      "contactWechatNote": "Social channels, if any, appear in signed-in hints or announcements."
+    },
+    "privacy": {
+      "title": "Privacy (summary)",
+      "backHome": "Back to home",
+      "intro": "Plain-language summary only—not a full legal document. Replace with counsel-approved text before relying on it in production.",
+      "sections": [
+        {
+          "title": "What we collect",
+          "body": "Account data (e.g., email), thesis files you upload, review/billing records, and logs needed for security and troubleshooting (with automated masking of sensitive fields)."
+        },
+        {
+          "title": "How we use it",
+          "body": "To run reviews, handle billing and support, improve reliability and safety, and comply with law. Thesis content is used to complete the requested job within the retention window—not for model training or public display unless required by law."
+        },
+        {
+          "title": "Storage & security",
+          "body": "HTTPS in transit; data stored in controlled cloud environments with least-privilege access. Use dashboard features to manage or delete your jobs where available."
+        },
+        {
+          "title": "Contact",
+          "body": "Privacy questions: use the dashboard support path or the public contact email when published."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms (summary)",
+      "backHome": "Back to home",
+      "intro": "Plain-language summary only—not a full legal agreement. Replace with counsel-approved terms for production.",
+      "sections": [
+        {
+          "title": "Nature of the service",
+          "body": "ThesisAI offers automated pre-review guidance. Output is informational and not degree certification, academic evaluation, or legal advice."
+        },
+        {
+          "title": "Account & acceptable use",
+          "body": "You are responsible for account activity. Do not attack or abuse the service or upload unlawful or infringing content."
+        },
+        {
+          "title": "Credits & billing",
+          "body": "Purchase and consumption rules follow billing pages, run confirmations, and backend configuration; refunds for failed modules follow implemented policy and notices."
+        },
+        {
+          "title": "Limitation of liability",
+          "body": "To the extent permitted by law, we are not liable for indirect or consequential damages from using or being unable to use the service; model errors and third-party data outages mean the service is provided as-is."
         }
       ]
     }
