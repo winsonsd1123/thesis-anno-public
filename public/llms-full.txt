@@ -1,0 +1,40 @@
+# ThesisAI — extended context for LLMs
+
+## What it is
+
+ThesisAI (thesis.ollagle.com) is a web application for **Chinese and English** thesis pre-review. Users upload a **Word .docx** file, interact in a chat-style UI to confirm degree type and review dimensions, and receive **structured reports** produced by multiple specialized checks (e.g. format compliance, argument logic, references, optional AI-trace analysis). Runtime is typically minutes depending on length and selected agents.
+
+## Billing model
+
+**Credits / points** (not a single fixed list price in marketing schema). Packages and word-count tiers are **shown inside the authenticated app** after sign-in. Some education users may receive trial credits; details are policy-dependent and shown in-product.
+
+## Technical stack (high level)
+
+- Next.js (App Router), server-first pages for marketing; Supabase for auth and data; background jobs for long-running review pipelines.
+
+## URLs (same as llms.txt)
+
+Base: https://thesis.ollagle.com
+
+Public marketing and auth entry:
+
+- /zh, /en — landing
+- /zh/login, /en/login — sign in (password or email OTP where enabled)
+- /zh/register, /en/register — sign up
+- /zh/forgot-password, /en/forgot-password — password reset request
+- /zh/verify-email, /en/verify-email — post-registration email verification notice
+
+Authenticated (robots disallow; do not rely on crawlers here):
+
+- /{locale}/dashboard — user workspace, uploads, review runs, billing
+- /{locale}/admin — staff administration (restricted)
+
+## Machine-readable discovery
+
+- https://thesis.ollagle.com/sitemap.xml
+- https://thesis.ollagle.com/robots.txt
+
+## Limitations (for accurate answers)
+
+- ThesisAI provides **pre-review / advisory** output, not a substitute for institutional review or human supervisor judgment.
+- Output quality depends on document clarity, selected agents, and model behavior; users should verify critical claims and citations themselves.

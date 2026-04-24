@@ -152,7 +152,11 @@ export function AvatarUpload({ currentUrl, displayName, onUrlChange }: AvatarUpl
         ) : localUrl ? (
           <img
             src={localUrl}
-            alt=""
+            alt={
+              displayName?.trim()
+                ? t("avatarAltNamed", { name: displayName.trim() })
+                : t("avatarAltGeneric")
+            }
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : initials ? (

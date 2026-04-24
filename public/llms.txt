@@ -1,0 +1,25 @@
+# ThesisAI
+
+> AI-driven thesis pre-review: upload Word (.docx), confirm scope in chat, receive structured reports (format, logic, references, optional AI-trace). Credit-based billing; tiers shown in-app.
+
+## Site
+
+- Production: https://thesis.ollagle.com
+- Locales: `/zh` (default), `/en`
+
+## Public pages (crawl-friendly)
+
+- https://thesis.ollagle.com/zh
+- https://thesis.ollagle.com/en
+- https://thesis.ollagle.com/zh/login | /en/login
+- https://thesis.ollagle.com/zh/register | /en/register
+- https://thesis.ollagle.com/zh/forgot-password | /en/forgot-password
+- https://thesis.ollagle.com/zh/verify-email | /en/verify-email
+
+## Not for indexing
+
+- `/zh/dashboard`, `/en/dashboard`, `/zh/admin`, `/en/admin`, and auth recovery flows are disallowed in robots.txt.
+
+## More detail
+
+- See /llms-full.txt on this host for product summary and pointers to documentation.

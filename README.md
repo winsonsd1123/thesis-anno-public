@@ -146,6 +146,9 @@ pnpm install
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# 站点绝对地址（sitemap、robots、canonical、JSON-LD；生产示例：https://thesis.ollagle.com）
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # Trigger.dev

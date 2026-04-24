@@ -1,4 +1,8 @@
 {
+  "seo": {
+    "homeTitle": "ThesisAI · AI thesis review",
+    "homeDescription": "Multi-agent collaboration for format, logic, and references—structured pre-review reports in minutes."
+  },
   "common": {
     "email": "Email",
     "password": "Password",
@@ -100,7 +104,7 @@
       "title1": "Mentor-Level AI",
       "title2": "Guards Your",
       "title3": "Thesis",
-      "subtitle": "Upload a Word (.docx) file, confirm scope in chat, then let specialized agents work in parallel. Pricing follows your selections and word-count tier (shown in-app); structured reports usually arrive within minutes.",
+      "subtitle": "Upload a Word (.docx) file, confirm scope in chat, then let specialized agents work in parallel. Pricing follows your selections and word-count tier (shown in-app); structured reports usually arrive within minutes. Reviews surface actionable notes across layout semantics, argument flow, reference style, and optional AI-trace hints so you can revise before submission—the output is advisory guidance, not a substitute for institutional or journal peer review.",
       "stat1": "< 5min",
       "stat1Label": "Typical runtime",
       "stat2": "4",
@@ -287,7 +291,7 @@
     "faq": {
       "badge": "FAQ",
       "title": "You might ask",
-      "subtitle": "Questions? You may find answers here",
+      "subtitle": "Questions? This section covers supported thesis types and upload limits, credit expiry, privacy and data handling, failure/refund behavior, exporting reports, and payment methods—quick checks before you sign up or start a run. If something is not covered, use the in-dashboard support path to reach operations.",
       "items": [
         {
           "q": "What thesis types are supported?",
@@ -454,6 +458,8 @@
     },
     "profileForm": {
       "avatar": "Avatar",
+      "avatarAltNamed": "Avatar for {name}",
+      "avatarAltGeneric": "User avatar",
       "uploadAvatar": "Upload avatar",
       "uploadingAvatar": "Uploading…",
       "errorLogin": "Please log in first",

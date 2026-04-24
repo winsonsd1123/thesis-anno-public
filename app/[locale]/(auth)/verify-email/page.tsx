@@ -1,5 +1,20 @@
+import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
+import { buildPublicPageMetadata } from "@/lib/seo-metadata";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.verifyEmail" });
+  return {
+    title: t("title"),
+    ...buildPublicPageMetadata({ locale, pathAfterLocale: "verify-email" }),
+  };
+}
 
 export default async function VerifyEmailPage() {
   const t = await getTranslations("auth.verifyEmail");
